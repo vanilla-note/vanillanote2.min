@@ -1,0 +1,50 @@
+{
+  "name": "vanillanote2",
+  "version": "1.0.0",
+  "description": "A simple editor using only Vanilla JS and ES5 syntax.",
+  "main": "dist/Vanillanote.bundle.js",
+  "module": "dist/Vanillanote.bundle.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    "import": "./dist/Vanillanote.bundle.js",
+    "require": "./dist/Vanillanote.bundle.cjs",
+    "default": "./dist/Vanillanote.bundle.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && webpack",
+    "lint": "eslint 'src/**/*.ts'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vanilla-note/vanillanote2.min.git"
+  },
+  "keywords": [
+    "editor",
+    "note",
+    "vanillanote",
+    "WYSIWYG Editor",
+    "WYSIWYG"
+  ],
+  "author": "Hani Son",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vanilla-note/vanillanote2.min/issues"
+  },
+  "homepage": "https://vanilla-note.github.io/",
+  "devDependencies": {
+    "@babel/core": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/preset-typescript": "^7.26.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "babel-loader": "^8.4.1",
+    "eslint": "^8.57.1",
+    "typescript": "^5.8.2",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^4.0.0"
+  }
+}
