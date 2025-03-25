@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+      "baseUrl": "./src",
+      "paths": {
+        "@types/*": ["types/*"],
+        "@core/*": ["core/*"],
+        "@utils/*": ["utils/*"],
+        "@events/*": ["events/*"],
+        "@renderer/*": ["renderer/*"],
+        "@editor/*": ["editor/*"]
+      },
+      "declaration": true,
+      "emitDeclarationOnly": true,
+      "outDir": "dist/types",
+      "target": "ES6",
+      "module": "ESNext",
+      "moduleResolution": "node",
+      "strict": true,
+      "noImplicitThis": false,
+      "rootDir": "src",
+      "esModuleInterop": true,
+      "allowJs": true,
+      "lib": ["ES2021","DOM","DOM.Iterable"]
+    },
+    "include": ["src/**/*.ts"]
+}
