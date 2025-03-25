@@ -1,4 +1,4 @@
-import { LogMode } from './enum'
+import { LogMode, ToolPositions } from './enums'
 
 /**
  * Runtime variables and settings that manage editor creation and behavior.
@@ -10,12 +10,12 @@ import { LogMode } from './enum'
  *   vn.variables.attFileMaxSizes[0] = 50 * 1024 * 1024; // Increase max upload size on mobile
  * }
  */
-export interface Variable {
+export interface Variables {
 	isCreated: boolean;
 	/**
 	 * - A mode to view Logs, used for development. When Logs are printed, the event and target information are displayed.
 	 */
-	logMode: LogMode.DEBUG | LogMode.ERROR | LogMode.INFO;
+	logMode: LogMode.debug | LogMode.error | LogMode.info;
 	observerOptions: {
 		characterData: boolean,
 		childList: boolean,
@@ -50,7 +50,7 @@ export interface Variable {
     /**
      * Position of the toolbox. Above or below.
      */
-	toolPositions: string;
+	toolPositions: ToolPositions.top | ToolPositions.bottom;
     /**
      * The number of initial rows in the toolbox
      */
@@ -159,5 +159,5 @@ export interface Variable {
 	 * - `'KOR'` : Sets the language of the note to Korean.
 	 * - `'...'` : Can be used after being defined in .languageSet.
 	 */
-	languages: string;
+	language: string;
 }

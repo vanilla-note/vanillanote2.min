@@ -1,7 +1,7 @@
-import { Css, Color } from './css'
-import { documentEvent } from './event';
+import { Csses, Colors } from './csses'
+import { documentEvents } from './events';
 import { LanguageSet } from './language'
-import { Variable } from './var';
+import { Variables } from './variables';
 
 /**
  * The core object of the Vanillanote editor project.
@@ -20,14 +20,14 @@ export interface VanillanoteConfig {
      * - CSS selectors are generated in the format: `.vanillanote_[index]_[css-key] { ... }`
      * - Values are defined as key-value pairs and can be customized before creation using `vanillanote_onBeforeCreate()`.
      */
-	csses: Css;
+	csses: Csses;
 	/**
 	 * Color schemes for the editor's UI components.
 	 * - 20 predefined color sets, each defined as an array for multi-editor customization.
 	 * - Used for styling icons, backgrounds, text colors, borders, and modals.
 	 * - Can be customized per editor instance for unique appearances.
 	 */
-	colors: Color;
+	colors: Colors;
 	/**
 	 * Language set definitions for editor internationalization.
 	 * - Allows setting tooltip texts, button labels, modal messages, and other UI strings.
@@ -51,11 +51,40 @@ export interface VanillanoteConfig {
 	 *   vn.variables.attFileMaxSizes[0] = 50 * 1024 * 1024; // Increase max upload size on mobile
 	 * }
 	 */
-	variables: Variable;
+	variables: Variables;
+    /**
+     * A hook function called before displaying alert dialogs in the editor.
+     * - Receives the alert message as a parameter.
+     * - If this function returns `false`, the default `window.alert()` call will be prevented.
+     * - Useful for customizing alert dialogs (e.g., replacing with custom modals or toast notifications).
+     *
+     * @param message - The alert message.
+     * @returns `false` to suppress the default alert; `true` or undefined to allow it.
+     *
+     * @example
+     * vn._beforeAlert = function(message) {
+     *   // Custom alert logic here
+     *   showCustomPopup(message);
+     *   return false; // Prevent default alert
+     * };
+     */
+	beforeAlert(message: string): boolean;
+}
+
+export interface Vanillanote extends VanillanoteConfig{
+	/**
+     * Critical constants required for the editor’s internal logic.
+     * Modifying these values may cause severe errors and is not recommended.
+     */
+	consts: Consts;
+    /**
+     * Keyframe animation definitions used within the editor’s UI.
+     */
+	keyframes: Keyframes;
     /**
      * Stores registered event handlers, allowing runtime tracking and dynamic removal if necessary.
      */
-	eventStore: documentEvent;
+	documentEvents: documentEvents;
 	/**
 	 * Retrieves a `VanillanoteElement` from the DOM by either its auto-assigned index or a custom `data-id` attribute.
 	 *
@@ -101,24 +130,11 @@ export interface VanillanoteConfig {
 	 * - Ensure that the DOM contains an editor with the matching index or ID; otherwise, `undefined` may be returned.
 	 */
 	get(noteId: string): Vanillanote | null;
-    /**
-     * A hook function called before displaying alert dialogs in the editor.
-     * - Receives the alert message as a parameter.
-     * - If this function returns `false`, the default `window.alert()` call will be prevented.
-     * - Useful for customizing alert dialogs (e.g., replacing with custom modals or toast notifications).
-     *
-     * @param message - The alert message.
-     * @returns `false` to suppress the default alert; `true` or undefined to allow it.
-     *
-     * @example
-     * vn._beforeAlert = function(message) {
-     *   // Custom alert logic here
-     *   showCustomPopup(message);
-     *   return false; // Prevent default alert
-     * };
-     */
-	_beforeAlert(message: string): boolean;
+
+	create(element: HTMLElement):void;
+	destroy(element: HTMLElement):void;
 }
+
 /**
  * Represents a DOM element rendered by Vanillanote.
  * 
@@ -127,7 +143,7 @@ export interface VanillanoteConfig {
  * - You can retrieve editor elements by custom attributes like `data-id`.
  * - This interface extends `HTMLElement` and adds three utility methods that allow you to retrieve the editor's internal data and reference objects.
  */
-export interface Vanillanote extends HTMLElement {
+export interface VanillanoteElement extends HTMLDivElement {
 	/**
 	 * Returns the data object of the current Vanillanote editor instance.
 	 *
@@ -155,7 +171,6 @@ export interface Vanillanote extends HTMLElement {
 	  textarea: HTMLElement;
 	  files: Record<string, File>;
 	};
-  
 	/**
 	 * Returns the automatically assigned index of this editor.
 	 *
@@ -171,20 +186,5 @@ export interface Vanillanote extends HTMLElement {
 	 * console.log(index); // 0
 	 */
 	getNoteIndex(): number;
-  
-	/**
-	 * Returns the global Vanillanote object used by all editor instances on the page.
-	 *
-	 * - The returned object is shared across all Vanillanote instances created on the same page.
-	 * - Can be used for dynamic control, state inspection, or additional runtime interaction.
-	 * - The same object is returned regardless of which editor element calls this method.
-	 *
-	 * @returns The global Vanillanote object instance.
-	 *
-	 * @example
-	 * const editorEl = document.querySelectorAll('[data-vanillanote]')[0];
-	 * const vanillanoteInstance = editorEl.getNote();
-	 * console.log(vanillanoteInstance); // Shared Vanillanote object
-	 */
-	getNote(): Vanillanote;
+
 }

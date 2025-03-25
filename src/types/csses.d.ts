@@ -4,7 +4,7 @@
  * - Supports dynamic styling for states like mouseover, mouseout, focus, and more.
  * - Styles are defined as key-value objects, and custom styles can be set in `vanillanote_onBeforeCreate()`.
  */
-export interface Css {
+export interface Csses {
 	/**
 	 * CSS for the h1 tag inserted into the editor's textarea.
 	 */
@@ -333,7 +333,7 @@ export interface Css {
  * - Used for styling icons, backgrounds, text colors, borders, and modals.
  * - Can be customized per editor instance for unique appearances.
  */
-export interface Color {
+export interface Colors {
 	/**
 	 * filled color(icon)
 	 */
