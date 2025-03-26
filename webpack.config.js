@@ -1,12 +1,12 @@
 import path from 'path';
 
 export default {
-  entry: './src/Vanillanote.ts',
+  entry: './src/index.ts',
   output: {
-    filename: 'Vanillanote.bundle.js',
+    filename: 'Vanillanote2.bundle.js',
     path: path.resolve(process.cwd(), 'dist'),
     library: {
-      name: 'Vanillanote',
+      name: 'Vanillanote2',
       type: 'umd'
     },
     globalObject: "typeof self !== 'undefined' ? self : typeof global !== 'undefined' ? global : this",
