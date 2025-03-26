@@ -1,0 +1,410 @@
+
+/**
+* setAttTempFileValid
+* @description Filters and keeps only valid files in the attTempFiles object of the specified note.
+* @param {number} noteIndex - The index of the note where the attTempFiles object needs to be filtered.
+*/
+var setAttTempFileValid = function(noteIndex: number) {
+    var newAttTempFiles: any = new Object;
+    var keys = Object.keys(vn.variables.attTempFiles[noteIndex]);
+    for(var i = 0; i < keys.length; i++) {
+        if(vn.variables.attFileAcceptTypes[noteIndex].length > 0) {
+            if(vn.variables.attFileAcceptTypes[noteIndex].includes(vn.variables.attTempFiles[noteIndex][keys[i]].type)) {
+                newAttTempFiles[keys[i]] = vn.variables.attTempFiles[noteIndex][keys[i]];
+            }
+        }
+        else {
+            newAttTempFiles[keys[i]] = vn.variables.attTempFiles[noteIndex][keys[i]];
+        }
+        
+        if(!newAttTempFiles[keys[i]]) continue;
+        
+        if(vn.variables.attFilePreventTypes[noteIndex].includes(newAttTempFiles[keys[i]].type)) {
+            showAlert("[" + newAttTempFiles[keys[i]].name + "] " + vn.languageSet[vn.variables.languages[noteIndex]].attPreventType);
+            delete newAttTempFiles[keys[i]];
+        }
+        else if(newAttTempFiles[keys[i]].size >= vn.variables.attFileMaxSizes[noteIndex]) {
+            showAlert("[" + newAttTempFiles[keys[i]].name + "] " + vn.languageSet[vn.variables.languages[noteIndex]].attOverSize);
+            delete newAttTempFiles[keys[i]];
+        }
+    }
+    vn.variables.attTempFiles[noteIndex] = newAttTempFiles;
+};
+
+/**
+* setAttFileUploadDiv
+* @description Sets up the attFileUploadDiv for the specified note.
+* @param {number} noteIndex - The index of the note for which the attFileUploadDiv needs to be set up.
+*/
+var setAttFileUploadDiv = function(noteIndex: number) {
+    if((vn.variables.attTempFiles[noteIndex] as any).length <= 0) {
+        vn.elements.attFileUploadDivs[noteIndex].style.removeProperty("line-height");
+        vn.elements.attFileUploadDivs[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].attFileUploadDiv;
+        return;
+    } else {
+        vn.elements.attFileUploadDivs[noteIndex].style.lineHeight = "unset";
+    }
+    vn.elements.attFileUploadDivs[noteIndex].replaceChildren();
+    
+    var keys = Object.keys(vn.variables.attTempFiles[noteIndex]);
+    var tempEl;
+    for(var i = 0; i < keys.length; i++) {
+        tempEl = getElement(
+            vn.variables.attTempFiles[noteIndex][keys[i]].name,
+            "P",
+            "display:block;padding:0.5em 0;",
+            {
+                "title":vn.languageSet[vn.variables.languages[noteIndex]].attFileListTooltip,
+                "uuid":keys[i]
+            }
+        );
+        vn.elements.attFileUploadDivs[noteIndex].appendChild(tempEl);
+    }
+};
+
+/**
+* setAttTempImageValid
+* @description Filters the attTempImages to keep only valid image files.
+* @param {number} noteIndex - The index of the note for which the attTempImages need to be filtered.
+*/
+var setAttTempImageValid = function(noteIndex: number) {
+    var newAttTempImages: any = new Object;
+    var keys = Object.keys(vn.variables.attTempImages[noteIndex]);
+    for(var i = 0; i < keys.length; i++) {
+        if(vn.variables.attImageAcceptTypes[noteIndex].length > 0) {
+            if(vn.variables.attImageAcceptTypes[noteIndex].includes(vn.variables.attTempImages[noteIndex][keys[i]].type)) {
+                newAttTempImages[keys[i]] = vn.variables.attTempImages[noteIndex][keys[i]];
+            }
+        }
+        else {
+            newAttTempImages[keys[i]] = vn.variables.attTempImages[noteIndex][keys[i]];
+        }
+        
+        if(!newAttTempImages[keys[i]]) continue;
+        
+        if(vn.variables.attImagePreventTypes[noteIndex].includes(newAttTempImages[keys[i]].type)) {
+            showAlert("[" + newAttTempImages[keys[i]].name + "] " + vn.languageSet[vn.variables.languages[noteIndex]].attPreventType);
+            delete newAttTempImages[keys[i]];
+        }
+        else if(newAttTempImages[keys[i]].size >= vn.variables.attImageMaxSizes[noteIndex]) {
+            showAlert("[" + newAttTempImages[keys[i]].name + "] " + vn.languageSet[vn.variables.languages[noteIndex]].attOverSize);
+            delete newAttTempImages[keys[i]];
+        }
+    }
+    vn.variables.attTempImages[noteIndex] = newAttTempImages;
+};
+
+/**
+* setAttImageUploadAndView
+* @description Sets up the attImageUploadAndView for the specified note.
+* @param {number} noteIndex - The index of the note for which the attImageUploadAndView needs to be set up.
+*/
+var setAttImageUploadAndView = function(noteIndex: number) {
+    var keys = Object.keys(vn.variables.attTempImages[noteIndex]);
+    if(keys.length <= 0) return;
+    var file;
+    var tempEl;
+    
+    vn.elements.attImageUploadButtonAndViews[noteIndex].replaceChildren();
+    for(var i = 0; i < keys.length; i++) {
+        file = vn.variables.attTempImages[noteIndex][keys[i]];
+        tempEl = document.createElement("img");
+        tempEl.src = URL.createObjectURL(file);
+        tempEl.style.width = "auto";
+        tempEl.style.height = "100%";
+        tempEl.style.display = "inline-block";
+        tempEl.style.margin = "0 5px"
+        
+        vn.elements.attImageUploadButtonAndViews[noteIndex].appendChild(tempEl);
+    }
+    
+    (vn.elements.attImageURLs[noteIndex] as any).value = "";
+    vn.elements.attImageURLs[noteIndex].setAttribute("readonly","true");
+};
+
+/**
+* createElement
+* @description Creates an HTML element with provided parameters. If a text or an icon is provided in the appendNodeSetObject, appends a text node or an icon span to the created element.
+* @param {Element} element - The HTML Element that will be created.
+* @param {string} elementTag - The type of the HTML element to be created.
+* @param {string} id - The ID attribute for the HTML element.
+* @param {string} className - The class name for the HTML element.
+* @param {number} idx - Index to use when creating the real class name and real ID.
+* @param {object} appendNodeSetObject - Object containing information about a text node or an icon to be appended to the created element.
+* @returns {Element} The created HTML element.
+*/
+var createElement = function(element: any, elementTag: string, id: string, className: string, idx: number, appendNodeSetObject?: any) {
+    var element: any = document.createElement(elementTag);
+    if(id !== "") {
+        element.setAttribute("id", getId(idx, id));
+    }
+    element.setAttribute("data-note-index",idx);
+    element.setAttribute("class", getClassName(idx, className));
+    if(appendNodeSetObject && typeof appendNodeSetObject === "object" && Object.keys(appendNodeSetObject).length !== 0) {
+        var textNode;
+        if(appendNodeSetObject["isIcon"]) {	//google icon
+            var iconNode = document.createElement("span");
+            iconNode.setAttribute("class","material-symbols-rounded " + getEventChildrenClassName() + " " + getClickCssEventElementClassName() + " " + getOnOverCssEventElementClassName() + " " + getId(idx, "icon"));
+            textNode = document.createTextNode(appendNodeSetObject["text"]);
+            iconNode.appendChild(textNode);
+            if(appendNodeSetObject["iconStyle"]) {
+                iconNode.setAttribute("style",appendNodeSetObject["iconStyle"]);
+            }
+            iconNode.setAttribute("data-note-index",(idx as any));
+            element.appendChild(iconNode);
+        }
+        else {	//just text node
+            textNode = document.createTextNode(appendNodeSetObject["text"]);
+            element.appendChild(textNode);
+        }
+    }
+    return element;
+};
+
+/**
+* addClickEvent
+* @description Adds a click event listener to an HTML element.
+* @param {Element} element - The HTML element to which the event listener will be added.
+* @param {string} id - The identifier used to refer to specific functions within the click event.
+*/
+var addClickEvent = function(element: any, id: string) {
+    element.addEventListener("click", function(event: any) {
+        consoleLog("vn.cssEvents.target_onBeforeClick", "params :" , "(event)", event, "(target)", event.target);
+        if(vn.cssEvents.target_onBeforeClick(event) && event.target.classList.contains(getClickCssEventElementClassName())) {
+            
+            consoleLog("target_onClick", "params :" , "(event)", event, "(target)", event.target);
+            target_onClick(event);
+            
+            consoleLog("vn.cssEvents.target_onAfterClick", "params :" , "(event)", event, "(target)", event.target);
+            vn.cssEvents.target_onAfterClick(event);
+        }
+        
+        consoleLog("vn.elementEvents."+id+"_onBeforeClick", "params :" , "(event)", event, "(target)", event.target);
+        if(!(vn.elementEvents as any)[id+"_onBeforeClick"](event)) return;
+        
+        consoleLog(id+"_onClick", "params :" , "(event)", event, "(target)", event.target);
+        (elementsEvent as any)[id+"_onClick"](event);
+        
+        consoleLog("vn.elementEvents."+id+"_onAfterClick", "params :" , "(event)", event, "(target)", event.target);
+        (vn.elementEvents as any)[id+"_onAfterClick"](event);
+        
+        event.stopImmediatePropagation();
+    });
+}
+
+/**
+* addMouseoverEvent
+* @description Adds a mouseover event listener to an HTML element.
+* @param {Element} element - The HTML element to which the event listener will be added.
+* @param {string} id - The identifier used to refer to specific functions within the mouseover event.
+*/
+var addMouseoverEvent = function(element: any, id: string) {
+    element.addEventListener("mouseover", function(event: any) {
+        consoleLog("vn.cssEvents.target_onBeforeMouseover", "params :" , "(event)", event, "(target)", event.target);
+        if(!vn.cssEvents.target_onBeforeMouseover(event)) return;
+        if(!event.target.classList.contains(getOnOverCssEventElementClassName())) return;
+        
+        consoleLog("target_onMouseover", "params :" , "(event)", event, "(target)", event.target);
+        target_onMouseover(event);
+        
+        consoleLog("vn.cssEvents.target_onAfterMouseover", "params :" , "(event)", event, "(target)", event.target);
+        vn.cssEvents.target_onAfterMouseover(event);
+        
+        event.stopImmediatePropagation();
+    });
+}
+
+/**
+* addMouseoutEvent
+* @description Adds a mouseout event listener to an HTML element.
+* @param {Element} element - The HTML element to which the event listener will be added.
+* @param {string} id - The identifier used to refer to specific functions within the mouseout event.
+*/
+var addMouseoutEvent = function(element: any, id: string) {
+    element.addEventListener("mouseout", function(event: any) {
+        consoleLog("vn.cssEvents.target_onBeforeMouseout", "params :" , "(event)", event, "(target)", event.target);
+        if(!vn.cssEvents.target_onBeforeMouseout(event)) return;
+        if(!event.target.classList.contains(getOnOverCssEventElementClassName())) return;
+        
+        consoleLog("target_onMouseout", "params :" , "(event)", event, "(target)", event.target);
+        target_onMouseout(event);
+        
+        consoleLog("vn.cssEvents.target_onAfterMouseout", "params :" , "(event)", event, "(target)", event.target);
+        vn.cssEvents.target_onAfterMouseout(event);
+        
+        event.stopImmediatePropagation();
+    });
+}
+
+/**
+* addTouchstartEvent
+* @description Adds a touchstart event listener to a specified element.
+* @param {Element} element - The element to attach the touchstart event listener to.
+* @param {string} id - The id associated with the element.
+*/
+var addTouchstartEvent = function(element: any, id: string) {
+    element.addEventListener("touchstart", function(event: any) {
+        consoleLog("vn.cssEvents.target_onBeforeTouchstart", "params :" , "(event)", event, "(target)", event.target);
+        if(!vn.cssEvents.target_onBeforeTouchstart(event)) return;
+        if(!event.target.classList.contains(getOnOverCssEventElementClassName())) return;
+        
+        consoleLog("target_onTouchstart", "params :" , "(event)", event, "(target)", event.target);
+        target_onTouchstart(event);
+        
+        consoleLog("vn.cssEvents.target_onAfterTouchstart", "params :" , "(event)", event, "(target)", event.target);
+        vn.cssEvents.target_onAfterTouchstart(event);
+        
+        event.stopImmediatePropagation();
+    });
+}
+
+/**
+* addTouchendEvent
+* @description Adds a touchend event listener to a specified element.
+* @param {Element} element - The element to attach the touchend event listener to.
+* @param {string} id - The id associated with the element.
+*/
+var addTouchendEvent = function(element: any, id: string) {
+    element.addEventListener("touchend", function(event: any) {
+        consoleLog("vn.cssEvents.target_onBeforeTouchend", "params :" , "(event)", event, "(target)", event.target);
+        if(!vn.cssEvents.target_onBeforeTouchend(event)) return;
+        if(!event.target.classList.contains(getOnOverCssEventElementClassName())) return;
+        
+        consoleLog("target_onTouchend", "params :" , "(event)", event, "(target)", event.target);
+        target_onTouchend(event);
+        
+        consoleLog("vn.cssEvents.target_onAfterTouchend", "params :" , "(event)", event, "(target)", event.target);
+        vn.cssEvents.target_onAfterTouchend(event);
+        
+        event.stopImmediatePropagation();
+    });
+}
+
+var createElementBasic = function(element: any, elementTag: string, id: string, className: string, idx: number, appendNodeSetObject?: any) {
+    element = createElement(element, elementTag, id, className, idx, appendNodeSetObject);
+    addClickEvent(element, id);
+    return element;
+};
+
+var createElementSelect = function(element: any, elementTag: string, id: string, className: string, idx: number, appendNodeSetObject?: any) {
+    element = createElement(element, elementTag, id, className, idx, appendNodeSetObject);
+    element.classList.add(getClickCssEventElementClassName());
+    element.classList.add(getOnOverCssEventElementClassName());
+    element.setAttribute("type","select");
+    addClickEvent(element, id);
+    addMouseoverEvent(element, id);
+    addMouseoutEvent(element, id);
+    addTouchstartEvent(element, id);
+    addTouchendEvent(element, id);
+    return element;
+};
+
+var createElementSelectBox = function(element: any, elementTag: string, id: string, className: string, idx: number) {
+    return createElement(element, elementTag, id, className, idx);
+};
+
+var createElementButton = function(element: any, elementTag: string, id: string, className: string, idx: number, appendNodeSetObject?: any) {
+    element = createElement(element, elementTag, id, className, idx, appendNodeSetObject);
+    element.classList.add(getClickCssEventElementClassName());
+    element.classList.add(getOnOverCssEventElementClassName());
+    addClickEvent(element, id);
+    addMouseoverEvent(element, id);
+    addMouseoutEvent(element, id);
+    addTouchstartEvent(element, id);
+    addTouchendEvent(element, id);
+    return element;
+};
+
+var createElementInput = function(element: any, id: string, className: string, idx: number) {
+    element = createElement(element, "input", id, className, idx);
+    element.setAttribute("name", getId(idx, id));
+    element.setAttribute("autocapitalize", "none");
+    element.setAttribute("placeholder","");
+    
+    element.addEventListener("input", function(event: any) {
+        consoleLog("vn.elementEvents."+id+"_onBeforeInput", "params :" , "(event)", event, "(target)", event.target);
+        if(!(vn.elementEvents as any)[id+"_onBeforeInput"](event)) return;
+        
+        consoleLog(id+"_onInput", "params :" , "(event)", event, "(target)", event.target);
+        (elementsEvent as any)[id+"_onInput"](event);
+        
+        consoleLog("vn.elementEvents."+id+"_onAfterInput", "params :" , "(event)", event, "(target)", event.target);
+        (vn.elementEvents as any)[id+"_onAfterInput"](event);
+        
+        event.stopImmediatePropagation();
+    });
+    element.addEventListener("blur", function(event: any) {
+        consoleLog("vn.elementEvents."+id+"_onBeforeBlur", "params :" , "(event)", event, "(target)", event.target);
+        if(!(vn.elementEvents as any)[id+"_onBeforeBlur"](event)) return;
+        
+        consoleLog(id+"_onBlur", "params :" , "(event)", event, "(target)", event.target);
+        (elementsEvent as any)[id+"_onBlur"](event);
+        
+        consoleLog("vn.elementEvents."+id+"_onAfterBlur", "params :" , "(event)", event, "(target)", event.target);
+        (vn.elementEvents as any)[id+"_onAfterBlur"](event);
+        
+        event.stopImmediatePropagation();
+    });
+    return element;
+};
+
+var createElementInputCheckbox = function(element: any, id: string, className: string, idx: number) {
+    element = createElement(element, "input", id, className, idx);
+    element.setAttribute("name", getId(idx, id));
+    element.setAttribute("placeholder","");
+    element.setAttribute("type","checkbox");
+    return element;
+};
+
+var createElementInputRadio = function(element: any, id: string, className: string, name: string, idx: number) {
+    element = createElement(element, "input", id, className, idx);
+    element.setAttribute("name", name);
+    element.setAttribute("placeholder","");
+    element.setAttribute("type","radio");
+    addClickEvent(element, id);
+    return element;
+};
+
+var createElementRadioLabel = function(forId: string, iconName: string) {
+    var tempEl1;
+    var tempEl2;
+    tempEl1 = document.createElement("label");
+    tempEl1.setAttribute("for", forId);
+    tempEl1.setAttribute("style", "display:inline-block;width:30px;position:relative;margin-left:3px;;margin-left:3px;");
+    tempEl2 = document.createElement("span");
+    tempEl2.setAttribute("class","material-symbols-rounded");
+    tempEl2.setAttribute("style","font-size:1.3em;position:absolute;bottom:-6px;cursor:pointer;color:" + getHexColorFromColorName(vn.colors.color1[i]));
+    tempEl2.textContent = iconName;
+    tempEl1.appendChild(tempEl2);
+    return tempEl1;
+};
+
+var createElementFontFamiliySelect = function(element: any, elementTag: string, id: string, className: string, idx: number, appendNodeSetObject: any) {
+    element = createElement(element, elementTag, id, className, idx, appendNodeSetObject);
+    // The font event is dynamically generated
+    (vn.elementEvents as any)[id+"_onBeforeClick"] = function(event: any) {return true;};
+    (elementsEvent as any)[id+"_onClick"] = function(event: any) {
+        fontFamilySelectList_onClick(event);
+        selectToggle(event.target);
+        var noteIndex = event.target.getAttribute("data-note-index");
+        // If the selection is a single point
+        if(vn.variables.editRanges[noteIndex] && (vn.variables.editRanges as any)[noteIndex].collapsed) {
+            // Re-move to the original selection point
+            setOriginEditSelection(noteIndex);
+        }
+        else {	// Dragging
+            // Specify style for dragged characters
+            modifySelectedSingleElement(noteIndex, getObjectNoteCss(noteIndex));
+        }
+    };
+    (vn.elementEvents as any)[id+"_onAfterClick"] = function(event: any) {};
+    element.classList.add(getClickCssEventElementClassName());
+    element.classList.add(getOnOverCssEventElementClassName());
+    addClickEvent(element, id);
+    addMouseoverEvent(element, id);
+    addMouseoutEvent(element, id);
+    addTouchstartEvent(element, id);
+    addTouchendEvent(element, id);
+    
+    return element;
+};
