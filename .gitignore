@@ -35,3 +35,6 @@ package-lock.json
 
 # playground
 playground/node_modules/
+
+#pack
+.tgz
