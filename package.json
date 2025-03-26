@@ -1,14 +1,17 @@
 {
   "name": "vanillanote2",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.7",
   "description": "A simple editor using only Vanilla JS and ES5 syntax.",
-  "main": "dist/Vanillanote.bundle.js",
-  "module": "dist/Vanillanote.bundle.js",
+  "main": "dist/Vanillanote2.bundle.js",
+  "module": "dist/Vanillanote2.bundle.js",
   "types": "dist/types/index.d.ts",
   "exports": {
-    "import": "./dist/Vanillanote.bundle.js",
-    "require": "./dist/Vanillanote.bundle.cjs",
-    "default": "./dist/Vanillanote.bundle.js"
+    ".": {
+      "import": "./dist/Vanillanote2.bundle.js",
+      "require": "./dist/Vanillanote2.bundle.cjs",
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/Vanillanote2.bundle.js"
+    }
   },
   "files": [
     "dist"
