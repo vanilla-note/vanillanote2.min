@@ -1,70 +1,32 @@
-import type { Vanillanote } from "../types/vanillanote";
+import type { Colors } from "../types/csses";
+import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
 
-/**
-* getId
-* @description Get the element id to be applied in Vanilla Note.
-* @param {Vanillanote} vn - vanillanote object
-* @param {String} noteId - note id
-* @param {String} id - element key(id)
-* @returns {String} element id.
-*/
-export const getId = (vn: Vanillanote, noteId: string, id: string) => {
-    return vn.variables.noteName + "_" + noteId + "_" + id;
+export const getParentNote = (targetElement: HTMLElement): VanillanoteElement => {
+    return targetElement.closest('[data-vanillanote]')!
+}
+
+export const getId = (noteName: string, noteId: string, id: string) => {
+    return noteName + "_" + noteId + "_" + id;
 };
 
-/**
-* getClassName
-* @description Get the element className to be applied in Vanilla Note.
-* @param {Vanillanote} vn - vanillanote object
-* @param {String} noteId - note id
-* @param {String} id - element key(id)
-* @returns {String} element className.
-*/
-export const getClassName = (vn: Vanillanote, noteId: string, className: string) => {
-    return vn.variables.noteName + "_" + className + " " + vn.variables.noteName + "_" + noteId + "_" + className;
+export const getClassName = (noteName: string, noteId: string, className: string) => {
+    return noteName + "_" + noteId + "_" + className;
 };
 
-/**
-* getEventChildrenClassName
-* @description Get the className to be added to the children of the event target element.
-* @param {Vanillanote} vn - vanillanote object
-* @returns {String} className.
-*/
-export const getEventChildrenClassName = (vn: Vanillanote) => {
-    return vn.variables.noteName + "_eventChildren";
+export const getEventChildrenClassName = (noteName: string) => {
+    return noteName + "_eventChildren";
 };
 
-/**
-* getOnOverCssEventElementClassName
-* @description Get the className to be added to the event target element for mouse over, touch start, and end events.
-* @param {Vanillanote} vn - vanillanote object
-* @returns {String} className.
-*/
-export const getOnOverCssEventElementClassName = (vn: Vanillanote) => {
-    return vn.variables.noteName + "_eventOnOverCssElement";
+export const getOnOverCssEventElementClassName = (noteName: string) => {
+    return noteName + "_eventOnOverCssElement";
 };
 
-/**
-* getClickCssEventElementClassName
-* @description Get the className to be added to the event target element for click events.
-* @param {Vanillanote} vn - vanillanote object
-* @returns {String} className.
-*/
-export const getClickCssEventElementClassName = (vn: Vanillanote) => {
-    return vn.variables.noteName + "_eventClickCssElement";
+export const getClickCssEventElementClassName = (noteName: string) => {
+    return noteName + "_eventClickCssElement";
 };
 
-/**
-* getCssClassText
-* @description This function outputs a CSS declaration statement for a specified class.
-* @param {Vanillanote} vn - vanillanote object
-* @param {String} noteId - note id
-* @param {String} className - The base name of the class for which the CSS declaration is created.
-* @param {Object} cssObject - The CSS object which contains CSS properties to be converted into a text format.
-* @returns {String} Returns a CSS declaration string for the given class.
-*/
-export const getCssClassText = (vn: Vanillanote, noteId: string, className: string, cssObject: Record<string, string>) => {
-    return "." + getId(vn, noteId, className) + " {" + getCssTextFromObject(cssObject) + "}";
+export const getCssClassText = (noteName: string, noteId: string, className: string, cssObject: Record<string, string>) => {
+    return "." + getId(noteName, noteId, className) + " {" + getCssTextFromObject(cssObject) + "}";
 };
 
 /**
@@ -105,12 +67,34 @@ export const getNoteId = (el: any) => {
 };
 
 /**
-* isMobileDevice
-* @description Checks if the user's device is mobile.
-* @returns {Boolean} If the user's device is mobile, return true.
+ * Checks if the current device is a mobile or tablet.
+ *
+ * - Prefers modern `navigator.userAgentData` if available.
+ * - Falls back to `navigator.userAgent` for compatibility.
+ * - Detects major mobile platforms (iOS, Android, etc.).
+ *
+ * @returns {boolean} `true` if the user's device is mobile or tablet, `false` otherwise.
+ */
+export const isMobileDevice = (): boolean => {
+    const nav = navigator as Navigator & {
+        userAgentData?: { mobile?: boolean };
+    };
+
+    if (nav.userAgentData?.mobile !== undefined) {
+        return nav.userAgentData.mobile;
+    }
+
+    const ua = navigator.userAgent;
+    return /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+};
+
+/**
+* getIsIOS
+* @description Checks if the user's device is IOS.
+* @returns {Boolean} If the user's device is IOS, return true.
 */
-export const isMobileDevice = () => {
-    return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf("IEMobile") !== -1);
+export const getIsIOS = () => {
+    return typeof navigator !== 'undefined' ? /iPhone|iPad|iPod/i.test(navigator.userAgent) : false;
 };
     
 /**
@@ -508,7 +492,7 @@ export const getInvertColor = (hex: string) => {
 * @param {HTMLElement} element - The HTML element to check.
 * @returns {Boolean} Returns true if the element is closer to the right side of the screen, and false if it's closer to the left.
 */
-export const isCloserToRight = (element: any) => {
+export const isCloserToRight = (element: HTMLElement) => {
     if(element.offsetParent === null) return false;
     var rect = element.getBoundingClientRect();
     var windowWidth = window.innerWidth;
@@ -526,7 +510,7 @@ export const isCloserToRight = (element: any) => {
 * @param {string} fontName - The name of the font to check.
 * @returns {boolean} Returns true if the font is available, false otherwise.
 */
-var isFontAvailable = function(fontName: string) {
+export const isFontAvailable = (fontName: string) => {
     var canvas = document.createElement("canvas");
     var context = canvas.getContext("2d");
 
@@ -550,54 +534,77 @@ var isFontAvailable = function(fontName: string) {
     return size !== newSize;
 };
 
-/*
-var setColor = function(mainColor: string) {
+
+export const getColors = (mainColor: string): Colors => {
     mainColor = getHexColorFromColorName(mainColor);
-    var type = getColorShade(mainColor);
+    const type = getColorShade(mainColor);
+    const colors: Colors = {
+        color1 : "",
+        color2 : "",
+        color3 : "",
+        color4 : "",
+        color5 : "",
+        color6 : "",
+        color7 : "",
+        color8 : "",
+        color9 : "",
+        color10 : "",
+        color11 : "",
+        color12 : "",
+        color13 : "",
+        color14 : "",
+        color15 : "",
+        color16 : "",
+        color17 : "",
+        color18 : "",
+        color19 : "",
+        color20 : "",
+    }
     
     if(type === "light") {
-        vn.colors.color1[i] = "#333333";	//filled
-        vn.colors.color2[i] = "#ffffff";	//empty
-        vn.colors.color3[i] = getAdjustHexColor(mainColor,"18");	//toolbar
-        vn.colors.color4[i] = mainColor;	//button
-        vn.colors.color5[i] = getAdjustHexColor(mainColor,"-18");	//active
-        vn.colors.color6[i] = getAdjustHexColor(mainColor,"-1f");	//border
-        vn.colors.color7[i] = getAdjustHexColor(mainColor,"-2f");	//box-shadow
-        vn.colors.color8[i] = "#609966";	//correct
-        vn.colors.color9[i] = "#df2e38";	//notice
-        vn.colors.color10[i] = "#333333";	//modal text
-        vn.colors.color11[i] = "#666666";	//a tag color
-        vn.colors.color12[i] = "#333333";	//color 0 text color
-        vn.colors.color13[i] = "#ffffff";	//color 0 text background color
-        vn.colors.color14[i] = "#ff7f7f";	//color 1
-        vn.colors.color15[i] = "#ffad66";	//color 2
-        vn.colors.color16[i] = "#ffff66";	//color 3
-        vn.colors.color17[i] = "#99ff99";	//color 4
-        vn.colors.color18[i] = "#99ccff";	//color 5
-        vn.colors.color19[i] = "#6699cc";	//color 6
-        vn.colors.color20[i] = "#cc99cc";	//color 7
+        colors.color1 = "#333333";	//filled
+        colors.color2 = "#ffffff";	//empty
+        colors.color3 = getAdjustHexColor(mainColor,"18");	//toolbar
+        colors.color4 = mainColor;	//button
+        colors.color5 = getAdjustHexColor(mainColor,"-18");	//active
+        colors.color6 = getAdjustHexColor(mainColor,"-1f");	//border
+        colors.color7 = getAdjustHexColor(mainColor,"-2f");	//box-shadow
+        colors.color8 = "#609966";	//correct
+        colors.color9 = "#df2e38";	//notice
+        colors.color10 = "#333333";	//modal text
+        colors.color11 = "#666666";	//a tag color
+        colors.color12 = "#333333";	//color 0 text color
+        colors.color13 = "#ffffff";	//color 0 text background color
+        colors.color14 = "#ff7f7f";	//color 1
+        colors.color15 = "#ffad66";	//color 2
+        colors.color16 = "#ffff66";	//color 3
+        colors.color17 = "#99ff99";	//color 4
+        colors.color18 = "#99ccff";	//color 5
+        colors.color19 = "#6699cc";	//color 6
+        colors.color20 = "#cc99cc";	//color 7
     }
     else {
-        vn.colors.color1[i] = "#ffffff";	//filled
-        vn.colors.color2[i] = "#ffffff";	//empty
-        vn.colors.color3[i] = getAdjustHexColor(mainColor,"18");	//toolbar
-        vn.colors.color4[i] = mainColor;	//button
-        vn.colors.color5[i] = getAdjustHexColor(mainColor,"-18");	//active
-        vn.colors.color6[i] = getAdjustHexColor(mainColor,"-1f");	//border
-        vn.colors.color7[i] = getAdjustHexColor(mainColor,"-2f");	//box-shadow
-        vn.colors.color8[i] = "#609966";	//correct
-        vn.colors.color9[i] = "#df2e38";	//notice
-        vn.colors.color10[i] = "#333333";	//modal text
-        vn.colors.color11[i] = "#666666";	//a tag color
-        vn.colors.color12[i] = "#333333";	//color 0 text color
-        vn.colors.color13[i] = "#ffffff";	//color 0 text background color
-        vn.colors.color14[i] = "#b70404";	//color 1
-        vn.colors.color15[i] = "#e55807";	//color 2
-        vn.colors.color16[i] = "#f1c93b";	//color 3
-        vn.colors.color17[i] = "#1a5d1a";	//color 4
-        vn.colors.color18[i] = "#068fff";	//color 5
-        vn.colors.color19[i] = "#0c134f";	//color 6
-        vn.colors.color20[i] = "#5c469c";	//color 7
+        colors.color1 = "#ffffff";	//filled
+        colors.color2 = "#ffffff";	//empty
+        colors.color3 = getAdjustHexColor(mainColor,"18");	//toolbar
+        colors.color4 = mainColor;	//button
+        colors.color5 = getAdjustHexColor(mainColor,"-18");	//active
+        colors.color6 = getAdjustHexColor(mainColor,"-1f");	//border
+        colors.color7 = getAdjustHexColor(mainColor,"-2f");	//box-shadow
+        colors.color8 = "#609966";	//correct
+        colors.color9 = "#df2e38";	//notice
+        colors.color10 = "#333333";	//modal text
+        colors.color11 = "#666666";	//a tag color
+        colors.color12 = "#333333";	//color 0 text color
+        colors.color13 = "#ffffff";	//color 0 text background color
+        colors.color14 = "#b70404";	//color 1
+        colors.color15 = "#e55807";	//color 2
+        colors.color16 = "#f1c93b";	//color 3
+        colors.color17 = "#1a5d1a";	//color 4
+        colors.color18 = "#068fff";	//color 5
+        colors.color19 = "#0c134f";	//color 6
+        colors.color20 = "#5c469c";	//color 7
     }
+
+    return colors;
 }
-*/
