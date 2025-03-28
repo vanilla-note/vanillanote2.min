@@ -549,10 +549,6 @@ export interface ClassNames {
 		readonly className : string;
 	},
 }
-export interface Keyframes {
-	readonly "@keyframes vanillanote-modal-input": string;
-	readonly "@keyframes vanillanote-modal-small-input": string;
-}
 export interface Consts {
 	// Start possible tags
 	readonly START_POSSIBLE_TAG : TagList;
