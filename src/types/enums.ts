@@ -1,10 +1,10 @@
-export const enum LogMode {
-	debug = "DEBUG",
-	info = "INFO",
-	error = "ERROR"
-}
-
 export const enum ToolPositions {
 	top = "TOP",
 	bottom = "BOTTOM",
+}
+
+export const enum NoteModesByDevice {
+	adaptive = "ADAPTIVE",
+	mobile = "MOBILE",
+	desktop = "DESKTOP",
 }
