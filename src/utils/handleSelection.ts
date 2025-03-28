@@ -1,5 +1,7 @@
-import type { Vanillanote } from "../types/vanillanote";
+import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
+import { getElement, getObjectEditElementAttributes, getObjectEditElementCss, getParentTagName, getParentUnitTagElemnt, removeEmptyElment } from "./handleActive";
 import { closeAllTooltip, getSpecialTag } from "./handleElement";
+import { getCssTextFromObject, getObjectFromCssText } from "./util";
 
 /**
 * setNewSelection
@@ -33,7 +35,7 @@ var setNewSelection = function(startNode: Node, startOffset: number, endNode: No
 export const handleSpecialTagSelection = (vn: Vanillanote, noteIndex: number) => {
     closeAllTooltip(noteIndex);
     if(!vn.variables.editRanges[noteIndex]!.collapsed) return;
-    var tagName = getSpecialTag(vn.variables.editStartNodes[noteIndex]);
+    var tagName = getSpecialTag(vn.variables.editStartNode[noteIndex]);
     
     switch(tagName) {
         case "A":
@@ -56,12 +58,12 @@ export const handleSpecialTagSelection = (vn: Vanillanote, noteIndex: number) =>
 * @description Moves the selection back to the original edit point for a specific note.
 * @param {Number} noteIndex - The index of the note to set the original edit selection for.
 */
-var setOriginEditSelection = function(noteIndex: number) {
-    if(vn.variables.editRanges[noteIndex]) {
-        vn.variables.setEditStyleTagToggle = 2;	// The 'selectiononchange' event usually occurs twice (once when removed and once when added back).
+export const setOriginEditSelection = (note: VanillanoteElement) => {
+    if(note._selection.editRanges) {
+        note._selection.setEditStyleTagToggle = 2;	// The 'selectiononchange' event usually occurs twice (once when removed and once when added back).
         var selection = window.getSelection();
         selection!.removeAllRanges();
-        selection!.addRange(vn.variables.editRanges[noteIndex]);
+        selection!.addRange(note._selection.editRanges);
     }
 };
 
@@ -80,31 +82,31 @@ var setEditSelection = function(noteIndex: number, selection: Selection) {
     vn.variables.editSelections[noteIndex] = selection;
     vn.variables.editRanges[noteIndex] = vn.variables.editSelections[noteIndex].getRangeAt(0);
     
-    vn.variables.startOffsets[noteIndex] = vn.variables.editRanges[noteIndex].startOffset;
-    vn.variables.endOffsets[noteIndex] = vn.variables.editRanges[noteIndex].endOffset;
+    vn.variables.startOffset[noteIndex] = vn.variables.editRanges[noteIndex].startOffset;
+    vn.variables.endOffset[noteIndex] = vn.variables.editRanges[noteIndex].endOffset;
     
-    vn.variables.editStartNodes[noteIndex] = vn.variables.editRanges[noteIndex].startContainer;
-    vn.variables.editEndNodes[noteIndex] = vn.variables.editRanges[noteIndex].endContainer;
+    vn.variables.editStartNode[noteIndex] = vn.variables.editRanges[noteIndex].startContainer;
+    vn.variables.editEndNode[noteIndex] = vn.variables.editRanges[noteIndex].endContainer;
     
     // If the start node is an element, find the first text node within the element.
-    if(vn.variables.editStartNodes[noteIndex] instanceof Element) {
-        while(vn.variables.editStartNodes[noteIndex] instanceof Element) {
-            if(!vn.variables.editStartNodes[noteIndex].firstChild) break;
-            if((vn.variables.editStartNodes[noteIndex] as any).firstChild.tagName === "BR") break;	//no br
-            vn.variables.editStartNodes[noteIndex] = vn.variables.editStartNodes[noteIndex].firstChild;
-            if(vn.variables.editStartNodes[noteIndex].nodeType === 3) break;
+    if(vn.variables.editStartNode[noteIndex] instanceof Element) {
+        while(vn.variables.editStartNode[noteIndex] instanceof Element) {
+            if(!vn.variables.editStartNode[noteIndex].firstChild) break;
+            if((vn.variables.editStartNode[noteIndex] as any).firstChild.tagName === "BR") break;	//no br
+            vn.variables.editStartNode[noteIndex] = vn.variables.editStartNode[noteIndex].firstChild;
+            if(vn.variables.editStartNode[noteIndex].nodeType === 3) break;
         }
-        vn.variables.startOffsets[noteIndex] = 0;
+        vn.variables.startOffset[noteIndex] = 0;
     }
     // If the end node is an element, find the first text node within the element.
-    if(vn.variables.editEndNodes[noteIndex] instanceof Element) {
-        while(vn.variables.editEndNodes[noteIndex] instanceof Element) {
-            if(!vn.variables.editEndNodes[noteIndex].firstChild) break;
-            if((vn.variables.editEndNodes[noteIndex] as any).firstChild.tagName === "BR") break;	//no br
-            vn.variables.editEndNodes[noteIndex] = vn.variables.editEndNodes[noteIndex].firstChild;
-            if(vn.variables.editEndNodes[noteIndex].nodeType === 3) break;
+    if(vn.variables.editEndNode[noteIndex] instanceof Element) {
+        while(vn.variables.editEndNode[noteIndex] instanceof Element) {
+            if(!vn.variables.editEndNode[noteIndex].firstChild) break;
+            if((vn.variables.editEndNode[noteIndex] as any).firstChild.tagName === "BR") break;	//no br
+            vn.variables.editEndNode[noteIndex] = vn.variables.editEndNode[noteIndex].firstChild;
+            if(vn.variables.editEndNode[noteIndex].nodeType === 3) break;
         }
-        vn.variables.endOffsets[noteIndex] = 0;
+        vn.variables.endOffset[noteIndex] = 0;
     }
     
     vn.variables.editStartElements[noteIndex] = vn.variables.editRanges[noteIndex].startContainer instanceof Element ?
@@ -143,7 +145,7 @@ var setEditSelection = function(noteIndex: number, selection: Selection) {
         vn.variables.editEndElements[noteIndex] = null;
     }
     // Get the parent unit elements of the start and end elements.
-    vn.variables.editStartUnitElements[noteIndex] = getParentUnitTagElemnt(vn.variables.editStartElements[noteIndex]);
+    vn.variables.editStartUnitElement[noteIndex] = getParentUnitTagElemnt(vn.variables.editStartElements[noteIndex]);
     vn.variables.editEndUnitElements[noteIndex] = getParentUnitTagElemnt(vn.variables.editEndElements[noteIndex]);
     // Clear and populate the array with all unit elements within the selection.
     vn.variables.editDragUnitElements[noteIndex].splice(0, vn.variables.editDragUnitElements[noteIndex].length); //initial array
@@ -169,26 +171,20 @@ var setEditSelection = function(noteIndex: number, selection: Selection) {
  * @description check that now selection is valid
  * @returns {Boolean} - if vaild, return true
  */
-var isValidSelection =  function(noteIndex: number) {
-    if(!vn.variables.editRanges[noteIndex]) return false;
-    if(!vn.variables.editStartElements[noteIndex]) return false;
-    if(!vn.variables.editStartUnitElements[noteIndex]) return false;
+export const isValidSelection = (note: VanillanoteElement) => {
+    if(!note._selection.editRanges) return false;
+    if(!note._selection.editStartElements) return false;
+    if(!note._selection.editStartUnitElement) return false;
     return true;
 };
 
-/**
-* modifySeletedElements
-* @description Returns an array containing all elements from the start to the end of the selected range. It includes selected unit tags, br tags, and text nodes.
-* @param {number} noteIndex - The index of the note.
-* @returns {Array} - An array containing the selected elements.
-*/
-var modifySeletedElements = function(noteIndex: number) {
+export const modifySeletedElements = (note: VanillanoteElement) => {
     var isEnd = false;
-    var element = vn.variables.editStartNodes[noteIndex];
+    var element = note._selection.editStartNode;
     var selectedNodes: any[] = [];
-    if(!vn.variables.editStartUnitElements[noteIndex] || !vn.variables.editEndUnitElements[noteIndex]) return selectedNodes;
+    if(!note._selection.editStartUnitElement || !note._selection.editEndUnitElements) return selectedNodes;
     
-    var lastNode = vn.variables.editEndUnitElements[noteIndex].lastChild;
+    var lastNode = note._selection.editEndUnitElements.lastChild;
     while(lastNode) {
         if(!lastNode.lastChild) break;
         lastNode = lastNode.lastChild;
@@ -201,8 +197,8 @@ var modifySeletedElements = function(noteIndex: number) {
             isEnd = true;
         }
         if(isEnd) return;
-        if(vn.consts.UNIT_TAG.indexOf(node.tagName) >= 0
-            || vn.consts.EMPTY_ABLE_TAG.indexOf(node.tagName) >= 0
+        if(note._vn.consts.UNIT_TAG.indexOf(node.tagName) >= 0
+            || note._vn.consts.EMPTY_ABLE_TAG.indexOf(node.tagName) >= 0
             || node.nodeType === 3) {
             selectedNodes.push(node);
         }
@@ -292,9 +288,9 @@ var modifySelectedUnitElementTag = function(target: any) {
     }
     // Sets the new selection range.
     setNewSelection(
-            vn.variables.editStartNodes[noteIndex]!,
+            vn.variables.editStartNode[noteIndex]!,
             newStartOffset,
-            vn.variables.editEndNodes[noteIndex]!,
+            vn.variables.editEndNode[noteIndex]!,
             newEndOffset
             );
 };
@@ -351,11 +347,11 @@ var modifySelectedUnitElementStyle = function(target: any) {
  * @param {string} tagName - A string representing the new tag name to be used for the selected element.
  * @param {object} attributes - An object representing the attributes to be applied to the selected element.
  */
-var modifySelectedSingleElement = function(noteIndex: number, csses: Record<string, string> | null, tagName?: string, attributes?: Record<string, string>) {
-    if(!isValidSelection(noteIndex)) return;
-    var tempEl, positionEl, tempUnitEl;
-    var newTagName, newCssText, newAttributes;
-    var selectedNodes, newStartNode, newEndNode, newEndOffset;
+export const modifySelectedSingleElement = (note: VanillanoteElement, csses: Record<string, string> | null, tagName?: string, attributes?: Record<string, string>) => {
+    if(!isValidSelection(note)) return;
+    let tempEl, tempUnitEl;
+    let newTagName, newCssText, newAttributes;
+    let selectedNodes, newStartNode, newEndNode, newEndOffset;
     
     if(!csses) {
         newCssText = "";
@@ -376,16 +372,16 @@ var modifySelectedSingleElement = function(noteIndex: number, csses: Record<stri
         newAttributes = attributes;
     }
     // SelectedNodes is an array containing all the selected elements and text nodes.
-    selectedNodes = modifySeletedElements(noteIndex);
+    selectedNodes = modifySeletedElements(note);
     
     // Text content before the starting node of the selection.
-    var sS =( vn.variables.editStartNodes[noteIndex] as any).textContent.slice(0,vn.variables.startOffsets[noteIndex]);
+    var sS =(note._selection.editStartNode as any).textContent.slice(0,note._selection.startOffset);
     // Text content after the starting node of the selection.
-    var sE =( vn.variables.editStartNodes[noteIndex] as any).textContent.slice(vn.variables.startOffsets[noteIndex],vn.variables.editStartNodes[noteIndex]!.textContent!.length);
+    var sE =(note._selection.editStartNode as any).textContent.slice(note._selection.startOffset,note._selection.editStartNode!.textContent!.length);
     // Text content before the ending node of the selection.
-    var eS = (vn.variables.editEndNodes[noteIndex] as any).textContent.slice(0,vn.variables.endOffsets[noteIndex]);
+    var eS = (note._selection.editEndNode as any).textContent.slice(0,note._selection.endOffset);
     // Text content after the ending node of the selection.
-    var eE = (vn.variables.editEndNodes[noteIndex] as any).textContent.slice(vn.variables.endOffsets[noteIndex],vn.variables.editEndNodes[noteIndex]!.textContent!.length);
+    var eE = (note._selection.editEndNode as any).textContent.slice(note._selection.endOffset,note._selection.editEndNode!.textContent!.length);
     
     // An internal function used for inserting nodes.
     var insertSelectedNode = function(tempEl: any, tempUnitEl: any) {
@@ -394,21 +390,21 @@ var modifySelectedSingleElement = function(noteIndex: number, csses: Record<stri
             tempUnitEl.insertBefore(tempEl, null);
         }
         else {
-            (vn.variables.editStartUnitElements[noteIndex] as any).insertBefore(tempEl, null);
+            (note._selection.editStartUnitElement as any).insertBefore(tempEl, null);
         }
     }
     // A condition indicating that the end node of the selection has been reached.
     var isEnd = false;
     // A check to determine if the starting node and ending node of the selection are the same.
-    var isStartNodeEqualEndNode = vn.variables.editStartNodes[noteIndex] === vn.variables.editEndNodes[noteIndex];
+    var isStartNodeEqualEndNode = note._selection.editStartNode === note._selection.editEndNode;
     for(var i = 0; i < selectedNodes.length; i++) {
         if(selectedNodes[i].nodeType === 3) {	// A comment indicating that the subsequent code handles text nodes in the selection.
-            if(!attributes) newAttributes = getObjectEditElementAttributes(selectedNodes[i]);	// If no attributes are provided for the new element, use the existing attributes of the node being replaced.
+            if(!attributes) newAttributes = getObjectEditElementAttributes(selectedNodes[i], note);	// If no attributes are provided for the new element, use the existing attributes of the node being replaced.
             if(!tagName) newTagName = getSpecialTag(selectedNodes[i]);	// If no tag name is provided for the new element, use the existing tag name of the node being replaced.
-            if(!csses) newCssText = getCssTextFromObject(getObjectEditElementCss(selectedNodes[i]));	// If no style is provided for the new element, use the existing style of the node being replaced.
+            if(!csses) newCssText = getCssTextFromObject(getObjectEditElementCss(selectedNodes[i], note));	// If no style is provided for the new element, use the existing style of the node being replaced.
             
             // An exception for headers where the font size should be ignored.
-            tempEl = getParentUnitTagElemnt(selectedNodes[i]);
+            tempEl = getParentUnitTagElemnt(selectedNodes[i], note);
             if (tempEl && tempEl.tagName.substring(0, 1) === "H") {
                 csses = (getObjectFromCssText(newCssText) as Record<string, string>);
                 delete csses["font-size"];
@@ -417,18 +413,20 @@ var modifySelectedSingleElement = function(noteIndex: number, csses: Record<stri
                 newCssText = getCssTextFromObject(csses);
             }
 
-            if(selectedNodes[i] === vn.variables.editStartNodes[noteIndex]) { // Indicates the starting node of the selection.
+            if(selectedNodes[i] === note._selection.editStartNode) { // Indicates the starting node of the selection.
                 if(isStartNodeEqualEndNode) {	// If the starting node and ending node are the same, remove the text before the starting point up to the ending point.
                     sE = sE.slice(0, sE.length - eE.length);
                 }
                 // Insert text before the starting node.
                 tempEl = getElement(sS,
-                        getParentTagName(vn.variables.editStartNodes[noteIndex]),
-                        getCssTextFromObject(getObjectEditElementCss(vn.variables.editStartNodes[noteIndex])),
-                        getObjectEditElementAttributes(vn.variables.editStartNodes[noteIndex]));
+                        getParentTagName(note._selection.editStartNode, note),
+                        getCssTextFromObject(getObjectEditElementCss(note._selection.editStartNode, note)),
+                        getObjectEditElementAttributes(note._selection.editStartNode, note),
+                        note
+                    );
                 insertSelectedNode(tempEl, tempUnitEl);
                 // Insert text after the starting node.
-                tempEl = getElement(sE, newTagName, newCssText, newAttributes);
+                tempEl = getElement(sE, newTagName, newCssText, newAttributes, note);
                 insertSelectedNode(tempEl, tempUnitEl);
                 // Reset the starting node.
                 newStartNode = tempEl.firstChild;
@@ -437,9 +435,11 @@ var modifySelectedSingleElement = function(noteIndex: number, csses: Record<stri
                     // Reset the ending node (same as the starting point).
                     newEndNode = tempEl.firstChild;
                     tempEl = getElement(eE,
-                            getParentTagName(vn.variables.editEndNodes[noteIndex]),
-                            getCssTextFromObject(getObjectEditElementCss(vn.variables.editEndNodes[noteIndex])),
-                            getObjectEditElementAttributes(vn.variables.editEndNodes[noteIndex]));
+                            getParentTagName(note._selection.editEndNode, note),
+                            getCssTextFromObject(getObjectEditElementCss(note._selection.editEndNode, note)),
+                            getObjectEditElementAttributes(note._selection.editEndNode, note),
+                            note
+                        );
                     insertSelectedNode(tempEl, tempUnitEl);
                     // Set the "isEnd" boolean variable to true.
                     isEnd = true;
@@ -447,17 +447,19 @@ var modifySelectedSingleElement = function(noteIndex: number, csses: Record<stri
                 // Remove the starting node.
                 selectedNodes[i].remove();
             }
-            else if(!isStartNodeEqualEndNode && selectedNodes[i] === vn.variables.editEndNodes[noteIndex]) {	// For the case where the starting and ending nodes are different, and the current node is the ending node.
+            else if(!isStartNodeEqualEndNode && selectedNodes[i] === note._selection.editEndNode) {	// For the case where the starting and ending nodes are different, and the current node is the ending node.
                 // Insert text before the ending node.
-                tempEl = getElement(eS, newTagName, newCssText, newAttributes);
+                tempEl = getElement(eS, newTagName, newCssText, newAttributes, note);
                 insertSelectedNode(tempEl, tempUnitEl);
                 // Reset the ending node.
                 newEndNode = tempEl.firstChild;
                 // Insert text after the ending node.
                 tempEl = getElement(eE,
-                        getParentTagName(vn.variables.editEndNodes[noteIndex]),
-                        getCssTextFromObject(getObjectEditElementCss(vn.variables.editEndNodes[noteIndex])),
-                        getObjectEditElementAttributes(vn.variables.editEndNodes[noteIndex]));
+                        getParentTagName(note._selection.editEndNode, note),
+                        getCssTextFromObject(getObjectEditElementCss(note._selection.editEndNode, note)),
+                        getObjectEditElementAttributes(note._selection.editEndNode, note),
+                        note
+                    );
                 insertSelectedNode(tempEl, tempUnitEl);
                 // Set the "isEnd" boolean variable to true.
                 isEnd = true;
@@ -466,38 +468,40 @@ var modifySelectedSingleElement = function(noteIndex: number, csses: Record<stri
             else {	// For the rest of the selected nodes that are not starting or ending nodes.
                 if(isEnd) {	// If "isEnd" is true, apply the existing attributes and styles to nodes until the end of the edit unit.
                     tempEl = getElement(selectedNodes[i].textContent,
-                            getParentTagName(selectedNodes[i]),
-                            getCssTextFromObject(getObjectEditElementCss(selectedNodes[i])),
-                            getObjectEditElementAttributes(selectedNodes[i]));
+                            getParentTagName(selectedNodes[i], note),
+                            getCssTextFromObject(getObjectEditElementCss(selectedNodes[i], note)),
+                            getObjectEditElementAttributes(selectedNodes[i], note),
+                            note
+                        );
                 }
                 else {	// If "isEnd" is false, apply new attributes and styles to selected nodes.
-                    tempEl = getElement(selectedNodes[i].textContent, newTagName, newCssText, newAttributes);
+                    tempEl = getElement(selectedNodes[i].textContent, newTagName, newCssText, newAttributes, note);
                 }
                 insertSelectedNode(tempEl, tempUnitEl);
                 selectedNodes[i].remove();
             }
         }
-        else if(vn.consts.EMPTY_ABLE_TAG.indexOf(selectedNodes[i].tagName) >= 0) {	// For empty able tags, copy them as they are.
+        else if(note._vn.consts.EMPTY_ABLE_TAG.indexOf(selectedNodes[i].tagName) >= 0) {	// For empty able tags, copy them as they are.
             tempEl = selectedNodes[i].cloneNode();
             insertSelectedNode(tempEl, tempUnitEl);
             selectedNodes[i].remove();
         }
-        else if(vn.consts.UNIT_TAG.indexOf(selectedNodes[i].tagName) >= 0) {	// For unit tags, set the insert position.
+        else if(note._vn.consts.UNIT_TAG.indexOf(selectedNodes[i].tagName) >= 0) {	// For unit tags, set the insert position.
             tempUnitEl = selectedNodes[i];
         }
     }
     
     // Clean up the target elements for editing.
-    for(var i = 0; i < vn.variables.editDragUnitElements[noteIndex].length; i++) {
-        removeEmptyElment(vn.variables.editDragUnitElements[noteIndex][i]);
+    for(var i = 0; i < note._selection.editDragUnitElement.length; i++) {
+        removeEmptyElment(note._selection.editDragUnitElement[i], note);
     }
     
     if(!newStartNode) {
-        newStartNode = vn.variables.editStartUnitElements[noteIndex];	
+        newStartNode = note._selection.editStartUnitElement;	
     }
     
     if(!newEndNode) {
-        newEndNode = vn.variables.editEndUnitElements[noteIndex];
+        newEndNode = note._selection.editEndUnitElement;
         newEndOffset = 0;
     }
     else {
@@ -535,7 +539,7 @@ var textarea_onBeforeinputSpelling = function(e: any) {
     var cssObjectEl = getObjectEditElementCss(vn.variables.editStartElements[noteIndex]);
     
     // Ignore font size when inputting in a header.
-    if ((vn.variables.editStartUnitElements[noteIndex] as any).tagName.substring(0, 1) === "H") {
+    if ((vn.variables.editStartUnitElement[noteIndex] as any).tagName.substring(0, 1) === "H") {
         delete cssObject["font-size"];
         delete cssObject["letter-spacing"];
         delete cssObject["line-height"];
@@ -601,24 +605,24 @@ var textarea_onKeydownEnter = function(target: any) {
     var noteId = getNoteId(target);
     if(!noteIndex) return;
     if(!isValidSelection(noteIndex)) return;
-    if(vn.variables.editStartUnitElements[noteIndex] && (vn.variables.editStartUnitElements[noteIndex] as any).textContent) {
+    if(vn.variables.editStartUnitElement[noteIndex] && (vn.variables.editStartUnitElement[noteIndex] as any).textContent) {
         return;
     }
     // Ignore if it is an empty-able tag (except BR, img, input).
-    if(vn.variables.editStartNodes[noteIndex] instanceof Element
-        && vn.consts.EMPTY_ABLE_TAG.indexOf((vn.variables.editStartNodes[noteIndex] as any).tagName) >= 0
-        && (vn.variables.editStartNodes[noteIndex] as any).tagName !== "BR") {
+    if(vn.variables.editStartNode[noteIndex] instanceof Element
+        && vn.consts.EMPTY_ABLE_TAG.indexOf((vn.variables.editStartNode[noteIndex] as any).tagName) >= 0
+        && (vn.variables.editStartNode[noteIndex] as any).tagName !== "BR") {
         return;
     }
     var tempEl1;
     var tempEl2;
-    var tagName = (vn.variables.editStartUnitElements[noteIndex] as any).tagName;
+    var tagName = (vn.variables.editStartUnitElement[noteIndex] as any).tagName;
     tempEl1 = document.createElement(tagName);
     tempEl2 = document.createElement("BR");
     tempEl1.appendChild(tempEl2);
-    tempEl1 = setAttributesObjectToElement(tempEl1, (getAttributesObjectFromElement((vn.variables.editStartUnitElements[noteIndex] as any)) as any));
+    tempEl1 = setAttributesObjectToElement(tempEl1, (getAttributesObjectFromElement((vn.variables.editStartUnitElement[noteIndex] as any)) as any));
     
-    (vn.variables.editStartUnitElements[noteIndex] as any).replaceWith(tempEl1);
+    (vn.variables.editStartUnitElement[noteIndex] as any).replaceWith(tempEl1);
     
     // Sets the new selection range.
     setNewSelection(tempEl1, 0, tempEl1, 0);
@@ -629,7 +633,7 @@ var textarea_onKeydownEnter = function(target: any) {
 * @description Initializes the edit note by setting its content to a default state (<p><br></p>).
 * @param {HTMLTextAreaElement} textarea - The textarea element representing the edit note.
 */
-var initTextarea = function(textarea: any) {
+export const initTextarea = function(textarea: HTMLTextAreaElement) {
     // Remove all existing child elements of the textarea.
     while(textarea.firstChild) {
         textarea.removeChild(textarea.firstChild);
