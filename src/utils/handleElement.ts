@@ -1,3 +1,6 @@
+import { VanillanoteElement } from "../types/vanillanote";
+import { getEventChildrenClassName, getId, getObjectFromCssText, getParentNote, isCloserToRight } from "./util";
+
 /**
 * closeAllTooltip
 * @description Closes all the tooltips associated with the specified note.
@@ -171,15 +174,11 @@ var allButtonToggle = function(noteIndex: number) {
     */
 };
 
-/**
-* selectToggle
-* @description Toggles a select box's visibility and adjusts its position based on the viewport's available space.
-* @param {HTMLElement} target - The select box to be toggled.
-*/
-var selectToggle = function(target: any) {
+export const selectToggle = (target: any, _note?: VanillanoteElement) => {
+    const note = _note ? _note : getParentNote(target);
     // If a child element is selected, event is controlled
-    if(target.classList.contains(getEventChildrenClassName())) {
-        target = target.parentNode;
+    if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
+        target = target.parentNode!;
     }
     var select = target;
     var isClickBox = false;
@@ -189,33 +188,32 @@ var selectToggle = function(target: any) {
         select = select.parentNode;
     }
     if(!select.getAttribute("data-note-id")) return;
-    var noteId = select.getAttribute("data-note-id");
     var selectId = select.getAttribute("id");
     var selectBox: any;
     
     if(selectId.includes("paragraphStyleSelect")) {
-        selectBox = vn.elements.paragraphStyleSelectBoxes[noteIndex];
+        selectBox = note._elements.paragraphStyleSelectBox;
     }
     else if(selectId.includes("textAlignSelect")) {
-        selectBox = vn.elements.textAlignSelectBoxes[noteIndex];
+        selectBox = note._elements.textAlignSelectBox;
     }
     else if(selectId.includes("fontFamilySelect")) {
-        selectBox = vn.elements.fontFamilySelectBoxes[noteIndex];
+        selectBox = note._elements.fontFamilySelectBox;
     }
     else if(selectId.includes("colorTextSelect")) {
         if(isClickBox) return; // Checks if the select box is currently visible
-        selectBox = vn.elements.colorTextSelectBoxes[noteIndex];
+        selectBox = note._elements.colorTextSelectBox;
     }
     else if(selectId.includes("colorBackSelect")) {
         if(isClickBox) return; // Checks if the select box is currently visible
-        selectBox = vn.elements.colorBackSelectBoxes[noteIndex];
+        selectBox = note._elements.colorBackSelectBox;
     }
     
-    var displayBlock = getId(noteIndex, "on_display_block");
-    var displayNone = getId(noteIndex, "on_display_none");
+    var displayBlock = getId(note._noteName, note._id, "on_display_block");
+    var displayNone = getId(note._noteName, note._id, "on_display_none");
     var isOpened = selectBox.classList.contains(displayBlock);
     
-    closeAllSelectBoxes(noteIndex);	//Close all other select boxes
+    closeAllSelectBoxes(note);	//Close all other select boxes
     
     if(isOpened) {
         selectBox.classList.remove(displayBlock);
@@ -236,8 +234,8 @@ var selectToggle = function(target: any) {
         var selectBoxRect = selectBox.getBoundingClientRect();
         if(selectBoxRect.top === 0) return
         
-        if(vn.elements.tools[noteIndex].offsetParent === null) return;
-        var toolRect = vn.elements.tools[noteIndex].getBoundingClientRect();
+        if(note._elements.tools.offsetParent === null) return;
+        var toolRect = note._elements.tools.getBoundingClientRect();
         
         if(toolRect.left > selectBoxRect.left) {
             selectBox.style.right = selectBoxRect.left - 1 + "px";
@@ -252,8 +250,8 @@ var selectToggle = function(target: any) {
         var selectBoxRect = selectBox.getBoundingClientRect();
         if(selectBoxRect.top === 0) return
         
-        if(vn.elements.tools[noteIndex].offsetParent === null) return;
-        var toolRect = vn.elements.tools[noteIndex].getBoundingClientRect();
+        if(note._elements.tools.offsetParent === null) return;
+        var toolRect = note._elements.tools.getBoundingClientRect();
         
         if(toolRect.right < selectBoxRect.right) {
             selectBox.style.left = toolRect.right - (selectBoxRect.right + 1) + "px";
@@ -261,43 +259,33 @@ var selectToggle = function(target: any) {
     }
 };
 
-/**
-* closeAllSelectBoxes
-* @description Closes all select boxes in the provided noteIndex.
-* @param {Number} noteIndex - The index of the note containing the select boxes to be closed.
-*/
-var closeAllSelectBoxes = function(noteIndex: number) {
-    var displayBlock = getId(noteIndex, "on_display_block");
-    var displayNone = getId(noteIndex, "on_display_none");
+export const closeAllSelectBoxes = (note: VanillanoteElement) => {
+    var displayBlock = getId(note._noteName, note._id, "on_display_block");
+    var displayNone = getId(note._noteName, note._id, "on_display_none");
     
-    vn.elements.paragraphStyleSelectBoxes[noteIndex].classList.remove(displayBlock);
-    vn.elements.paragraphStyleSelectBoxes[noteIndex].classList.add(displayNone);
-    vn.elements.textAlignSelectBoxes[noteIndex].classList.remove(displayBlock);
-    vn.elements.textAlignSelectBoxes[noteIndex].classList.add(displayNone);
-    vn.elements.fontFamilySelectBoxes[noteIndex].classList.remove(displayBlock);
-    vn.elements.fontFamilySelectBoxes[noteIndex].classList.add(displayNone);
-    vn.elements.colorTextSelectBoxes[noteIndex].classList.remove(displayBlock);
-    vn.elements.colorTextSelectBoxes[noteIndex].classList.add(displayNone);
-    vn.elements.colorBackSelectBoxes[noteIndex].classList.remove(displayBlock);
-    vn.elements.colorBackSelectBoxes[noteIndex].classList.add(displayNone);
+    note._elements.paragraphStyleSelectBoxes.classList.remove(displayBlock);
+    note._elements.paragraphStyleSelectBoxes.classList.add(displayNone);
+    note._elements.textAlignSelectBoxes.classList.remove(displayBlock);
+    note._elements.textAlignSelectBoxes.classList.add(displayNone);
+    note._elements.fontFamilySelectBoxes.classList.remove(displayBlock);
+    note._elements.fontFamilySelectBoxes.classList.add(displayNone);
+    note._elements.colorTextSelectBoxes.classList.remove(displayBlock);
+    note._elements.colorTextSelectBoxes.classList.add(displayNone);
+    note._elements.colorBackSelectBoxes.classList.remove(displayBlock);
+    note._elements.colorBackSelectBoxes.classList.add(displayNone);
 };
 
-/**
-* fontFamilySelectList_onClick
-* @description Handles the click event on the font family select list.
-* @param {Event} e - The click event.
-*/
-var fontFamilySelectList_onClick = function(e: any) {
+export const fontFamilySelectList_onClick = (e: any, _note?: VanillanoteElement) => {
     if(!e.target) return;
-    var selectLsit = e.target;
-    var noteId = selectLsit.getAttribute("data-note-id");
-    var fontFamily = selectLsit.getAttribute("data-font-family");
-    var oldStyleObject: any = getObjectFromCssText((vn.elements.fontFamilySelects[noteIndex] as any).getAttribute("style"));
+    const selectLsit = e.target;
+    const note = _note ? _note : getParentNote(e.target);
+    const fontFamily = selectLsit.getAttribute("data-font-family");
+    var oldStyleObject: any = getObjectFromCssText(note._elements.fontFamilySelect.getAttribute("style")!);
     oldStyleObject["font-family"] = fontFamily;
     // Change the font family in the variables and the displayed select list option.
-    vn.variables.fontFamilies[noteIndex] = fontFamily;
-    (vn.elements.fontFamilySelects[noteIndex] as any).firstChild.textContent = fontFamily.length > 12 ? fontFamily.substr(0,12) + "..." : fontFamily;
-    (vn.elements.fontFamilySelects[noteIndex] as any).style.fontFamily = fontFamily;
+    note._noteStatus.fontFamilies = fontFamily;
+    (note._elements.fontFamilySelects as any).firstChild.textContent = fontFamily.length > 12 ? fontFamily.substr(0,12) + "..." : fontFamily;
+    (note._elements.fontFamilySelects as any).style.fontFamily = fontFamily;
 };
 
 /**
