@@ -21,6 +21,7 @@ export const note_observer = new MutationObserver(function(mutations) {
         vn.variables.recodeNotes[noteIndex].push((vn.elements.textareas[noteIndex] as any).cloneNode(true));
     }
 });
+
 // Adjust note size according to window change.
 export const window_onResize = (e: UIEvent) => {
     // A delay of 0.05 second
