@@ -1,4 +1,5 @@
-import type { Vanillanote } from "../types/vanillanote";
+import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
+import { setAttributesObjectToElement } from "./util";
 import { compareObject, getObjectFromCssText } from "./utils";
 
 /**
@@ -164,12 +165,6 @@ export const getAttributesObjectFromElement = (element: any) => {
     return attriesObject;
 };
 
-/**
-* getSpecialTag
-* @description Checks if there are any parent elements of the editing element (up to the unit element) that contain a special tag (e.g., <a>, <img>, etc.).
-* @param {Element} el - The element whose parent elements will be checked.
-* @returns {String} tagName - The tag name of the first encountered special tag, or "SPAN" if none is found.
-*/
 export const getSpecialTag = (el: any) => {
     var element = el;
     var tagName = element.tagName;
@@ -182,25 +177,19 @@ export const getSpecialTag = (el: any) => {
     return "SPAN";
 };
 
-/**
-* getParentUnitTagElemnt
-* @description Finds the parent element of the given element (el) that belongs to the top-level editor unit tags.
-* @param {Element} el - The element for which to find the parent editor unit tag.
-* @returns {Element|null} - The parent element that belongs to the top-level editor unit tags, or null if not found.
-*/
-var getParentUnitTagElemnt = function(el: any) {
+export const getParentUnitTagElemnt = function(el: any, note: VanillanoteElement) {
     var element = el;
     while(element) {
         //p, h1, h2, h3, h4, h5, h6, li
-        if(vn.consts.UNIT_TAG.indexOf(element.tagName) >= 0) {
+        if(note._vn.consts.UNIT_TAG.indexOf(element.tagName) >= 0) {
             break;	
         }
         // If the element's tag name is  'ul' or 'ol'
-        if(vn.consts.DOUBLE_TAG.indexOf(element.tagName) >= 0) {
+        if(note._vn.consts.DOUBLE_TAG.indexOf(element.tagName) >= 0) {
             element = element.lastElementChild!;
             break;	
         }
-        if(element.tagName === (vn.variables.noteName+"-textarea").toUpperCase()) {
+        if(element.tagName === (note._noteName+"-textarea").toUpperCase()) {
             return null;
         }
         element = element.parentNode!;
@@ -208,29 +197,17 @@ var getParentUnitTagElemnt = function(el: any) {
     return element;
 };
 
-/**
-* getParentTagName
-* @description Retrieves the tag name of the parent element of the given element (el).
-* @param {Element} el - The element for which to find the parent element's tag name.
-* @returns {String} tagName - The tag name of the parent element or "span" if not found or not applicable.
-*/
-var getParentTagName = function(el: any) {
+export const getParentTagName = (el: any, note: VanillanoteElement) => {
     var tagName = "span";
     if(!el) return tagName;
     if(!el.parentNode) return tagName;
     if(!el.parentNode.tagName) return tagName;
-    if(vn.consts.UNIT_TAG.indexOf(el.parentNode.tagName) >= 0) return tagName;
-    if(vn.consts.AUTO_MODIFY_TAG.indexOf(el.parentNode.tagName) >= 0) return tagName;
+    if(note._vn.consts.UNIT_TAG.indexOf(el.parentNode.tagName) >= 0) return tagName;
+    if(note._vn.consts.AUTO_MODIFY_TAG.indexOf(el.parentNode.tagName) >= 0) return tagName;
     return el.parentNode.tagName;
 };
 
-/**
-* getObjectEditElementAttributes
-* @description Retrieves attributes of the editing element (including all attributes up to the unit element) and returns them as an object. (*Attributes with the same key will be replaced.)
-* @param {Element} el - The element whose attributes to retrieve.
-* @returns {Object} attributesObject - An object containing the attributes of the editing element and its ancestors up to the unit element.
-*/
-var getObjectEditElementAttributes = function(el: any) {
+export const getObjectEditElementAttributes = (el: any, note: VanillanoteElement) => {
     var attributesObject: any = getAttributesObjectFromElement(el); 
     // Helper function to check and add attributes from the element.
     var chkElementAttributes = function(element: any) {
@@ -248,7 +225,7 @@ var getObjectEditElementAttributes = function(el: any) {
     // Iterate up to the unit element (e.g., <p>, <h1>, <h2>, <h3>, <h4>, <h5>, <h6>, <li>) to retrieve its attributes and those of its ancestors.
     while(el) {
         //p, h1, h2, h3, h4, h5, h6, li
-        if(vn.consts.UNIT_TAG.indexOf(el.tagName) >= 0) {
+        if(note._vn.consts.UNIT_TAG.indexOf(el.tagName) >= 0) {
             break;
         }
         chkElementAttributes(el);
@@ -257,13 +234,7 @@ var getObjectEditElementAttributes = function(el: any) {
     return attributesObject;
 };
 
-/**
-* getObjectEditElementCss
-* @description Retrieves the styles of the editing element (including all styles up to the unit element) and returns them as an object.
-* @param {Element} el - The element whose styles to retrieve.
-* @returns {Object} cssObject - An object containing the styles of the editing element and its ancestors up to the unit element.
-*/
-var getObjectEditElementCss = function(el: any) {
+export const getObjectEditElementCss = (el: any, note: VanillanoteElement) => {
     var cssObject: any = getObjectFromCssText(document.contains(el) && el.getAttribute ? el.getAttribute("style") : ""); 
     
     var chkElementStyle = function(element: any) {
@@ -279,7 +250,7 @@ var getObjectEditElementCss = function(el: any) {
     // Iterate up to the unit element (e.g., <p>, <h1>, <h2>, <h3>, <h4>, <h5>, <h6>, <li>) to retrieve its attributes and those of its ancestors.
     while(el) {
         //p, h1, h2, h3, h4, h5, h6, li
-        if(vn.consts.UNIT_TAG.indexOf(el.tagName) >= 0) {
+        if(note._vn.consts.UNIT_TAG.indexOf(el.tagName) >= 0) {
             break;
         }
         switch(el.tagName) {
@@ -572,18 +543,9 @@ var removeDoubleTag = function(noteIndex: number, element: any) {
     element.remove();
 };
 
-/**
-* getElement
-* @description Returns a styled span element with the given text, tag name, CSS text, and attributes.
-* @param {string} text - The text to be included inside the element. Newlines represented by "<br>" will be converted to "\n".
-* @param {string} tagName - The desired tag name for the element. If it's an invalid tag name or one of the UNIT_TAG or AUTO_MODIFY_TAG, "span" will be used as the default.
-* @param {string} cssText - The CSS text to apply to the element.
-* @param {object} attributes - An object containing the attributes and their values to apply to the element.
-* @returns {Element} - The styled span element.
-*/
-var getElement = function(text: string, tagName: string, cssText: string, attributes: Record<string, string>) {
+export const getElement = (text: string, tagName: string, cssText: string, attributes: Record<string, string>, note: VanillanoteElement) => {
     text = text.replace(/<br\s*\/?>/gm, "\n");
-    if(!tagName || vn.consts.UNIT_TAG.indexOf(tagName) >= 0 || vn.consts.AUTO_MODIFY_TAG.indexOf(tagName) >= 0) {
+    if(!tagName || note._vn.consts.UNIT_TAG.indexOf(tagName) >= 0 || note._vn.consts.AUTO_MODIFY_TAG.indexOf(tagName) >= 0) {
         tagName = "span"
     }
     var tempEl = document.createElement(tagName);
@@ -635,15 +597,10 @@ var setEditNodeAndElement = function(noteIndex: number, setElement: any, compare
     return isChange;
 };
 
-/**
-* removeEmptyElment
-* @description Removes empty elements from the given element (el) and its descendants.
-* @param {Element} el - The element from which to start checking and removing empty elements.
-*/
-var removeEmptyElment = function(el: any) {
+export const removeEmptyElment = (el: any, note: VanillanoteElement) => {
     var childrens = el.querySelectorAll("*");
     for(var i = childrens.length - 1; i >= 0; i--) {
-        if(!(childrens[i].hasChildNodes()) && vn.consts.EMPTY_ABLE_TAG.indexOf(childrens[i].tagName) < 0) {
+        if(!(childrens[i].hasChildNodes()) && note._vn.consts.EMPTY_ABLE_TAG.indexOf(childrens[i].tagName) < 0) {
             childrens[i].remove();
         }
     }
