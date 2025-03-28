@@ -1,18 +1,37 @@
-import type { Consts, Keyframes } from "../types/consts";
-import type { Colors, Csses } from "../types/csses";
+import type { Consts } from "../types/consts";
+import type { Colors } from "../types/csses";
 import type { LanguageSet } from "../types/language";
 import type { Vanillanote, VanillanoteConfig } from "../types/vanillanote";
 import type { Variables } from "../types/variables";
-import { getRGBAFromHex } from "../utils/util";
-import { LogMode, ToolPositions } from "../types/enums";
+import type { Attributes } from "../types/attributes";
+import { NoteModesByDevice } from "../types/enums";
 import { createVanillanote } from "./createVanillanote";
 import { destroyVanillanote } from "./destroyVanillanote";
 
 let singletonVanillanote: Vanillanote | null = null;
-export const getVanillanote = (config: VanillanoteConfig): Vanillanote => {
+export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
     if (singletonVanillanote) return singletonVanillanote;
 
-    const consts: Consts = {
+    const deepFreeze = <T>(obj: T): T => {
+        // 먼저 자신을 freeze
+        Object.freeze(obj);
+        
+        // 프로퍼티를 순회하며 객체인 경우 재귀적으로 freeze
+        Object.getOwnPropertyNames(obj).forEach((prop) => {
+            const value = (obj as any)[prop];
+            if (
+            value &&
+            typeof value === 'object' &&
+            !Object.isFrozen(value)
+            ) {
+            deepFreeze(value);
+            }
+        });
+        
+        return obj;
+    }
+
+    const consts: Consts = deepFreeze({
         // Start possible tags
         START_POSSIBLE_TAG : ["P","H1","H2","H3","H4","H5","H6","OL","UL","BR","DIV","PRE","BLOCKQUOTE","TABLE"],
         // Unit tags for edit
@@ -167,34 +186,28 @@ export const getVanillanote = (config: VanillanoteConfig): Vanillanote => {
             helpFooter : { id : "helpFooter", className : "modal_footer", },
             placeholder : { id : "placeholder", className : "placeholder", },
         },
-    };
-
-    const keyframes: Keyframes = {
-        "@keyframes vanillanote-modal-input" : "@keyframes vanillanote-modal-input {0%{width: 30%;}100%{width: 80%;}}\n",
-        "@keyframes vanillanote-modal-small-input" : "@keyframes vanillanote-modal-small-input {0%{width: 0%;}100%{width: 20%;}}\n",
-    };
+    });
 
     if(!config) config = getVanillanoteConfig();
-    const csses: Csses = config.csses;
     const colors: Colors = config.colors;
+    const attributes: Attributes = config.attributes;
     const variables: Variables = config.variables;
     const languageSet: LanguageSet = config.languageSet;
     
     singletonVanillanote = {
         consts : consts,
-        csses : csses,
         colors : colors,
-        keyframes : keyframes,
+        attributes : attributes,
         variables : variables,
         languageSet : languageSet,
         documentEvents : { selectionchange: null, keydown: null, resize: null, resizeViewport: null },
         vanillanoteElements : {},
         get(noteId: string) {return null},
         beforeAlert(message: string) {return true},
-        create(element: HTMLElement) {
+        create(element?: HTMLElement) {
             createVanillanote(singletonVanillanote!, element);
         },
-        destroy(element: HTMLElement) {
+        destroy(element?: HTMLElement) {
             destroyVanillanote(singletonVanillanote!, element);
         },
     };
@@ -203,27 +216,8 @@ export const getVanillanote = (config: VanillanoteConfig): Vanillanote => {
 }
 
 export const getVanillanoteConfig =(): VanillanoteConfig => {
-    const variables: Variables = {
-        noteName : "vanillanote",
-        isCreated : false,
-        logMode : LogMode.debug, 	//DEBUG : Total log, INFO : infomation, ERROR : only error(default)
-        observerOptions : {characterData: true, childList: true, subtree: true},
-        useMobileActiveMode : true,
-        // lastActiveNote : 0,
-        // recodeNotes : [],
-        // recodeContings : [],
-        // recodeLimit : [],
-        lastScreenHeight : null,
-        isIOS : false,
-        mobileKeyboardExceptHeight : null,
-        isSelectionProgress : false,
-        preventChangeScroll : 0,
-        resizeInterval : 50,
-        inputInterval : 50,
-        loadInterval : 100,
-        canEvents : true,
-        toolPositions : ToolPositions.top,
-        toolDefaultLines : 1,
+    const attribute: Attributes = {
+        noteModeByDevice: NoteModesByDevice.adaptive,
         textareaOriginWidths : "100%",
         textareaOriginHeights : "500px",
         textareaMaxWidth : "100%",
@@ -233,57 +227,72 @@ export const getVanillanoteConfig =(): VanillanoteConfig => {
         placeholderAddTop : 0,
         placeholderAddLeft : 0,
         placeholderWidth : "",
-        //editSelections: null,
-        //editRanges : null,
-        //startOffsets : null,
-        //endOffsets : null,
-        //editStartNodes : null,
-        //editEndNodes : null,
-        //editStartElements : null,
-        //editEndElements : null,
-        //editStartUnitElements : null,
-        //editEndUnitElements : null,
-        //editDragUnitElements : [],
-        //setEditStyleTagToggle : 0,
-        // toolToggles : [],
-        // boldToggles : [],
-        // underlineToggles : [],
-        // italicToggles : [],
-        // ulToggles : [],
-        // olToggles : [],
-        // fontSizes : [],
-        // letterSpacings : [],
-        // lineHeights : [],
-        // fontFamilies : [],
-        // // colorTextRs : [],
-        // colorTextGs : [],
-        // colorTextBs : [],
-        // colorTextOs : [],
-        // colorTextRGBs : [],
-        // colorTextOpacitys : [],
-        // colorBackRs : [],
-        // colorBackGs : [],
-        // colorBackBs : [],
-        // colorBackOs : [],
-        // colorBackRGBs : [],
-        // colorBackOpacitys : [],
-        // openedModals : [],
         attFilePreventTypes : [],
         attFileAcceptTypes : [],
         attFileMaxSizes : 50 * 1024 * 1024,
-        // attTempFiles : [],
-        // attFiles : [],
         attImagePreventTypes : [],
-        attImageAcceptTypes : [],
+        attImageAcceptTypes : [
+            "image/png", "image/jpeg", "image/bmp", "image/gif", "image/svg+xml",
+            "image/tiff", "image/x-icon", "image/vnd.microsoft.icon", "image/webp","image/heif",
+            "image/heic", "image/jp2", "image/avif", "video/mp4", "video/webm",
+            "video/ogg", "video/avi", "video/mpeg", "video/quicktime", "video/x-ms-wmv",
+            "video/x-flv", "video/3gpp", "video/3gpp2", "video/x-matroska"
+        ],
         attImageMaxSizes : 50 * 1024 * 1024,
-        // attTempImages : [],
-        // attImages : [],
-        sizeRates : 0.7,	// 1 ~ 10
         defaultTextareaFontSize: "16px",
         defaultTextareaLineHeight: "16px",
         defaultTextareaFontFamily: "Georgia",
         defaultToolFontFamily: "Georgia",
         language : "ENG",
+
+        placeholderColor: "",
+        placeholderBackgroundColor: "",
+        placeholderTitle: "",
+        placeholderTextContent: "",
+
+        defaultFontFamilies: ["Arial","Arial Black","Arial Narrow","Comic Sans MS","Courier","Georgia","Impact"],
+
+        sizeLevelDesktop: 3,
+        sizeLevelMobile: 7,
+        recodeLimit: 100,
+        mainColor: "",
+        colorSet: "",
+        invertColor: false,
+        usingParagraphStyle: true,
+        usingBold: true,
+        usingUnderline: true,
+        usingItalic: true,
+        usingUl: true,
+        usingOl: true,
+        usingTextAlign: true,
+        usingAttLink: true,
+        usingAttFile: true,
+        usingAttImage: true,
+        usingAttVideo: true,
+        usingFontSize: true,
+        usingLetterSpacing: true,
+        usingLineHeight: true,
+        usingFontFamily: true,
+        usingColorText: true,
+        usingColorBack: true,
+        usingFormatClear: true,
+        usingUndo: true,
+        usingRedo: true,
+        usingHelp: true,
+    }
+    const variables: Variables = {
+        noteName : "vanillanote",
+        observerOptions : {characterData: true, childList: true, subtree: true},
+        useMobileActiveMode : true,
+        // lastActiveNote : 0,
+        lastScreenHeight : null,
+        mobileKeyboardExceptHeight : null,
+        isSelectionProgress : false,
+        preventChangeScroll : 0,
+        resizeInterval : 50,
+        inputInterval : 50,
+        loadInterval : 100,
+        canEvents : true,
     };
     const colors: Colors = {
         color1 : "#333333", //filled
@@ -439,649 +448,12 @@ export const getVanillanoteConfig =(): VanillanoteConfig => {
             ],
         },
     };
-    const csses: Csses = getCssesWithVanillanoteConfig(variables, colors);
     const vanillanoteConfig: VanillanoteConfig = {
-        csses: csses,
         colors: colors,
         languageSet: languageSet,
+        attributes: attribute,
         variables: variables,
-        beforeAlert: function(message: string) {return true;}
+        beforeAlert: (message: string) => {return true;}
     };
     return vanillanoteConfig;
-}
-
-export const getCssesWithVanillanoteConfig =(_variables: Variables, _colors: Colors): Csses => {
-    if(!_variables) throw new Error("Please insert variables object in VanillanoteConfig.");
-    if(!_colors) throw new Error("Please insert colors object in VanillanoteConfig.");
-    const variables: Variables = _variables;
-    const colors: Colors = _colors;
-    
-    const csses: Csses = {
-        "template h1" : {
-			"display" : "block",
-			"font-size" : "2em",
-			"line-height" : "1.2em",
-			"font-weight" : "bold",
-			"margin" : "1em 0",
-			"padding" : "0 10px",
-        },
-        "template h2" : {
-			"display" : "block",
-			"font-size" : "1.8em",
-			"line-height" : "1.2em",
-			"font-weight" : "bold",
-			"margin" : "1em 0",
-			"padding" : "0 10px",
-        },
-        "template h3" : {
-			"display" : "block",
-			"font-size" : "1.6em",
-			"line-height" : "1.2em",
-			"font-weight" : "bold",
-			"margin-top" : "1em",
-			"margin-bottom" : "1em",
-			"padding" : "0 10px",
-        },
-        "template h4" : {
-			"display" : "block",
-			"font-size" : "1.4em",
-			"line-height" : "1.2em",
-			"font-weight" : "bold",
-			"margin" : "1em 0",
-			"padding" : "0 10px",
-        },
-        "template h5" : {
-			"display" : "block",
-			"font-size" : "1.2em",
-			"line-height" : "1.2em",
-			"font-weight" : "bold",
-			"margin" : "1em 0",
-			"padding" : "0 10px",
-        },
-        "template h6" : {
-			"display" : "block",
-			"font-size" : "1em",
-			"line-height" : "1.2em",
-			"font-weight" : "bold",
-			"margin" : "1em 0",
-			"padding" : "0 10px",
-        },
-        "textarea ul" : {
-			"display" : "block",
-			"list-style-type" : "disc",
-			"padding-left" : "40px",
-			"margin" : "1em 0",
-        },
-        "textarea ol" : {
-			"display" : "block",
-			"list-style-type" : "decimal",
-			"padding-left" : "40px",
-			"margin" : "1em 0",
-        },
-        "textarea li" : {
-			"display" : "list-item",
-			"margin-top" : "0.5em",
-			"margin-bottom" : "0.5em",
-			"padding" : "0 10px",
-        },
-        "textarea p" : {
-			"display" : "block",
-			"margin-top" : "1em",
-			"margin-bottom" : "1em",
-			"padding" : "0 10px",
-        },
-        "textarea div" : {
-			"display" : "block",
-			"margin-top" : "1em",
-			"margin-bottom" : "1em",
-			"padding" : "0 10px",
-        },
-        "textarea span" : {
-			"display" : "inline",
-        },
-        "textarea a" : {
-			"display" : "inline",
-			"color" : colors.color11,
-			"text-decoration" : "underline",
-        },
-        "template" : {
-			"width" : "100%",
-			"height" : "100%",
-			"position" : "relative",
-        },
-        "textarea" : {
-			"width" : variables.textareaOriginWidths,
-			"height" : variables.textareaOriginHeights,
-			"display" : "block",
-			"margin" : "0 auto",
-			"outline" : "none",
-			"cursor" : "text",
-			"text-align" : "left",
-			"overflow" : "auto",
-			"word-wrap" : "break-word",
-			"resize": variables.textareaHeightIsModify === true ? "vertical" : "none",
-			"max-width" : variables.textareaMaxWidth,
-			"max-height" : variables.textareaMaxHeight,
-			"box-shadow" : "0 0.5px 1px 0.5px " + colors.color7,
-			"background-color" : colors.color2,
-			"font-size" : variables.defaultTextareaFontSize,
-			"line-height" : variables.defaultTextareaLineHeight,
-			"font-family" : variables.defaultTextareaFontFamily,
-			"color" : colors.color12,
-			"transition": "height 0.5s",
-        },
-        "tool" : {
-			"width" : variables.textareaOriginWidths,
-			"height" : (variables.toolDefaultLines * (variables.sizeRates * 50)) + "px",
-			"padding" : "2px 0",
-			"max-width" : variables.textareaMaxWidth,
-			"display" : "block",
-			"line-height" : (variables.sizeRates * 50) + "px",
-			"margin" : "0 auto",
-			"text-align" : "left",
-			"vertical-align" : "middle",
-			"box-shadow" : "0.25px 0.25px 1px 0.5px " + colors.color7,
-			"font-size" : (variables.sizeRates * 16) + "px",
-			"background-color" : colors.color3,
-			"font-family" : variables.defaultToolFontFamily,
-        },
-        "icon" : {
-			"font-size" : "1.3em",
-			"-webkit-user-select" : "none",
-			"-moz-user-select" : "none",
-			"-ms-user-select" : "none",
-			"user-select" : "none",
-			"color" : colors.color1,
-        },
-        "button" : {
-			"width" : (variables.sizeRates * 50) + "px",
-			"height" : (variables.sizeRates * 45) + "px",
-			"float" : "left",
-			"display" : "inline-block",
-			"cursor" : "pointer",
-			"text-align" : "center",
-			"margin" : "2px 2px",
-			"border-radius" : "5px",
-			"box-shadow" : "0.25px 0.25px 2px 0.25px " + colors.color7,
-			"background-color" : colors.color4,
-			"font-family" : variables.defaultToolFontFamily,
-			"position" : "relative",
-        },
-        "select" : {
-			"width" : (variables.sizeRates * 150) + "px",
-			"height" : (variables.sizeRates * 45) + "px",
-			"background-color" : colors.color4,
-			"float" : "left",
-			"display" : "inline-block",
-			"cursor" : "pointer",
-			"text-align" : "center",
-			"margin" : "2px 2px",
-			"border-radius" : "5px",
-			"box-shadow" : "0.25px 0.25px 2px 0.25px " + colors.color7,
-			"color" : colors.color1,
-			"position" : "relative",
-        },
-        "select_box_a" : {
-			"min-width" : (variables.sizeRates * 150) + "px",
-			"background-color" : colors.color4,
-			"display" : "none",
-			"float" : "left",
-			"position" : "absolute",
-			"cursor" : "pointer",
-			"border-radius" : "5px",
-			"box-shadow" : "0.25px 0.25px 0.1em " + colors.color7, 
-			"opacity" : "0.85",
-			"z-index" : "200",
-        },
-        "select_box_b" : {
-			"width" : (variables.sizeRates * 50) + "px",
-			"display" : " none",
-			"float" : "left",
-			"position" : "absolute",
-			"cursor" : "pointer",
-			"border-radius" : "5px",
-			"z-index" : "200",
-        },
-        "select_box_c" : {
-			"width" : (variables.sizeRates * 220 + 30) + "px",
-			"display" : "none",
-			"padding" : "0 " + (variables.sizeRates * 10) + "px",
-			"float" : "left",
-			"position" : "absolute",
-			"border-radius" : "5px",
-			"box-shadow" : "0.25px 0.25px 0.1em " + colors.color7,
-			"background-color" : colors.color4,
-			"opacity" : "0.95",
-			"cursor" : "text",
-			"text-align" : "left",
-			"z-index" : "200",
-        },
-        "select_list" : {
-			"display" : "block",
-			"height" : (variables.sizeRates * 45) + "px",
-			"margin" : "0 !important",
-			"line-height" : (variables.sizeRates * 45) + "px !important",
-			"padding" : "3px 5px", 
-			"cursor" : "pointer",
-			"text-align" : "left",
-			"overflow" : "hidden",
-        },
-        "select_list_button" : {
-			"width" : (variables.sizeRates * 50) + "px",
-			"height" : (variables.sizeRates * 45) + "px",
-			"background-color" : colors.color4,
-			"display" : "inline-block",
-			"cursor" : "pointer",
-			"border-radius" : "5px",
-			"box-shadow" : "0px 0.25px 0.1em " + colors.color7,
-        },
-        "small_input_box" : {
-			"width" : (variables.sizeRates * 120) + "px",
-			"height" : (variables.sizeRates * 45) + "px",
-			"background-color" : colors.color4,
-			"float" : "left",
-			"overflow" : "hidden",
-			"cursor" : "pointer",
-			"display" : "inline-block",
-			"text-align" : "center",
-			"margin" : "2px 2px",
-			"border-radius" : "5px",
-			"box-shadow" : "0.25px 0.25px 2px 0.25px " + colors.color7,
-        },
-        "small_input" : {
-			"width" : "30%",
-			"background-color" : "rgba(0,0,0,0)",
-			"color" : colors.color1,
-			"border" : "none",
-			"border-radius" : "0",
-			"text-align" : "right",
-			"display" : "inline-block",
-			"position" : "relative",
-			"top" : "-4px",
-			"margin-left" : "5px",
-			"font-family" : variables.defaultToolFontFamily,
-			"cursor" : "text",
-			"font-size" : "0.8em!important",
-        },
-        "small_input:focus" : {
-			"outline" : "none",
-        },
-        "small_input::-webkit-inner-spin-button" : {
-			"-webkit-appearance" : "none",
-			"margin" : "0",
-        },
-        "small_input::-webkit-outer-spin-button" : {
-			"-webkit-appearance" : "none",
-			"margin" : "0",
-        },
-        "small_input[type=number]" : {
-			"-moz-appearance" : "textfield",
-        },
-        "normal_button" : {
-			"min-width" : (variables.sizeRates * 50) + "px",
-			"height" : (variables.sizeRates * 45) + "px",
-			"font-size" : "0.8em",
-			"padding" : "0 15px",
-			"display" : "inline-block",
-			"cursor" : "pointer",
-			"text-align" : "center",
-			"border-radius" : "5px",
-			"border" : "none",
-			"box-shadow" : "0.25px 0.25px 2px 0.25px " + colors.color7,
-			"color" : colors.color1,
-			"font-family" : variables.defaultToolFontFamily,
-			"background-color" : colors.color4,
-        },
-        "opacity_button" : {
-			"min-width" : (variables.sizeRates * 40) + "px",
-			"height" : (variables.sizeRates * 40) + "px",
-			"font-size" : "0.7em",
-			"display" : "inline-block",
-			"cursor" : "pointer",
-			"text-align" : "center",
-			"border-radius" : "5px",
-			"border" : "none",
-			"color" : colors.color1,
-			"font-family" : variables.defaultToolFontFamily,
-			"background-color" : getRGBAFromHex(colors.color4, 0.5),
-        },
-        "small_text_box" : {
-			"display" : "inline-block",
-			"padding" : "0 10px",
-			"font-size" : "0.8em",
-			"color" : colors.color1,
-        },
-        "modal_back" : {
-			"background-color" : "rgba(0,0,0,0.5)",
-			"display" : "none",
-			"position" : "absolute",
-			"z-index" : "300",
-			"font-family" : variables.defaultToolFontFamily,
-			"color" : colors.color1,
-			"font-size" : (variables.sizeRates * 16) + "px",
-        },
-        "modal_body" : {
-			"width" : "80%",
-			"margin" : "0 auto",
-			"display" : "none",
-			"text-align" : "left",
-			"border" : "solid 1px " + colors.color6,
-			"border-radius" : "20px",
-			"background-color" : colors.color2,
-        },
-        "modal_header" : {
-			"text-align" : "left",
-			"padding-top" : (variables.sizeRates * 20) + "px",
-			"padding-right" : (variables.sizeRates * 10) + "px",
-			"padding-bottom" : (variables.sizeRates * 20) + "px",
-			"padding-left" : (variables.sizeRates * 20) + "px",
-			"margin-bottom" : (variables.sizeRates * 10) + "px",
-			"background-color" : colors.color4,
-			"border-radius" : "20px 20px 0 0",
-			"font-weight" : "bold",
-			"font-size" : "1.05em",
-        },
-        "modal_footer" : {
-			"text-align" : "right",
-			"margin-top" : (variables.sizeRates * 10) + "px",
-			"padding-top" : (variables.sizeRates * 10) + "px",
-			"padding-right" : (variables.sizeRates * 10) + "px",
-			"padding-bottom" : (variables.sizeRates * 10) + "px",
-			"padding-left" : (variables.sizeRates * 10) + "px",
-			"border-top" : "1px solid " + colors.color6,
-        },
-        "modal_explain" : {
-			"font-size" : "0.95em",
-			"text-align" : "left",
-			"padding-top" : (variables.sizeRates * 20) + "px",
-			"padding-bottom" : (variables.sizeRates * 10) + "px",
-			"padding-left" : (variables.sizeRates * 20) + "px",
-			"display" : "inline-block",
-			"color": colors.color10,
-			"font-family" : variables.defaultToolFontFamily,
-        },
-        "modal_input" : {
-			"display" : "block",
-			"width" : "80%",
-			"background-color" : "rgba(0,0,0,0)",
-			"font-family" : variables.defaultToolFontFamily,
-		    "color": colors.color10,
-			"border" : "none",
-			"border-radius" : "0",
-			"border-bottom" : "1px solid " + colors.color6,
-			"margin-bottom" : (variables.sizeRates * 10) + "px",
-			"margin-left" : (variables.sizeRates * 20) + "px",
-			"font-size" : "1.05em",
-			"animation" : "vanillanote-modal-input 0.7s forwards"
-        },
-        "modal_input:focus" : {
-			"outline" : "none",
-        },
-        "modal_input[readonly]" : {
-			"background-color": "rgba(0,0,0,0.1)",
-        },
-        "modal_small_input" : {
-			"display" : "inline-block",
-			"width" : "20%",
-			"background-color" : "rgba(0,0,0,0)",
-			"font-family" : variables.defaultToolFontFamily,
-		    "color": colors.color10,
-			"border" : "none",
-		    "border-radius" : "0",
-			"border-bottom" : "1px solid " + colors.color6,
-			"margin-bottom" : (variables.sizeRates * 10) + "px",
-			"margin-left" : (variables.sizeRates * 20) + "px",
-			"font-size" : "1.05em",
-			"animation" : "vanillanote-modal-small-input 1s forwards"
-        },
-        "modal_small_input:focus" : {
-			"outline" : "none",
-        },
-        "modal_small_input::-webkit-inner-spin-button" : {
-			"appearance" : "none",
-			"-moz-appearance" : "none",
-			"-webkit-appearance" : "none",
-        },
-        "modal_small_input::-webkit-outer-spin-button" : {
-			"-webkit-appearance" : "none",
-			"margin" : "0",
-        },
-        "modal_small_input[type=number]" : {
-			"-moz-appearance" : "textfield",
-        },
-        "modal_small_input[readonly]" : {
-			"background-color": colors.color4,
-        },
-        "modal_input_file" : {
-			"display" : "none!important",
-        },
-        "att_valid_checktext" : {
-			"padding-right" : "10px",
-			"font-size" : "0.7em",
-        },
-        "att_link_is_blank_label" : {
-			"font-size" : "0.95em",
-			"text-align" : "left",
-			"display" : "inline-block",
-			"height" : "25px",
-			"cursor" : "pointer",
-			"margin-top" : (variables.sizeRates * 10) + "px",
-			"margin-bottom" : (variables.sizeRates * 10) + "px",
-			"margin-left" : (variables.sizeRates * 15) + "px",
-			"color": colors.color10,
-        },
-        "input_checkbox" : {
-			"cursor" : "pointer",
-			"display": "inline-block",
-		    "width" : "12px",
-		    "height" : "12px",
-		    "border-radius" : "3px",
-		    "border" : "solid "+colors.color6,
-		    "border-width" : "1px 2px 2px 1px",
-		    "transform" : "rotate(0deg)",
-		    "transition": "transform 0.3s",
-        },
-        "input_checkbox:focus" : {
-			"outline" : "none!important",
-        },
-        "input_checkbox[disabled]" : {
-			"background-color": colors.color4,
-        },
-        "smallpx_input" : {
-			"width" : "40px",
-			"background-color" : "rgba(0,0,0,0)",
-			"color" : colors.color1,
-			"border" : "none",
-			"border-radius" : "5px",
-			"text-align" : "right",
-			"font-size" : "0.9em!important",
-			"display" : "inline-block",
-			"margin-left" : "5px",
-			"font-family" : variables.defaultToolFontFamily,
-        },
-        "smallpx_input:focus" : {
-			"outline" : "none",
-        },
-        "smallpx_input::-webkit-inner-spin-button" : {
-			"appearance" : "none",
-			"-moz-appearance" : "none",
-			"-webkit-appearance" : "none",
-        },
-        "input_radio" : {
-			"cursor" : "pointer",
-			"display": "inline-block",
-		    "width" : "12px",
-		    "height" : "12px",
-		    "border-radius" : "50%",
-		    "border" : "solid 1px "+colors.color6,
-		    "transition": "transform 0.4s, background-color 0.6s;",
-        },
-        "input_radio:focus" : {
-			"outline" : "none!important",
-        },
-        "input_radio:checked" : {
-		    "background-color": colors.color5,
-		    "transform": "rotateY( 180deg )",
-		    "transition": "transform 0.3s, background-color 0.5s;",
-        },
-        "input_radio[disabled]" : {
-			"background-color": colors.color4,
-        },
-        "drag_drop_div" : {
-			"width" : "100%",
-			"height" : variables.sizeRates * 120 + "px",
-			"display" : "inline-block",
-			"margin-top" : "10px",
-			"border-radius" : "5px",
-			"background-color" : colors.color4,
-			"border" : "solid 1px"+colors.color6,
-			"line-height" : variables.sizeRates * 130 + "px",
-			"font-size" : "0.8em",
-			"color" : getRGBAFromHex(colors.color1, 0.8),
-			"overflow-y" : "scroll",
-			"cursor" : "pointer",
-        },
-        "image_view_div" : {
-			"width" : "80%",
-			"height" : variables.sizeRates * 120 + "px",
-			"display" : "inline-block",
-			"margin-top" : "10px",
-			"border-radius" : "5px",
-			"background-color" : colors.color4,
-			"border" : "solid 1px"+colors.color6,
-			"line-height" : variables.sizeRates * 130 + "px",
-			"font-size" : "0.8em",
-			"color" : getRGBAFromHex(colors.color1, 0.8),
-			"cursor" : "pointer",
-			"overflow" : "hidden",
-			"white-space" : "nowrap",
-			"scroll-behavior" : "smooth",
-        },
-        "color_button" : {
-			"width" : (variables.sizeRates * 50) * 0.5 + "px",
-			"height" : (variables.sizeRates * 45) * 0.5 + "px",
-			"float" : "left",
-			"display" : "inline-block",
-			"cursor" : "pointer",
-			"text-align" : "center",
-			"border-radius" : "5px",
-			"margin-right" : "3px",
-			"margin-bottom" : "5%",
-			"border" : "1px solid " + colors.color1,
-			"box-shadow" : "0.25px 0.25px 2px 0.25px " + colors.color7,
-			"position" : "relative",
-        },
-        "color_input" : {
-			"display" : "inline-block",
-			"background-color" : "rgba(0,0,0,0)",
-			"width" : (variables.sizeRates * 25) + "px",
-			"height" : (variables.sizeRates * 40) + "px",
-			"font-size" : "0.7em!important",
-		    "color": colors.color1,
-			"border" : "none",
-			"border-radius" : "5px",
-			"text-align" : "right",
-			"margin-right" : (variables.sizeRates * 8) + "px",
-			"margin-left" : (variables.sizeRates * 2) + "px",
-			"font-family" : variables.defaultToolFontFamily,
-        },
-        "color_input:focus" : {
-			"outline" : "none",
-        },
-        "color_input::-webkit-inner-spin-button" : {
-			"appearance" : "none",
-			"-moz-appearance" : "none",
-			"-webkit-appearance" : "none",
-        },
-        "color_explain" : {
-			"display" : "inline-block",
-			"height" : (variables.sizeRates * 25) + "px",
-			"color": colors.color1,
-			"font-family" : variables.defaultToolFontFamily,
-			"font-size" : "0.7em",
-        },
-        "tooltip" : {
-			"width" : variables.textareaOriginWidths,
-			"max-width" : variables.textareaMaxWidth,
-			"margin" : "0 auto",
-			"padding" : "2px 0",
-			"background-color" : colors.color3,
-			"border" : "solid 1px " + colors.color5,
-			"height": "0",
-			"overflow" : "hidden",
-			"opacity" : "0",
-			"transition": "opacity 0.6s, height 0.6s",
-			"position" : "absolute",
-		    "left": "50%",
-		    "transform": "translateX(-50%)",
-			"z-index" : "100",
-			"text-align" : "left",
-			"font-family" : variables.defaultToolFontFamily,
-			"font-size" : "0.9em",
-        },
-        "tooltip_button" : {
-			"width" : (variables.sizeRates * 50) * 0.7 + "px",
-			"height" : (variables.sizeRates * 45) * 0.7 + "px",
-			"float" : "left",
-			"display" : "inline-block",
-			"cursor" : "pointer",
-			"text-align" : "center",
-			"margin" : "2px 2px",
-			"border-radius" : "5px",
-			"box-shadow" : "0.25px 0.25px 2px 0.25px " + colors.color7,
-			"background-color" : colors.color4,
-			"position" : "relative",
-        },
-        "att_link_tooltip_href" : {
-			"cursor" : "pointer",
-			"float" : "left",
-			"padding" : "0 10px",
-			"color" : colors.color11,
-			"text-decoration" : "underline",
-			"font-size" : "0.9em",
-			"line-height" : (variables.sizeRates * 45) * 0.8 + "px",
-        },
-        "help_main" : {
-			"max-height" : variables.textareaOriginHeights,
-			"color" : colors.color10,
-			"overflow-y" : "auto",
-        },
-        "placeholder" : {
-			"width" : variables.textareaOriginWidths,
-			"padding" : "10px",
-			"background-color" : getRGBAFromHex(colors.color3, 0.8),
-			"color" : colors.color1,
-			"display" : "none",
-			"position" : "absolute",
-			"z-index" : "100",
-			"font-family" : variables.defaultToolFontFamily,
-        },
-        "on_button_on" : {
-			"background-color" : colors.color5 + "!important",
-			"box-shadow" : "0.25px 0.25px 0.25px 0.25px " + colors.color7,
-        },
-        "on_active" : {
-			"background-color" : colors.color5 + "!important",
-			"box-shadow" : "0.25px 0.25px 0.25px 0.25px " + colors.color7,
-        },
-        "on_mouseover" : {
-			"background-color" : colors.color5 + "!important",
-        },
-        "on_mouseout" : {
-			"background-color" : colors.color4 + "!important",
-        },
-        "on_display_inline" : {
-			"display":"inline"
-        },
-        "on_display_inline_block" : {
-			"display":"inline-block"
-        },
-        "on_display_block" : {
-			"display":"block"
-        },
-        "on_display_none" : {
-			"display":"none"
-        },
-    };
-    return csses
 }
