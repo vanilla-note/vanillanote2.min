@@ -1,6 +1,6 @@
 export interface DocumentEvents {
-	selectionchange: null | ((e: any) => void);
-	keydown: null | ((e: any) => void);
-	resize: null | ((e: any) => void);
-	resizeViewport: null | ((e: any) => void);
+	selectionchange: null | ((e: Event) => void);
+	keydown: null | ((e: KeyboardEvent) => void);
+	resize: null | ((e: UIEvent) => void);
+	resizeViewport: null | ((e: Event) => void);
 }
