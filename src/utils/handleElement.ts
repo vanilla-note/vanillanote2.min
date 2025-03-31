@@ -1,5 +1,5 @@
 import { VanillanoteElement } from "../types/vanillanote";
-import { getEventChildrenClassName, getId, getObjectFromCssText, getParentNote, isCloserToRight } from "./util";
+import { extractNumber, extractUnit, getEventChildrenClassName, getId, getObjectFromCssText, getParentNote, isCloserToRight } from "./util";
 
 /**
 * closeAllTooltip
@@ -387,12 +387,7 @@ var setElementScroll = function(parentElement: any, childElement: any) {
     window.requestAnimationFrame(step);
 };
 
-/**
-* decreaseTextareaHeight
-* @description Decreases the height of the textarea to the mobileKeyboardExceptHeight value.
-* @param {HTMLTextAreaElement} textarea - The textarea element to be resized.
-*/
-var decreaseTextareaHeight = function(textarea: any, noteIndex: number) {
+export const decreaseTextareaHeight = function(textarea: HTMLDivElement, noteIndex: number) {
     if(extractUnit(vn.variables.textareaOriginHeights[noteIndex]) !== 'px') return;
     if(vn.variables.mobileKeyboardExceptHeight! < extractNumber(vn.variables.textareaOriginHeights[noteIndex])!
         && vn.variables.mobileKeyboardExceptHeight! < textarea.offsetHeight) {
@@ -581,11 +576,11 @@ var setPlaceholderSize = function(noteIndex: number) {
 
 /**
 * setAllToolTipPosition
-* @description Adjusts the position of tooltips based on the toolPositions value for the specified note.
+* @description Adjusts the position of tooltips based on the ToolPosition value for the specified note.
 * @param {number} noteIndex - The index of the note for which to adjust tooltip positions.
 */
 var setAllToolTipPosition = function(noteIndex: number) {
-    if(vn.variables.toolPositions[noteIndex] === "BOTTOM") {
+    if(vn.variables.ToolPosition[noteIndex] === "BOTTOM") {
         vn.elements.attLinkTooltips[noteIndex].style.bottom = vn.elements.tools[noteIndex].style.height;
         vn.elements.attImageAndVideoTooltips[noteIndex].style.bottom = vn.elements.tools[noteIndex].style.height;
     }
