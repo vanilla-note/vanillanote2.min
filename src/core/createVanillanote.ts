@@ -4,9 +4,9 @@ import { note_observer } from "../events/documentEvent";
 import { elementsEvent } from "../events/elementEvent";
 import { NoteAttributes } from "../types/attributes";
 import { Colors, Csses } from "../types/csses";
-import { NoteModesByDevice, ToolPositions } from "../types/enums";
+import { NoteModeByDevice, ToolPosition } from "../types/enums";
 import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
-import { addClickEvent, createElement, createElementBasic, createElementButton, createElementInput, createElementSelect } from "../utils/createElement";
+import { addClickEvent, createElement, createElementBasic, createElementButton, createElementFontFamiliySelect, createElementInput, createElementInputCheckbox, createElementInputRadio, createElementRadioLabel, createElementSelect } from "../utils/createElement";
 import { initTextarea } from "../utils/handleSelection";
 import {
     checkAlphabetAndNumber,
@@ -14,6 +14,9 @@ import {
     checkRealNumber,
     getClassName,
     getColors,
+    getCommaStrFromArr,
+    getCssClassText,
+    getExtractColorValue,
     getHexColorFromColorName,
     getId,
     getInvertColor,
@@ -47,11 +50,6 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
         }
     });
     
-    //cssText ==> 최종 정리 후 마지막에 document에 추가
-    let cssText = "";
-    cssText = cssText + "@keyframes vanillanote-modal-input {0%{width: 30%;}100%{width: 80%;}}\n";
-    cssText = cssText + "@keyframes vanillanote-modal-small-input {0%{width: 0%;}100%{width: 20%;}}\n";
-    
     //create note
     notes.forEach((note) => {
         const noteId = note.getAttribute('data-id')!;
@@ -63,9 +61,44 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
         vanillanote._id = noteId;
         vanillanote._vn = vn;
 
-
-        vn.vanillanoteElements[noteId] = createNote(vn, vanillanote, noteId);
+        vn.vanillanoteElements[noteId] = createNote(vn, vanillanote);
     });
+    
+    //animation 등록
+    const animationStyleId = `${vn.variables.noteName}_animation_styles-sheet`;
+    if (!document.getElementById(animationStyleId)) {
+        const cssText = `
+          @keyframes ${vn.variables.noteName}-modal-input {
+            0% { width: 30%; }
+            100% { width: 80%; }
+          }
+          @keyframes ${vn.variables.noteName}-modal-small-input {
+            0% { width: 0%; }
+            100% { width: 20%; }
+          }
+        `;
+        const styleElement = document.createElement("style");
+        styleElement.id = animationStyleId;
+        styleElement.textContent = cssText.trim();
+        document.head.appendChild(styleElement);
+    }
+
+    // Create google icons link cdn
+    const googleIconHrefBase = "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded";
+    const iconLinkId = vn.variables.noteName + "_icons-link";
+    
+    const alreadyIncluded = Array.from(document.head.querySelectorAll('link[rel="stylesheet"]')).some(link => {
+        const href = link.getAttribute('href');
+        return href && href.startsWith(googleIconHrefBase);
+    });
+    
+    if (!alreadyIncluded && !document.getElementById(iconLinkId)) {
+        const linkElementGoogleIcons = document.createElement("link");
+        linkElementGoogleIcons.setAttribute("id", iconLinkId);
+        linkElementGoogleIcons.setAttribute("rel", "stylesheet");
+        linkElementGoogleIcons.setAttribute("href", googleIconHrefBase + ":opsz,wght,FILL,GRAD@48,400,0,0");
+        document.head.appendChild(linkElementGoogleIcons);
+    }
 
     //document, window event 등록
     /*
@@ -142,23 +175,6 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
 
     const setNoteData = () => {};
 
-    // Create google icons link cdn
-    const googleIconHrefBase = "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded";
-    const iconLinkId = vn.variables.noteName + "_icons-link";
-    
-    const alreadyIncluded = Array.from(document.head.querySelectorAll('link[rel="stylesheet"]')).some(link => {
-      const href = link.getAttribute('href');
-      return href && href.startsWith(googleIconHrefBase);
-    });
-    
-    if (!alreadyIncluded && !document.getElementById(iconLinkId)) {
-      const linkElementGoogleIcons = document.createElement("link");
-      linkElementGoogleIcons.setAttribute("id", iconLinkId);
-      linkElementGoogleIcons.setAttribute("rel", "stylesheet");
-      linkElementGoogleIcons.setAttribute("href", googleIconHrefBase + ":opsz,wght,FILL,GRAD@48,400,0,0");
-      document.head.appendChild(linkElementGoogleIcons);
-    }
-
     // To prevent the Google icon from initially displaying as text, it is shown after a delay of 0.1 seconds.
     /*
     setTimeout(function() {
@@ -172,58 +188,128 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     
 }
 
-const createNote = (vn: Vanillanote, note: VanillanoteElement, noteId: string): VanillanoteElement => {
-    //변수 정의
-    const isIOS = getIsIOS();
-
+const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteElement => {
     //속성 정의
     const noteAttributes = getNoteAttribute(vn, note);
-    
     //색상 정의
-    const noteColors = getNoteColors(vn, noteAttributes);
-
+    note._colors = getNoteColors(vn, noteAttributes);
     //CSS 최종 정의
-    const csses: Csses = getCsses(noteAttributes, noteColors);
+    const csses: Csses = getCsses(note._noteName, noteAttributes, note._colors);
+    //CSS 추가
+    const noteStyleId = `${note._noteName}_${note._id}_styles-sheet`;
+    if (!document.getElementById(noteStyleId)) {
+        let cssText = "";
+        Object.keys(csses).forEach((className) => {
+            cssText = cssText + getCssClassText(note._noteName, note._id, className, csses[(className as keyof Csses)]) + "\n";
+        });
+        const styleElement = document.createElement("style");
+        styleElement.id = noteStyleId;
+        styleElement.textContent = cssText.trim();
+        document.head.appendChild(styleElement);
+    }
 
+    //note 정의
+    note._selection = {
+        editSelection : null,
+        editRange : null,
+        startOffset : null,
+        endOffset : null,
+        editStartNode : null,
+        editEndNode : null,
+        editStartElement : null,
+        editEndElement : null,
+        editStartUnitElement : null,
+        editEndUnitElement : null,
+        editDragUnitElement : [],
+        setEditStyleTagToggle : 0,
+    };
+    note._noteStatus = {
+        isNoteByMobile : noteAttributes.isNoteByMobile,
+        toolToggle : false,
+        boldToggle : false,
+        underlineToggle : false,
+        italicToggle : false,
+        ulToggle : false,
+        olToggle : false,
+        fontSize : noteAttributes.defaultTextareaFontSize,
+        letterSpacing : 0,
+        lineHeight : noteAttributes.defaultTextareaLineHeight,
+        fontFamily : noteAttributes.defaultTextareaFontFamily,
+        colorTextR : getExtractColorValue(note._colors.color12,"R"),
+        colorTextG : getExtractColorValue(note._colors.color12,"G"),
+        colorTextB : getExtractColorValue(note._colors.color12,"B"),
+        colorTextO : 1,
+        colorTextRGB : note._colors.color12,
+        colorTextOpacity : 1,
+        colorBackR : getExtractColorValue(note._colors.color13,"R"),
+        colorBackG : getExtractColorValue(note._colors.color13,"G"),
+        colorBackB : getExtractColorValue(note._colors.color13,"B"),
+        colorBackO : 0,
+        colorBackRGB : note._colors.color13,
+        colorBackOpacity : 0,
+    };
+    note._records = {
+        recodeNotes : [],
+        recodeConting : -1,
+        recodeLimit : noteAttributes.recodeLimit,
+    };
+    note._attTempFiles = {};
+    note._attFiles = {};
+    note._attTempImages = {};
+    note._attImages = {};
     //event 정의
     setNoteEvent(note);
-
     //element 생성
-    //export const createElement = function(element: any, elementTag: string, id: string, className: string, idx: number, appendNodeSetObject?: any) {
-    //export const createElement = function(elementTag: string, noteName: string, noteId: string, id: string, className: string, appendNodeSetObject?: any) {
-    const noteName = vn.variables.noteName;
+    setNoteElement(vn, note, noteAttributes);
+
+    note._getNoteData = () => {
+        return {
+            //임시
+            textarea: document.createElement('textarea'),
+            files: note._attFiles
+        }
+    };
+    note._setNoteData = (data: HTMLTextAreaElement) => {};
+
+    return note;
+}
+
+const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttributes: NoteAttributes) => {
+    let tempElement: HTMLBRElement | null = null;
 
     //template
-    const template = createElement("div", noteName, noteId, vn.consts.CLASS_NAMES.template.id, vn.consts.CLASS_NAMES.template.className);
+    const template = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.template.id,
+        vn.consts.CLASS_NAMES.template.className
+    );
     template.style.display = "none";
 
     //textarea
     const textarea = createElementBasic(
-        vn.variables.noteName+"-textarea",
-        noteName,
-        noteId,
+        note._noteName + "-textarea",
+        note,
         vn.consts.CLASS_NAMES.textarea.id,
         vn.consts.CLASS_NAMES.textarea.className,
-        note._elementsEvents,
-        note._cssEvents
     );
     textarea.setAttribute("contenteditable",true);
     textarea.setAttribute("role","textbox");
     textarea.setAttribute("aria-multiline",true);
     textarea.setAttribute("spellcheck",true);
     textarea.setAttribute("autocorrect",true);
-    textarea.setAttribute("name",getId(noteName, noteId, vn.consts.CLASS_NAMES.textarea.id));
+    textarea.setAttribute("name",getId(note._noteName, note._id, vn.consts.CLASS_NAMES.textarea.id));
     textarea.setAttribute("title", vn.languageSet[noteAttributes.language].textareaTooltip);
     textarea.addEventListener("focus", function(event: any) {
-        if(!note._elementsEvents.textarea_onBeforeFocus(event)) return;
+        if(!note._elementEvents.textarea_onBeforeFocus(event)) return;
         elementsEvent["textarea_onFocus"](event);
-        note._elementsEvents.textarea_onAfterFocus(event);
+        note._elementEvents.textarea_onAfterFocus(event);
         event.stopImmediatePropagation();
     });
-    textarea.addEventListener(isIOS ? "mouseout" : "blur", function(event: any) {
-        if(!note._elementsEvents.textarea_onBeforeBlur(event)) return;
+    textarea.addEventListener(getIsIOS() ? "mouseout" : "blur", function(event: any) {
+        if(!note._elementEvents.textarea_onBeforeBlur(event)) return;
         elementsEvent["textarea_onBlur"](event);
-        note._elementsEvents.textarea_onAfterBlur(event);
+        note._elementEvents.textarea_onAfterBlur(event);
         event.stopImmediatePropagation();
     });
     textarea.addEventListener("keydown", function(event: any) {
@@ -242,119 +328,91 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement, noteId: string): 
     initTextarea(textarea);
 
     //tool
-    const tool = createElement("div",  noteName, noteId, vn.consts.CLASS_NAMES.tool.id, vn.consts.CLASS_NAMES.tool.className);
+    const tool = createElement("div", note, vn.consts.CLASS_NAMES.tool.id, vn.consts.CLASS_NAMES.tool.className);
     //tool toggle
     const toolToggleButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.toolToggleButton.id,
         vn.consts.CLASS_NAMES.toolToggleButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"arrow_drop_down"}
     );
 
     //paragraph style
     const paragraphStyleSelect = createElementSelect(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.paragraphStyleSelect.id,
         vn.consts.CLASS_NAMES.paragraphStyleSelect.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"auto_fix_high"}
     );
     paragraphStyleSelect.setAttribute("title", vn.languageSet[noteAttributes.language].styleTooltip);
     const paragraphStyleSelectBox = createElement(
         "div",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.paragraphStyleSelectBox.id,
         vn.consts.CLASS_NAMES.paragraphStyleSelectBox.className,
     );
     paragraphStyleSelect.appendChild(paragraphStyleSelectBox);
     const paragraphStyleNormalButton = createElementButton(
         "div",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.styleNomal.id,
         vn.consts.CLASS_NAMES.styleNomal.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":false, "text":"Normal"}
     );
     paragraphStyleNormalButton.setAttribute("data-tag-name","p");
     paragraphStyleSelectBox.appendChild(paragraphStyleNormalButton);
     const paragraphStyleHeader1Button = createElementButton(
         "h1",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.styleHeader1.id,
         vn.consts.CLASS_NAMES.styleHeader1.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":false, "text":"Header1"}
     );
     paragraphStyleHeader1Button.setAttribute("data-tag-name","H1");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader1Button);
     const paragraphStyleHeader2Button = createElementButton(
         "h2",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.styleHeader2.id,
         vn.consts.CLASS_NAMES.styleHeader2.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":false, "text":"Header2"}
     );
     paragraphStyleHeader2Button.setAttribute("data-tag-name","H2");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader2Button);
     const paragraphStyleHeader3Button = createElementButton(
         "h3",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.styleHeader3.id,
         vn.consts.CLASS_NAMES.styleHeader3.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":false, "text":"Header3"}
     );
     paragraphStyleHeader3Button.setAttribute("data-tag-name","H3");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader3Button);
     const paragraphStyleHeader4Button = createElementButton(
         "h4",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.styleHeader4.id,
         vn.consts.CLASS_NAMES.styleHeader4.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":false, "text":"Header4"}
     );
     paragraphStyleHeader4Button.setAttribute("data-tag-name","H4");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader4Button);
     const paragraphStyleHeader5Button = createElementButton(
         "h5",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.styleHeader5.id,
         vn.consts.CLASS_NAMES.styleHeader5.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":false, "text":"Header5"}
     );
     paragraphStyleHeader5Button.setAttribute("data-tag-name","H5");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader5Button);
     const paragraphStyleHeader6Button = createElementButton(
         "h6",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.styleHeader6.id,
         vn.consts.CLASS_NAMES.styleHeader6.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":false, "text":"Header6"}
     );
     paragraphStyleHeader6Button.setAttribute("data-tag-name","H6");
@@ -363,48 +421,36 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement, noteId: string): 
     //bold
     const boldButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.boldButton.id,
         vn.consts.CLASS_NAMES.boldButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"format_bold"}
     );
     boldButton.setAttribute("title", vn.languageSet[noteAttributes.language].boldTooltip);
     //under-line
     const underlineButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.underlineButton.id,
         vn.consts.CLASS_NAMES.underlineButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"format_underlined"}
     );
     underlineButton.setAttribute("title", vn.languageSet[noteAttributes.language].underlineTooltip);
     //italic
     const italicButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.italicButton.id,
         vn.consts.CLASS_NAMES.italicButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"format_italic"}
     );
     italicButton.setAttribute("title", vn.languageSet[noteAttributes.language].italicTooltip);
     //ul
     const ulButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.ulButton.id,
         vn.consts.CLASS_NAMES.ulButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"format_list_bulleted"}
     );
     ulButton.setAttribute("title", vn.languageSet[noteAttributes.language].ulTooltip);
@@ -412,12 +458,9 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement, noteId: string): 
     //ol
     const olButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.olButton.id,
         vn.consts.CLASS_NAMES.olButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"format_list_numbered"}
     );
     olButton.setAttribute("title", vn.languageSet[noteAttributes.language].olTooltip);
@@ -426,55 +469,42 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement, noteId: string): 
     //text-align
     const textAlignSelect = createElementSelect(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.textAlignSelect.id,
         vn.consts.CLASS_NAMES.textAlignSelect.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"notes"}
     );
     textAlignSelect.setAttribute("title", vn.languageSet[noteAttributes.language].textAlignTooltip);
     const textAlignSelectBox = createElement(
         "div",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.textAlignSelectBox.id,
         vn.consts.CLASS_NAMES.textAlignSelectBox.className,
     );
     textAlignSelect.appendChild(textAlignSelectBox);
     const textAlignLeftButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.textAlignLeft.id,
         vn.consts.CLASS_NAMES.textAlignLeft.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"format_align_left"}
     );
     textAlignLeftButton.setAttribute("data-tag-style","text-align:left;");
     textAlignSelectBox.appendChild(textAlignLeftButton);
     const textAlignCenterButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.textAlignCenter.id,
         vn.consts.CLASS_NAMES.textAlignCenter.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"format_align_center"}
     );
     textAlignCenterButton.setAttribute("data-tag-style","text-align:center;");
     textAlignSelectBox.appendChild(textAlignCenterButton);
     const textAlignRightButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.textAlignRight.id,
         vn.consts.CLASS_NAMES.textAlignRight.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"format_align_right"}
     );
     textAlignRightButton.setAttribute("data-tag-style","text-align:right;");
@@ -483,48 +513,36 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement, noteId: string): 
     //att link
     const attLinkButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.attLinkButton.id,
         vn.consts.CLASS_NAMES.attLinkButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"link"}
     );
     attLinkButton.setAttribute("title", vn.languageSet[noteAttributes.language].attLinkTooltip);
     //att file
     const attFileButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.attFileButton.id,
         vn.consts.CLASS_NAMES.attFileButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"attach_file"}
     );
     attFileButton.setAttribute("title", vn.languageSet[noteAttributes.language].attFileTooltip);
     //att image
     const attImageButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.attImageButton.id,
         vn.consts.CLASS_NAMES.attImageButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"image"}
     );
     attImageButton.setAttribute("title", vn.languageSet[noteAttributes.language].attImageTooltip);
     //att video
     const attVideoButton = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.attVideoButton.id,
         vn.consts.CLASS_NAMES.attVideoButton.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"videocam"}
     );
     attVideoButton.setAttribute("title", vn.languageSet[noteAttributes.language].attVideoTooltip);
@@ -532,97 +550,73 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement, noteId: string): 
     //font size
     const fontSizeInputBox = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.fontSizeInputBox.id,
         vn.consts.CLASS_NAMES.fontSizeInputBox.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"format_size"}
     );
     const fontSizeInput = createElementInput(
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.fontSizeInput.id,
         vn.consts.CLASS_NAMES.fontSizeInput.className,
-        note._elementsEvents,
     );
     fontSizeInput.setAttribute("type","number");
     fontSizeInput.setAttribute("title", vn.languageSet[noteAttributes.language].fontSizeTooltip);
     addClickEvent(
         fontSizeInput,
         vn.consts.CLASS_NAMES.fontSizeInput.id,
-        noteName,
-        note._elementsEvents,
-        note._cssEvents,
+        note,
     );
     fontSizeInputBox.appendChild(fontSizeInput);
     //letter spacing
     const letterSpacingInputBox = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.letterSpacingInputBox.id,
         vn.consts.CLASS_NAMES.letterSpacingInputBox.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"swap_horiz"}
     );
     const letterSpacingInput = createElementInput(
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.letterSpacingInput.id,
         vn.consts.CLASS_NAMES.letterSpacingInput.className,
-        note._elementsEvents,
     );
     letterSpacingInput.setAttribute("type","number");
     letterSpacingInput.setAttribute("title", vn.languageSet[noteAttributes.language].letterSpacingTooltip);
     addClickEvent(
         letterSpacingInput,
         vn.consts.CLASS_NAMES.letterSpacingInput.id,
-        noteName,
-        note._elementsEvents,
-        note._cssEvents,
+        note,
     );
     letterSpacingInputBox.appendChild(letterSpacingInput);
     //line height
     const lineHeightInputBox = createElementButton(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.lineHeightInputBox.id,
         vn.consts.CLASS_NAMES.lineHeightInputBox.className,
-        note._elementsEvents,
-        note._cssEvents,
         {"isIcon":true, "text":"height"}
     );
     const lineHeightInput = createElementInput(
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.lineHeightInput.id,
         vn.consts.CLASS_NAMES.lineHeightInput.className,
-        note._elementsEvents,
     );
     lineHeightInput.setAttribute("type","number");
     lineHeightInput.setAttribute("title", vn.languageSet[noteAttributes.language].lineHeightTooltip);
     addClickEvent(
         lineHeightInput,
         vn.consts.CLASS_NAMES.lineHeightInput.id,
-        noteName,
-        note._elementsEvents,
-        note._cssEvents,
+        note,
     );
     lineHeightInputBox.appendChild(lineHeightInput);
     
     //font style(font family)
     const fontFamilySelect = createElementSelect(
         "span",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.fontFamilySelect.id,
         vn.consts.CLASS_NAMES.fontFamilySelect.className,
-        note._elementsEvents,
-        note._cssEvents,
         {
             "isIcon" : false,
             "text" : noteAttributes.defaultTextareaFontFamily.length > 12 
@@ -633,26 +627,1003 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement, noteId: string): 
     fontFamilySelect.setAttribute("title", vn.languageSet[noteAttributes.language].fontFamilyTooltip);
     const fontFamilySelectBox = createElement(
         "div",
-        noteName,
-        noteId,
+        note,
         vn.consts.CLASS_NAMES.fontFamilySelectBox.id,
         vn.consts.CLASS_NAMES.fontFamilySelectBox.className,
     );
     fontFamilySelect.appendChild(fontFamilySelectBox);
-    
     for(var fontIdx = 0; fontIdx < noteAttributes.defaultFontFamilies.length; fontIdx++) {
         const tempElement = createElementFontFamiliySelect(
             "div",
-            noteName,
-            noteId,
+            note,
             vn.consts.CLASS_NAMES.fontFamily.id + fontIdx,
             vn.consts.CLASS_NAMES.fontFamily.className,
-            {"isIcon":false, "text":defaultFontFamilies[fontIdx]}
+            {"isIcon" : false, "text" : noteAttributes.defaultFontFamilies[fontIdx]}
         );
-        tempElement.setAttribute("data-font-family",defaultFontFamilies[fontIdx]);
-        tempElement.setAttribute("style", "font-family:" + defaultFontFamilies[fontIdx] + ";");
+        tempElement.setAttribute("data-font-family", noteAttributes.defaultFontFamilies[fontIdx]);
+        tempElement.setAttribute("style", "font-family:" + noteAttributes.defaultFontFamilies[fontIdx] + ";");
         fontFamilySelectBox.appendChild(tempElement);
     }
+
+    //color text select
+    const colorTextSelect = createElementSelect(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.colorTextSelect.id,
+        vn.consts.CLASS_NAMES.colorTextSelect.className,
+        {"isIcon":true, "text":"format_color_text", "iconStyle" : "-webkit-text-stroke: 0.5px black; font-size: 1.1em"}
+    );
+    colorTextSelect.setAttribute("title",vn.languageSet[noteAttributes.language].colorTextTooltip);
+    const colorTextSelectBox = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.colorTextSelectBox.id,
+        vn.consts.CLASS_NAMES.colorTextSelectBox.className,
+    );
+    colorTextSelect.appendChild(colorTextSelectBox);
+    const colorTextRIcon = createElement(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.colorTextRExplain.id,
+        vn.consts.CLASS_NAMES.colorTextRExplain.className,
+        {"isIcon":false, "text":"R"}
+    );
+    colorTextRIcon.style.paddingLeft = (noteAttributes.sizeRate * 8) + "px";
+    colorTextSelectBox.appendChild(colorTextRIcon);
+    const colorTextRInput = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.colorTextRInput.id,
+        vn.consts.CLASS_NAMES.colorTextRInput.className
+    );
+    colorTextRInput.setAttribute("maxlength", "2");
+    addClickEvent(colorTextRInput, vn.consts.CLASS_NAMES.colorTextRInput.id, note);
+    colorTextSelectBox.appendChild(colorTextRInput);
+    const colorTextGIcon = createElement(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.colorTextGExplain.id,
+        vn.consts.CLASS_NAMES.colorTextGExplain.className,
+        {"isIcon":false, "text":"G"}
+    );
+    colorTextSelectBox.appendChild(colorTextGIcon);
+    const colorTextGInput = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.colorTextGInput.id,
+        vn.consts.CLASS_NAMES.colorTextGInput.className
+    );
+    colorTextGInput.setAttribute("maxlength", "2");
+    addClickEvent(colorTextGInput, vn.consts.CLASS_NAMES.colorTextGInput.id, note);
+    colorTextSelectBox.appendChild(colorTextGInput);
+    const colorTextBIcon = createElement(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.colorTextBExplain.id,
+        vn.consts.CLASS_NAMES.colorTextBExplain.className,
+        {"isIcon":false, "text":"B"}
+    );
+    colorTextSelectBox.appendChild(colorTextBIcon);
+    const colorTextBInput = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.colorTextBInput.id,
+        vn.consts.CLASS_NAMES.colorTextBInput.className
+    );
+    colorTextBInput.setAttribute("maxlength", "2");
+    addClickEvent(colorTextBInput, vn.consts.CLASS_NAMES.colorTextBInput.id, note);
+    colorTextSelectBox.appendChild(colorTextBInput);
+    const colorTextOpacityIcon = createElement(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.colorTextOpacityExplain.id,
+        vn.consts.CLASS_NAMES.colorTextOpacityExplain.className,
+        {"isIcon":false, "text":"Opacity"}
+    );
+    colorTextSelectBox.appendChild(colorTextOpacityIcon);
+    const colorTextOpacityInput = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.colorTextOpacityInput.id,
+        vn.consts.CLASS_NAMES.colorTextOpacityInput.className
+    );
+    colorTextOpacityInput.setAttribute("type","number");
+    colorTextOpacityInput.setAttribute("maxlength", "3");
+    addClickEvent(colorTextOpacityInput, vn.consts.CLASS_NAMES.colorTextOpacityInput.id, note);
+    colorTextSelectBox.appendChild(colorTextOpacityInput);
+    tempElement = document.createElement("br");
+    colorTextSelectBox.appendChild(tempElement);
+    const colorText0 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText0.id, vn.consts.CLASS_NAMES.colorText0.className);
+    colorText0.style.backgroundColor = note._colors.color12;
+    colorTextSelectBox.appendChild(colorText0);
+    const colorText1 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText1.id, vn.consts.CLASS_NAMES.colorText1.className);
+    colorText1.style.backgroundColor = note._colors.color14;
+    colorTextSelectBox.appendChild(colorText1);
+    const colorText2 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText2.id, vn.consts.CLASS_NAMES.colorText2.className);
+    colorText2.style.backgroundColor = note._colors.color15;
+    colorTextSelectBox.appendChild(colorText2);
+    const colorText3 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText3.id, vn.consts.CLASS_NAMES.colorText3.className);
+    colorText3.style.backgroundColor = note._colors.color16;
+    colorTextSelectBox.appendChild(colorText3);
+    const colorText4 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText4.id, vn.consts.CLASS_NAMES.colorText4.className);
+    colorText4.style.backgroundColor = note._colors.color17;
+    colorTextSelectBox.appendChild(colorText4);
+    const colorText5 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText5.id, vn.consts.CLASS_NAMES.colorText5.className);
+    colorText5.style.backgroundColor = note._colors.color18;
+    colorTextSelectBox.appendChild(colorText5);
+    const colorText6 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText6.id, vn.consts.CLASS_NAMES.colorText6.className);
+    colorText6.style.backgroundColor = note._colors.color19;
+    colorTextSelectBox.appendChild(colorText6);
+    const colorText7 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText7.id, vn.consts.CLASS_NAMES.colorText7.className);
+    colorText7.style.backgroundColor = note._colors.color20;
+    colorTextSelectBox.appendChild(colorText7);
+
+    //color background select
+    const colorBackSelect = createElementSelect(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.colorBackSelect.id,
+        vn.consts.CLASS_NAMES.colorBackSelect.className,
+        {"isIcon":true, "text":"format_color_fill", "iconStyle" : "font-size: 1.1em; -webkit-text-stroke: 0.5px " + note._colors.color1 + ";"}
+    );
+    colorBackSelect.setAttribute("title",vn.languageSet[noteAttributes.language].colorBackTooltip);
+    const colorBackSelectBox = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.colorBackSelectBox.id,
+        vn.consts.CLASS_NAMES.colorBackSelectBox.className
+    );
+    colorBackSelect.appendChild(colorBackSelectBox);
+    const colorBackRIcon = createElement("span",
+        note,
+        vn.consts.CLASS_NAMES.colorBackRExplain.id,
+        vn.consts.CLASS_NAMES.colorBackRExplain.className,
+        {"isIcon":false, "text":"R"}
+    );
+    colorBackRIcon.style.paddingLeft = (noteAttributes.sizeRate * 8) + "px";
+    colorBackSelectBox.appendChild(colorBackRIcon);
+    const colorBackRInput = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.colorBackRInput.id,
+        vn.consts.CLASS_NAMES.colorBackRInput.className,
+    );
+    colorBackRInput.setAttribute("maxlength", "2");
+    addClickEvent(colorBackRInput, vn.consts.CLASS_NAMES.colorBackRInput.id, note);
+    colorBackSelectBox.appendChild(colorBackRInput);
+    const colorBackGIcon = createElement(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.colorBackGExplain.id,
+        vn.consts.CLASS_NAMES.colorBackGExplain.className,
+        {"isIcon":false, "text":"G"}
+    );
+    colorBackSelectBox.appendChild(colorBackGIcon);
+    const colorBackGInput = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.colorBackGInput.id,
+        vn.consts.CLASS_NAMES.colorBackGInput.className,
+    );
+    colorBackGInput.setAttribute("maxlength", "2");
+    addClickEvent(colorBackGInput, vn.consts.CLASS_NAMES.colorBackGInput.id, note);
+    colorBackSelectBox.appendChild(colorBackGInput);
+    const colorBackBIcon = createElement(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.colorBackBExplain.id,
+        vn.consts.CLASS_NAMES.colorBackBExplain.className,
+        {"isIcon":false, "text":"B"}
+    );
+    colorBackSelectBox.appendChild(colorBackBIcon);
+    const colorBackBInput = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.colorBackBInput.id,
+        vn.consts.CLASS_NAMES.colorBackBInput.className
+    );
+    colorBackBInput.setAttribute("maxlength", "2");
+    addClickEvent(colorBackBInput, vn.consts.CLASS_NAMES.colorBackBInput.id, note);
+    colorBackSelectBox.appendChild(colorBackBInput);
+    const colorBackOpacityIcon = createElement(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.colorBackOpacityExplain.id,
+        vn.consts.CLASS_NAMES.colorBackOpacityExplain.className,
+        {"isIcon":false, "text":"Opacity"}
+    );
+    colorBackSelectBox.appendChild(colorBackOpacityIcon);
+    const colorBackOpacityInput = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.colorBackOpacityInput.id,
+        vn.consts.CLASS_NAMES.colorBackOpacityInput.className
+    );
+    colorBackOpacityInput.setAttribute("type","number");
+    colorBackOpacityInput.setAttribute("maxlength", "3");
+    addClickEvent(colorBackOpacityInput, vn.consts.CLASS_NAMES.colorBackOpacityInput.id, note);
+    colorBackSelectBox.appendChild(colorBackOpacityInput);
+    tempElement = document.createElement("br");
+    colorBackSelectBox.appendChild(tempElement);
+    const colorBack0 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack0.id, vn.consts.CLASS_NAMES.colorBack0.className);
+    colorBack0.style.backgroundColor = note._colors.color13;
+    colorBackSelectBox.appendChild(colorBack0);
+    const colorBack1 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack1.id, vn.consts.CLASS_NAMES.colorBack1.className);
+    colorBack1.style.backgroundColor = note._colors.color14;
+    colorBackSelectBox.appendChild(colorBack1);
+    const colorBack2 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack2.id, vn.consts.CLASS_NAMES.colorBack2.className);
+    colorBack2.style.backgroundColor = note._colors.color15;
+    colorBackSelectBox.appendChild(colorBack2);
+    const colorBack3 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack3.id, vn.consts.CLASS_NAMES.colorBack3.className);
+    colorBack3.style.backgroundColor = note._colors.color16;
+    colorBackSelectBox.appendChild(colorBack3);
+    const colorBack4 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack4.id, vn.consts.CLASS_NAMES.colorBack4.className);
+    colorBack4.style.backgroundColor = note._colors.color17;
+    colorBackSelectBox.appendChild(colorBack4);
+    const colorBack5 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack5.id, vn.consts.CLASS_NAMES.colorBack5.className);
+    colorBack5.style.backgroundColor = note._colors.color18;
+    colorBackSelectBox.appendChild(colorBack5);
+    const colorBack6 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack6.id, vn.consts.CLASS_NAMES.colorBack6.className);
+    colorBack6.style.backgroundColor = note._colors.color19;
+    colorBackSelectBox.appendChild(colorBack6);
+    const colorBack7 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack7.id, vn.consts.CLASS_NAMES.colorBack7.className);
+    colorBack7.style.backgroundColor = note._colors.color20;
+    colorBackSelectBox.appendChild(colorBack7);
+
+    //formatClearButton
+    const formatClearButton = createElementButton("span",
+        note,
+        vn.consts.CLASS_NAMES.formatClearButton.id,
+        vn.consts.CLASS_NAMES.formatClearButton.className,
+        {"isIcon":true, "text":"format_clear"}
+    );
+    formatClearButton.setAttribute("title",vn.languageSet[noteAttributes.language].formatClearButtonTooltip);
+    //undo
+    const undoButton = createElementButton(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.undoButton.id,
+        vn.consts.CLASS_NAMES.undoButton.className,
+        {"isIcon":true, "text":"undo"}
+    );
+    undoButton.setAttribute("title",vn.languageSet[noteAttributes.language].undoTooltip);
+    //redo
+    const redoButton = createElementButton(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.redoButton.id,
+        vn.consts.CLASS_NAMES.redoButton.className,
+        {"isIcon":true, "text":"redo"}
+    );
+    redoButton.setAttribute("title",vn.languageSet[noteAttributes.language].redoTooltip);
+    //help
+    const helpButton = createElementButton(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.helpButton.id,
+        vn.consts.CLASS_NAMES.helpButton.className,
+        {"isIcon":true, "text":"help"}
+    );
+    helpButton.setAttribute("title",vn.languageSet[noteAttributes.language].helpTooltip);
+
+    //modal
+    const modalBack = createElementBasic(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.modalBack.id,
+        vn.consts.CLASS_NAMES.modalBack.className
+    );
+
+    //modal att link
+    const attLinkModal = createElementBasic(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attLinkModal.id,
+        vn.consts.CLASS_NAMES.attLinkModal.className
+    );
+    const attLinkModalTitle = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attLinkHeader.id,
+        vn.consts.CLASS_NAMES.attLinkHeader.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attLinkModalTitle}
+    );
+    attLinkModal.appendChild(attLinkModalTitle);
+    const attLinkInTextExplain = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attLinkExplain1.id,
+        vn.consts.CLASS_NAMES.attLinkExplain1.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attLinkInTextExplain}
+    );
+    attLinkModal.appendChild(attLinkInTextExplain);
+    const attLinkText = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.attLinkText.id,
+        vn.consts.CLASS_NAMES.attLinkText.className
+    );
+    attLinkText.setAttribute("title",vn.languageSet[noteAttributes.language].attLinkInTextTooltip);
+    attLinkModal.appendChild(attLinkText);
+    const attLinkInLinkExplain = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attLinkExplain2.id,
+        vn.consts.CLASS_NAMES.attLinkExplain2.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attLinkInLinkExplain}
+    );
+    attLinkModal.appendChild(attLinkInLinkExplain);
+    const attLinkHref = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.attLinkHref.id,
+        vn.consts.CLASS_NAMES.attLinkHref.className
+    );
+    attLinkHref.setAttribute("title",vn.languageSet[noteAttributes.language].attLinkInLinkTooltip);
+    attLinkModal.appendChild(attLinkHref);
+    const attLinkIsBlankCheckbox = createElementInputCheckbox(
+        note,
+        vn.consts.CLASS_NAMES.attLinkIsBlankCheckbox.id,
+        vn.consts.CLASS_NAMES.attLinkIsBlankCheckbox.className
+    );
+    attLinkIsBlankCheckbox.setAttribute("title",vn.languageSet[noteAttributes.language].attLinkIsOpenTooltip);
+    const attLinkIsOpenExplain = createElement(
+        "label",
+        note,
+        vn.consts.CLASS_NAMES.attLinkIsBlankLabel.id,
+        vn.consts.CLASS_NAMES.attLinkIsBlankLabel.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attLinkIsOpenExplain}
+    );
+    attLinkIsOpenExplain.insertBefore(attLinkIsBlankCheckbox, attLinkIsOpenExplain.firstChild);
+    attLinkModal.appendChild(attLinkIsOpenExplain);
+    const attLinkValidCheckText = createElement(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.attLinkValidCheckText.id,
+        vn.consts.CLASS_NAMES.attLinkValidCheckText.className
+    );
+    const attLinkValidCheckbox = createElementInputCheckbox(
+        note,
+        vn.consts.CLASS_NAMES.attLinkValidCheckbox.id,
+        vn.consts.CLASS_NAMES.attLinkValidCheckbox.className,
+    );
+    attLinkValidCheckbox.style.display = "none";
+    const attModalBox = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attLinkFooter.id,
+        vn.consts.CLASS_NAMES.attLinkFooter.className
+    );
+    const attLinkInsertButton = createElementButton(
+        "button",
+        note,
+        vn.consts.CLASS_NAMES.attLinkInsertButton.id,
+        vn.consts.CLASS_NAMES.attLinkInsertButton.className,
+        {"isIcon":true, "text":"add_link"}
+    );
+    attModalBox.appendChild(attLinkValidCheckText);
+    attModalBox.appendChild(attLinkValidCheckbox);
+    attModalBox.appendChild(attLinkInsertButton);
+    attLinkModal.appendChild(attModalBox);
+
+    //modal att file
+    const attFileModal = createElementBasic(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attFileModal.id,
+        vn.consts.CLASS_NAMES.attFileModal.className
+    );
+    const attFileModalTitle = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attFileHeader.id,
+        vn.consts.CLASS_NAMES.attFileHeader.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attFileModalTitle}
+    );
+    attFileModal.appendChild(attFileModalTitle);
+    //layout : upload file
+    const attFilelayout = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attFilelayout.id,
+        vn.consts.CLASS_NAMES.attFilelayout.className
+    );
+    const attFileExplain1 = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attFileExplain1.id,
+        vn.consts.CLASS_NAMES.attFileExplain1.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attFileExplain1}
+    );
+    attFilelayout.appendChild(attFileExplain1);
+    tempElement = document.createElement("br");
+    attFilelayout.appendChild(tempElement);
+    const attFileUploadDivBox = document.createElement("div");
+    attFileUploadDivBox.setAttribute("style","width:90%;text-align:center;margin:0 auto;");
+    const attFileUploadDiv = createElementButton(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attFileUploadDiv.id,
+        vn.consts.CLASS_NAMES.attFileUploadDiv.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attFileUploadDiv}
+    );
+    attFileUploadDiv.addEventListener("dragover", function(event: any) {
+        if(!note._elementEvents.attFileUploadDiv_onBeforeDragover(event)) return;
+        elementsEvent["attFileUploadDiv_onDragover"](event);
+        note._elementEvents.attFileUploadDiv_onAfterDragover(event);
+        event.stopImmediatePropagation();
+    });
+    attFileUploadDiv.addEventListener("drop", function(event: any) {
+        if(!note._elementEvents.attFileUploadDiv_onBeforeDrop(event)) return;
+        elementsEvent["attFileUploadDiv_onDrop"](event);
+        note._elementEvents.attFileUploadDiv_onAfterDrop(event);
+        event.stopImmediatePropagation();
+    });
+    attFileUploadDivBox.appendChild(attFileUploadDiv);
+    attFilelayout.appendChild(attFileUploadDivBox);
+    const attFileUploadButtonBox = document.createElement("div");
+    attFileUploadButtonBox.setAttribute("style","width:90%;text-align:right;margin:5px auto 20px auto;");
+    const attFileUploadButton = createElementButton(
+        "button",
+        note,
+        vn.consts.CLASS_NAMES.attFileUploadButton.id,
+        vn.consts.CLASS_NAMES.attFileUploadButton.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attFileUploadButton}
+    );
+    attFileUploadButtonBox.appendChild(attFileUploadButton);
+    attFilelayout.appendChild(attFileUploadButtonBox);
+    const attFileUpload = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.attFileUpload.id,
+        vn.consts.CLASS_NAMES.attFileUpload.className
+    );
+    attFileUpload.setAttribute("type","file");
+    attFileUpload.setAttribute("multiple","");
+    //attFilelayout.appendChild(attFileUploadButtonBox);
+    attFilelayout.appendChild(attFileUpload);
+    attFileModal.appendChild(attFilelayout);
+    const attFileInsertButtonBox = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attFileFooter.id,
+        vn.consts.CLASS_NAMES.attFileFooter.className
+    );
+    const attFileInsertButton = createElementButton(
+        "button",
+        note,
+        vn.consts.CLASS_NAMES.attFileInsertButton.id,
+        vn.consts.CLASS_NAMES.attFileInsertButton.className,
+        {"isIcon":true, "text":"attach_file"}
+    );
+    attFileInsertButtonBox.appendChild(attFileInsertButton);
+    attFileModal.appendChild(attFileInsertButtonBox);
+
+    //modal att image
+    const attImageModal = createElementBasic(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attImageModal.id,
+        vn.consts.CLASS_NAMES.attImageModal.className
+    );
+    const attImageModalTitle = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attImageHeader.id,
+        vn.consts.CLASS_NAMES.attImageHeader.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attImageModalTitle}
+    );
+    attImageModal.appendChild(attImageModalTitle);
+    const attImageExplain1 = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attImageExplain1.id,
+        vn.consts.CLASS_NAMES.attImageExplain1.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attImageExplain1}
+    );
+    attImageModal.appendChild(attImageExplain1);
+    tempElement = document.createElement("br");
+    attImageModal.appendChild(tempElement);
+    const attImageUploadButtonAndViewBox = document.createElement("div");
+    attImageUploadButtonAndViewBox.setAttribute("style","width:90%;text-align:center;margin:0 auto;position:relative;");
+    const attImageViewPreButtion = createElementButton(
+        "button",
+        note,
+        vn.consts.CLASS_NAMES.attImageViewPreButtion.id,
+        vn.consts.CLASS_NAMES.attImageViewPreButtion.className,
+        {"isIcon":true, "text":"navigate_before"}
+    );
+    attImageViewPreButtion.setAttribute("style","position:absolute;top:50%;transform:translateY(-50%) translateX(1%);");
+    attImageUploadButtonAndViewBox.appendChild(attImageViewPreButtion);
+    const attImageUploadButtonAndView = createElementBasic(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attImageUploadButtonAndView.id,
+        vn.consts.CLASS_NAMES.attImageUploadButtonAndView.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attImageUploadButtonAndView}
+    );
+    attImageUploadButtonAndView.addEventListener("dragover", function(event: any) {
+        if(!note._elementEvents.attImageUploadButtonAndView_onBeforeDragover(event)) return;
+        elementsEvent["attImageUploadButtonAndView_onDragover"](event);
+        note._elementEvents.attImageUploadButtonAndView_onAfterDragover(event);
+        event.stopImmediatePropagation();
+    });
+    attImageUploadButtonAndView.addEventListener("drop", function(event: any) {
+        if(!note._elementEvents.attImageUploadButtonAndView_onBeforeDrop(event)) return;
+        elementsEvent["attImageUploadButtonAndView_onDrop"](event);
+        note._elementEvents.attImageUploadButtonAndView_onAfterDrop(event);
+        event.stopImmediatePropagation();
+    });
+    attImageUploadButtonAndViewBox.appendChild(attImageUploadButtonAndView);
+    const attImageViewNextButtion = createElementButton(
+        "button",
+        note,
+        vn.consts.CLASS_NAMES.attImageViewNextButtion.id,
+        vn.consts.CLASS_NAMES.attImageViewNextButtion.className,
+        {"isIcon":true, "text":"navigate_next"}
+    );
+    attImageViewNextButtion.setAttribute("style","position:absolute;top:50%;transform:translateY(-50%) translateX(-101%);");
+    attImageUploadButtonAndViewBox.appendChild(attImageViewNextButtion);
+    attImageModal.appendChild(attImageUploadButtonAndViewBox);
+    const attImageUpload = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.attImageUpload.id,
+        vn.consts.CLASS_NAMES.attImageUpload.className
+    );
+    attImageUpload.setAttribute("type","file");
+    attImageUpload.setAttribute("multiple","");
+    const attImageAcceptTypes = getCommaStrFromArr(noteAttributes.attImageAcceptTypes)
+    attImageUpload.setAttribute("accept", attImageAcceptTypes);	    
+    attImageModal.appendChild(attImageUpload);
+    const attImageExplain2 = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attImageExplain2.id,
+        vn.consts.CLASS_NAMES.attImageExplain2.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attImageExplain2}
+    );
+    attImageModal.appendChild(attImageExplain2);
+    tempElement = document.createElement("br");
+    attImageModal.appendChild(tempElement);
+    const attImageURL = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.attImageURL.id,
+        vn.consts.CLASS_NAMES.attImageURL.className
+    );
+    attImageURL.setAttribute("title",vn.languageSet[noteAttributes.language].attImageURLTooltip);
+    attImageModal.appendChild(attImageURL);
+    const attImageInsertButtonBox = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attImageFooter.id,
+        vn.consts.CLASS_NAMES.attImageFooter.className
+    );
+    const attImageInsertButton = createElementButton(
+        "button",
+        note,
+        vn.consts.CLASS_NAMES.attImageInsertButton.id,
+        vn.consts.CLASS_NAMES.attImageInsertButton.className,
+        {"isIcon":true, "text":"image"}
+    );
+    attImageInsertButtonBox.appendChild(attImageInsertButton);
+    attImageModal.appendChild(attImageInsertButtonBox);
+
+    //modal att video
+    const attVideoModal = createElementBasic(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attVideoModal.id,
+        vn.consts.CLASS_NAMES.attVideoModal.className
+    );
+    const attVideoModalTitle = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attVideoHeader.id,
+        vn.consts.CLASS_NAMES.attVideoHeader.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attVideoModalTitle}
+    );
+    attVideoModal.appendChild(attVideoModalTitle);
+    const attVideoExplain1 = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attVideoExplain1.id,
+        vn.consts.CLASS_NAMES.attVideoExplain1.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attVideoExplain1}
+    );
+    attVideoModal.appendChild(attVideoExplain1);
+    const attVideoEmbedId = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.attVideoEmbedId.id,
+        vn.consts.CLASS_NAMES.attVideoEmbedId.className
+    );
+    attVideoEmbedId.setAttribute("title",vn.languageSet[noteAttributes.language].attVideoEmbedIdTooltip);
+    attVideoModal.appendChild(attVideoEmbedId);
+    const attVideoExplain2 = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attVideoExplain2.id,
+        vn.consts.CLASS_NAMES.attVideoExplain2.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attVideoExplain2}
+    );
+    attVideoModal.appendChild(attVideoExplain2);
+    const attVideoWidthTextBox = document.createElement("div");
+    attVideoWidthTextBox.setAttribute("style","padding-left:20px;color:" + note._colors.color10);
+    const attVideoWidthText = createElement(
+        "span",
+        note,
+        "",
+        "modal_att_video_icon",
+        {"isIcon":true, "text":"width", "iconStyle":"color:" + note._colors.color10}
+    );
+    attVideoWidthTextBox.appendChild(attVideoWidthText);
+    const attVideoWidth  = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.attVideoWidth.id,
+        vn.consts.CLASS_NAMES.attVideoWidth.className
+    );
+    attVideoWidth.setAttribute("title",vn.languageSet[noteAttributes.language].attVideoWidthTooltip);
+    attVideoWidth.setAttribute("type", "number");
+    attVideoWidth.setAttribute("style","text-align:right;");
+    attVideoWidthTextBox.appendChild(attVideoWidth);
+    const attVideoWidthUnit = createElement(
+        "span",
+        note,
+        "",
+        "modal_att_video_icon",
+        {"isIcon":false, "text":"%"}
+    );
+    attVideoWidthUnit.setAttribute("style","padding-left:10px;font-size:0.8em");
+    attVideoWidthTextBox.appendChild(attVideoWidthUnit);
+    attVideoModal.appendChild(attVideoWidthTextBox);
+    const attVideoHeightTextBox = document.createElement("div");
+    attVideoHeightTextBox.setAttribute("style","padding-left:20px;color:" + note._colors.color10);
+    const attVideoHeightText = createElement(
+        "span",
+        note,
+        "",
+        "modal_att_video_icon",
+        {"isIcon":true, "text":"height", "iconStyle":"color:" + note._colors.color10}
+    );
+    attVideoHeightTextBox.appendChild(attVideoHeightText);
+    const attVideoHeight = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.attVideoHeight.id,
+        vn.consts.CLASS_NAMES.attVideoHeight.className
+    );
+    attVideoHeight.setAttribute("title",vn.languageSet[noteAttributes.language].attVideoHeightTooltip);
+    attVideoHeight.setAttribute("type", "number");
+    attVideoHeight.setAttribute("style","text-align:right;");
+    attVideoHeightTextBox.appendChild(attVideoHeight);
+    const attVideoHeightUnit = createElement(
+        "span",
+        note,
+        "",
+        "modal_att_video_icon",
+        {"isIcon":false, "text":"px"}
+    );
+    attVideoHeightUnit.setAttribute("style","padding-left:10px;font-size:0.8em");
+    attVideoHeightTextBox.appendChild(attVideoHeightUnit);
+    attVideoModal.appendChild(attVideoHeightTextBox);
+    const attVideoValidCheckText = createElement(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.attVideoValidCheckText.id,
+        vn.consts.CLASS_NAMES.attVideoValidCheckText.className
+    );
+    const attVideoValidCheckbox = createElementInputCheckbox(
+        note,
+        vn.consts.CLASS_NAMES.attVideoValidCheckbox.id,
+        vn.consts.CLASS_NAMES.attVideoValidCheckbox.className
+    );
+    attVideoValidCheckbox.style.display = "none";
+    const attVideoInsertButton = createElementButton(
+        "button",
+        note,
+        vn.consts.CLASS_NAMES.attVideoInsertButton.id,
+        vn.consts.CLASS_NAMES.attVideoInsertButton.className,
+        {"isIcon":true, "text":"videocam"}
+    );
+    const attVideoFooter = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attVideoFooter.id,
+        vn.consts.CLASS_NAMES.attVideoFooter.className
+    );
+    attVideoFooter.appendChild(attVideoValidCheckText);
+    attVideoFooter.appendChild(attVideoValidCheckbox);
+    attVideoFooter.appendChild(attVideoInsertButton);
+    attVideoModal.appendChild(attVideoFooter);
+
+    //att link tooltip
+    const attLinkTooltip = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attLinkTooltip.id,
+        vn.consts.CLASS_NAMES.attLinkTooltip.className
+    );
+    const attLinkTooltipHref = createElement(
+        "a",
+        note,
+        vn.consts.CLASS_NAMES.attLinkTooltipHref.id,
+        vn.consts.CLASS_NAMES.attLinkTooltipHref.className
+    );
+    attLinkTooltipHref.setAttribute("target","_blank");
+    const attLinkTooltipEditButton = createElementButton(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.attLinkTooltipEditButton.id,
+        vn.consts.CLASS_NAMES.attLinkTooltipEditButton.className,
+        {"isIcon":true, "text":"add_link", "iconStyle":"font-size:0.9em"}
+    );
+    const attLinkTooltipUnlinkButton = createElementButton(
+        "span",
+        note,
+        vn.consts.CLASS_NAMES.attLinkTooltipUnlinkButton.id,
+        vn.consts.CLASS_NAMES.attLinkTooltipUnlinkButton.className,
+        {"isIcon":true, "text":"link_off", "iconStyle":"font-size:0.9em"}
+    );
+    attLinkTooltip.appendChild(attLinkTooltipEditButton);
+    attLinkTooltip.appendChild(attLinkTooltipUnlinkButton);
+    attLinkTooltip.appendChild(attLinkTooltipHref);
+
+    //att image tooltip
+    const attImageAndVideoTooltip = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltip.id,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltip.className
+    );
+    const attImageAndVideoTooltipWidthAndFloatBox = document.createElement("div");
+    const attImageAndVideoTooltipWidthText = document.createElement("span");
+    attImageAndVideoTooltipWidthText.setAttribute("class",getClassName(note._noteName, note.id, "small_text_box"));
+    attImageAndVideoTooltipWidthText.setAttribute("style","padding: 0 0 0 10px;");
+    attImageAndVideoTooltipWidthText.textContent = vn.languageSet[noteAttributes.language].attImageAndVideoTooltipWidthInput;
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipWidthText);
+    const attImageAndVideoTooltipWidthInput = createElementInput(
+        note,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipWidthInput.id,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipWidthInput.className
+    );
+    attImageAndVideoTooltipWidthInput.addEventListener("keyup", function(event: any) {
+        if(!note._elementEvents.attImageAndVideoTooltipWidthInput_onBeforeKeyup(event)) return;
+        elementsEvent["attImageAndVideoTooltipWidthInput_onKeyup"](event);
+        note._elementEvents.attImageAndVideoTooltipWidthInput_onAfterKeyup(event);
+        event.stopImmediatePropagation();
+    });
+    attImageAndVideoTooltipWidthInput.setAttribute("type","number");
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipWidthInput);
+    const attImageAndVideoTooltipWidthUnit = document.createElement("span");
+    attImageAndVideoTooltipWidthUnit.setAttribute("class",getClassName(note._noteName, note.id, "small_text_box"));
+    attImageAndVideoTooltipWidthUnit.setAttribute("style","padding: 0;");
+    attImageAndVideoTooltipWidthUnit.textContent = "%";
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipWidthUnit);
+    const attImageAndVideoTooltipFloatRadioBox = document.createElement("span");
+    attImageAndVideoTooltipFloatRadioBox.setAttribute("class",getClassName(note._noteName, note.id, "small_text_box"));
+    attImageAndVideoTooltipFloatRadioBox.textContent = vn.languageSet[noteAttributes.language].attImageAndVideoTooltipFloatRadio;
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioBox);
+    const attImageAndVideoTooltipFloatRadioNone = createElementInputRadio(
+        note,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioNone.id,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioNone.className,
+        getId(note._noteName, note.id, "attImageAndVideoTooltipFloatRadio")
+    );
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioNone);
+    const attImageAndVideoTooltipFloatRadioNoneLabel = createElementRadioLabel(
+        note,
+        getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioNone.id),
+        "close"
+    );
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioNoneLabel);
+    const attImageAndVideoTooltipFloatRadioLeft = createElementInputRadio(
+        note,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioLeft.id,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioLeft.className,
+        getId(note._noteName, note.id, "attImageAndVideoTooltipFloatRadio")
+    );
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioLeft);
+    const attImageAndVideoTooltipFloatRadioLeftLabel = createElementRadioLabel(
+        note,
+        getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioLeft.id),
+        "art_track"
+    );
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioLeftLabel);
+    const attImageAndVideoTooltipFloatRadioRight = createElementInputRadio(
+        note,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioRight.id,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioRight.className,
+        getId(note._noteName, note.id, "attImageAndVideoTooltipFloatRadio")
+    );
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioRight);
+    const attImageAndVideoTooltipFloatRadioRightLabel = createElementRadioLabel(
+        note,
+        getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioRight.id),
+        "burst_mode"
+    );
+    attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioRightLabel);
+    attImageAndVideoTooltip.appendChild(attImageAndVideoTooltipWidthAndFloatBox);
+    const attImageAndVideoTooltipShapeBox = document.createElement("div");
+    const attImageAndVideoTooltipShapeRadioBox = document.createElement("span");
+    attImageAndVideoTooltipShapeRadioBox.setAttribute("class",getClassName(note._noteName, note.id, "small_text_box"));
+    attImageAndVideoTooltipShapeRadioBox.textContent = vn.languageSet[noteAttributes.language].attImageAndVideoTooltipShapeRadio;
+    attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioBox);
+    const attImageAndVideoTooltipShapeRadioSquare = createElementInputRadio(
+        note,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioSquare.id,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioSquare.className,
+        getId(note._noteName, note.id, "attImageAndVideoTooltipShapeRadio")
+    );
+    attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioSquare);
+    const attImageAndVideoTooltipShapeRadioSquareLabel = createElementRadioLabel(
+        note,
+        getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioSquare.id),
+        "crop_5_4"
+    );
+    attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioSquareLabel);
+    const attImageAndVideoTooltipShapeRadioRadius = createElementInputRadio(
+        note,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioRadius.id,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioRadius.className,
+        getId(note._noteName, note.id, "attImageAndVideoTooltipShapeRadio")
+    );
+    attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioRadius);
+    const attImageAndVideoTooltipShapeRadioRadiusLabel = createElementRadioLabel(
+        note,
+        getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioRadius.id),
+        "aspect_ratio"
+    );
+    attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioRadiusLabel);
+    const attImageAndVideoTooltipShapeRadioCircle = createElementInputRadio(
+        note,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioCircle.id,
+        vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioCircle.className,
+        getId(note._noteName, note.id, "attImageAndVideoTooltipShapeRadio")
+    );
+    attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioCircle);
+    const attImageAndVideoTooltipShapeRadioCircleLabel = createElementRadioLabel(
+        note,
+        getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioCircle.id),
+        "circle"
+    );
+    attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioCircleLabel);
+    attImageAndVideoTooltip.appendChild(attImageAndVideoTooltipShapeBox);
+
+    //modal help
+    const helpModal = createElementBasic(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.helpModal.id,
+        vn.consts.CLASS_NAMES.helpModal.className
+    );
+    const helpHeader = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.helpHeader.id,
+        vn.consts.CLASS_NAMES.helpHeader.className,
+        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].helpModalTitle}
+    );
+    helpModal.appendChild(helpHeader);
+    const helpMain = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.helpMain.id,
+        vn.consts.CLASS_NAMES.helpMain.className
+    );
+    const helpMainTable = document.createElement("table");
+    vn.languageSet[noteAttributes.language].helpContent.forEach((h) => {
+        const tr = document.createElement("tr");
+        Object.keys(h).forEach((k) => {
+            const td1 = document.createElement("td");
+            td1.textContent = k;
+            td1.setAttribute("style","width:30%;padding:0 0 6px 12px;border:none;");
+            tr.appendChild(td1);
+            const td2 = document.createElement("td");
+            td2.setAttribute("style","width:70%;padding:0 12px 6px 12px;border:none;");
+            td2.textContent = h[k];
+            tr.appendChild(td2);
+        })
+        helpMainTable.appendChild(tr);
+    });
+    helpMain.appendChild(helpMainTable);
+    helpModal.appendChild(helpMain);
+    const helpFooter = createElement(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.helpFooter.id,
+        vn.consts.CLASS_NAMES.helpFooter.className,
+    );
+    helpFooter.setAttribute("style","height:25px;");
+    helpModal.appendChild(helpFooter);
+
+    //placeholder
+    const placeholder = createElementBasic(
+        "div",
+        note,
+        vn.consts.CLASS_NAMES.placeholder.id,
+        vn.consts.CLASS_NAMES.placeholder.className
+    );
+    if(noteAttributes.placeholderTitle) {
+        const placeholderTitle = document.createElement("h5");
+        placeholderTitle.innerText = noteAttributes.placeholderTitle;
+        placeholder.appendChild(placeholderTitle);
+    }
+    if(noteAttributes.placeholderTextContent) {
+        const placeholderTextContent = document.createElement("p");
+        placeholderTextContent.innerText = noteAttributes.placeholderTextContent;
+        placeholder.appendChild(placeholderTextContent);
+    }
+
+    //append child
+    modalBack.appendChild(attLinkModal);
+    modalBack.appendChild(attFileModal);
+    modalBack.appendChild(attImageModal);
+    modalBack.appendChild(attVideoModal);
+    modalBack.appendChild(helpModal);
+    template.appendChild(modalBack);
+    template.appendChild(placeholder);
+    if(noteAttributes.toolToggleUsing) {
+        tool.appendChild(toolToggleButton);
+    }
+    tool.appendChild(paragraphStyleSelect);
+    tool.appendChild(boldButton);
+    tool.appendChild(underlineButton);
+    tool.appendChild(italicButton);
+    tool.appendChild(ulButton);
+    tool.appendChild(olButton);
+    tool.appendChild(textAlignSelect);
+    tool.appendChild(attLinkButton);
+    tool.appendChild(attFileButton);
+    tool.appendChild(attImageButton);
+    tool.appendChild(attVideoButton);
+    tool.appendChild(fontSizeInputBox);
+    tool.appendChild(letterSpacingInputBox);
+    tool.appendChild(lineHeightInputBox);
+    tool.appendChild(fontFamilySelect);
+    tool.appendChild(colorTextSelect);
+    tool.appendChild(colorBackSelect);
+    tool.appendChild(formatClearButton);
+    tool.appendChild(undoButton);
+    tool.appendChild(redoButton);
+    tool.appendChild(helpButton);
+    if(noteAttributes.toolPosition === ToolPosition.bottom) {
+        template.appendChild(textarea);
+        template.appendChild(attLinkTooltip);
+        template.appendChild(attImageAndVideoTooltip);
+        template.appendChild(tool);
+    }
+    else {
+        template.appendChild(tool);
+        template.appendChild(attLinkTooltip);
+        template.appendChild(attImageAndVideoTooltip);
+        template.appendChild(textarea);
+    }
+    note.appendChild(template);
+
+    //set value
+    fontSizeInput.value = note._noteStatus.fontSize;
+    letterSpacingInput.value = note._noteStatus.letterSpacing;
+    lineHeightInput.value = note._noteStatus.lineHeight;
+
+    colorTextRInput.value = note._noteStatus.colorTextR;
+    colorTextGInput.value = note._noteStatus.colorTextG;
+    colorTextBInput.value = note._noteStatus.colorTextB;
+    colorTextOpacityInput.value = note._noteStatus.colorTextO;
+
+    colorBackRInput.value = note._noteStatus.colorBackR;
+    colorBackGInput.value = note._noteStatus.colorBackG;
+    colorBackBInput.value = note._noteStatus.colorBackB;
+    colorBackOpacityInput.value = note._noteStatus.colorBackO;
+
+    //버튼 숨김 처리
+    if(!noteAttributes.usingParagraphStyle) paragraphStyleSelect.style.display = "none";
+    if(!noteAttributes.usingBold) boldButton.style.display = "none";
+    if(!noteAttributes.usingUnderline) underlineButton.style.display = "none";
+    if(!noteAttributes.usingItalic) italicButton.style.display = "none";
+    if(!noteAttributes.usingUl) ulButton.style.display = "none";
+    if(!noteAttributes.usingOl) olButton.style.display = "none";
+    if(!noteAttributes.usingTextAlign) textAlignSelect.style.display = "none";
+    if(!noteAttributes.usingAttLink) attLinkButton.style.display = "none";
+    if(!noteAttributes.usingAttFile) attFileButton.style.display = "none";
+    if(!noteAttributes.usingAttImage) attImageButton.style.display = "none";
+    if(!noteAttributes.usingAttVideo) attVideoButton.style.display = "none";
+    if(!noteAttributes.usingFontSize) fontSizeInputBox.style.display = "none";
+    if(!noteAttributes.usingLetterSpacing) letterSpacingInputBox.style.display = "none";
+    if(!noteAttributes.usingLineHeight) lineHeightInputBox.style.display = "none";
+    if(!noteAttributes.usingFontFamily) fontFamilySelect.style.display = "none";
+    if(!noteAttributes.usingColorText) colorTextSelect.style.display = "none";
+    if(!noteAttributes.usingColorBack) colorBackSelect.style.display = "none";
+    if(!noteAttributes.usingFormatClear) formatClearButton.style.display = "none";
+    if(!noteAttributes.usingUndo) undoButton.style.display = "none";
+    if(!noteAttributes.usingRedo) redoButton.style.display = "none";
+    if(!noteAttributes.usingHelp) helpButton.style.display = "none";
 
     //element 정의
     note._elements = {
@@ -682,82 +1653,153 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement, noteId: string): 
         attFileButton : attFileButton,
         attImageButton : attImageButton,
         attVideoButton : attVideoButton,
-
+        fontSizeInputBox : fontSizeInputBox,
+        fontSizeInput : fontSizeInput,
+        letterSpacingInputBox : letterSpacingInputBox,
+        letterSpacingInput : letterSpacingInput,
+        lineHeightInputBox : lineHeightInputBox,
+        lineHeightInput : lineHeightInput,
+        fontFamilySelect : fontFamilySelect,
+        fontFamilySelectBox : fontFamilySelectBox,
+        colorTextSelect : colorTextSelect,
+        colorTextSelectBox : colorTextSelectBox,
+        colorTextRIcon : colorTextRIcon,
+        colorTextRInput : colorTextRInput,
+        colorTextGIcon : colorTextGIcon,
+        colorTextGInput : colorTextGInput,
+        colorTextBIcon : colorTextBIcon,
+        colorTextBInput : colorTextBInput,
+        colorTextOpacityIcon : colorTextOpacityIcon,
+        colorTextOpacityInput : colorTextOpacityInput,
+        colorText0 : colorText0,
+        colorText1 : colorText1,
+        colorText2 : colorText2,
+        colorText3 : colorText3,
+        colorText4 : colorText4,
+        colorText5 : colorText5,
+        colorText6 : colorText6,
+        colorText7 : colorText7,
+        colorBackSelect : colorBackSelect,
+        colorBackSelectBox : colorBackSelectBox,
+        colorBackRIcon : colorBackRIcon,
+        colorBackRInput : colorBackRInput,
+        colorBackGIcon : colorBackGIcon,
+        colorBackGInput : colorBackGInput,
+        colorBackBIcon : colorBackBIcon,
+        colorBackBInput : colorBackBInput,
+        colorBackOpacityIcon : colorBackOpacityIcon,
+        colorBackOpacityInput : colorBackOpacityInput,
+        colorBack0 : colorBack0,
+        colorBack1 : colorBack1,
+        colorBack2 : colorBack2,
+        colorBack3 : colorBack3,
+        colorBack4 : colorBack4,
+        colorBack5 : colorBack5,
+        colorBack6 : colorBack6,
+        colorBack7 : colorBack7,
+        formatClearButton : formatClearButton,
+        undoButton : undoButton,
+        redoButton : redoButton,
+        helpButton : helpButton,
+        modalBack : modalBack,
+        attLinkModal : attLinkModal,
+        attLinkModalTitle : attLinkModalTitle,
+        attLinkInTextExplain : attLinkInTextExplain,
+        attLinkText : attLinkText,
+        attLinkInLinkExplain : attLinkInLinkExplain,
+        attLinkHref : attLinkHref,
+        attLinkIsBlankCheckbox : attLinkIsBlankCheckbox,
+        attLinkIsOpenExplain : attLinkIsOpenExplain,
+        attLinkValidCheckText : attLinkValidCheckText,
+        attLinkValidCheckbox : attLinkValidCheckbox,
+        attModalBox : attModalBox,
+        attLinkInsertButton : attLinkInsertButton,
+        attFileModal : attFileModal,
+        attFileModalTitle : attFileModalTitle,
+        attFilelayout : attFilelayout,
+        attFileExplain1 : attFileExplain1,
+        attFileUploadDivBox : attFileUploadDivBox,
+        attFileUploadDiv : attFileUploadDiv,
+        attFileUploadButtonBox : attFileUploadButtonBox,
+        attFileUploadButton : attFileUploadButton,
+        attFileUpload : attFileUpload,
+        attFileInsertButtonBox : attFileInsertButtonBox,
+        attFileInsertButton : attFileInsertButton,
+        attImageModal : attImageModal,
+        attImageModalTitle : attImageModalTitle,
+        attImageExplain1 : attImageExplain1,
+        attImageUploadButtonAndViewBox : attImageUploadButtonAndViewBox,
+        attImageViewPreButtion : attImageViewPreButtion,
+        attImageUploadButtonAndView : attImageUploadButtonAndView,
+        attImageViewNextButtion : attImageViewNextButtion,
+        attImageUpload : attImageUpload,
+        attImageExplain2 : attImageExplain2,
+        attImageURL : attImageURL,
+        attImageInsertButtonBox : attImageInsertButtonBox,
+        attImageInsertButton : attImageInsertButton,
+        attVideoModal : attVideoModal,
+        attVideoModalTitle : attVideoModalTitle,
+        attVideoExplain1 : attVideoExplain1,
+        attVideoEmbedId : attVideoEmbedId,
+        attVideoExplain2 : attVideoExplain2,
+        attVideoWidthTextBox : attVideoWidthTextBox,
+        attVideoWidthText : attVideoWidthText,
+        attVideoWidth : attVideoWidth,
+        attVideoWidthUnit : attVideoWidthUnit,
+        attVideoHeightTextBox : attVideoHeightTextBox,
+        attVideoHeightText : attVideoHeightText,
+        attVideoHeight : attVideoHeight,
+        attVideoHeightUnit : attVideoHeightUnit,
+        attVideoFooter : attVideoFooter,
+        attVideoValidCheckText : attVideoValidCheckText,
+        attVideoValidCheckbox : attVideoValidCheckbox,
+        attVideoInsertButton : attVideoInsertButton,
+        attLinkTooltip : attLinkTooltip,
+        attLinkTooltipHref : attLinkTooltipHref,
+        attLinkTooltipEditButton : attLinkTooltipEditButton,
+        attLinkTooltipUnlinkButton : attLinkTooltipUnlinkButton,
+        attImageAndVideoTooltip : attImageAndVideoTooltip,
+        attImageAndVideoTooltipWidthAndFloatBox : attImageAndVideoTooltipWidthAndFloatBox,
+        attImageAndVideoTooltipWidthText : attImageAndVideoTooltipWidthText,
+        attImageAndVideoTooltipWidthInput : attImageAndVideoTooltipWidthInput,
+        attImageAndVideoTooltipWidthUnit : attImageAndVideoTooltipWidthUnit,
+        attImageAndVideoTooltipFloatRadioBox : attImageAndVideoTooltipFloatRadioBox,
+        attImageAndVideoTooltipFloatRadioNone : attImageAndVideoTooltipFloatRadioNone,
+        attImageAndVideoTooltipFloatRadioNoneLabel : attImageAndVideoTooltipFloatRadioNoneLabel,
+        attImageAndVideoTooltipFloatRadioLeft : attImageAndVideoTooltipFloatRadioLeft,
+        attImageAndVideoTooltipFloatRadioLeftLabel : attImageAndVideoTooltipFloatRadioLeftLabel,
+        attImageAndVideoTooltipFloatRadioRight : attImageAndVideoTooltipFloatRadioRight,
+        attImageAndVideoTooltipFloatRadioRightLabel : attImageAndVideoTooltipFloatRadioRightLabel,
+        attImageAndVideoTooltipShapeBox : attImageAndVideoTooltipShapeBox,
+        attImageAndVideoTooltipShapeRadioBox : attImageAndVideoTooltipShapeRadioBox,
+        attImageAndVideoTooltipShapeRadioSquare : attImageAndVideoTooltipShapeRadioSquare,
+        attImageAndVideoTooltipShapeRadioSquareLabel : attImageAndVideoTooltipShapeRadioSquareLabel,
+        attImageAndVideoTooltipShapeRadioRadius : attImageAndVideoTooltipShapeRadioRadius,
+        attImageAndVideoTooltipShapeRadioRadiusLabel : attImageAndVideoTooltipShapeRadioRadiusLabel,
+        attImageAndVideoTooltipShapeRadioCircle : attImageAndVideoTooltipShapeRadioCircle,
+        attImageAndVideoTooltipShapeRadioCircleLabel : attImageAndVideoTooltipShapeRadioCircleLabel,
+        helpModal : helpModal,
+        helpHeader : helpHeader,
+        helpMain : helpMain,
+        helpMainTable : helpMainTable,
+        helpFooter : helpFooter,
+        placeholder : placeholder,
     }
-
-    note._selection = {
-        editSelection : null,
-        editRange : null,
-        startOffset : null,
-        endOffset : null,
-        editStartNode : null,
-        editEndNode : null,
-        editStartElement : null,
-        editEndElement : null,
-        editStartUnitElement : null,
-        editEndUnitElement : null,
-        editDragUnitElement : [],
-        setEditStyleTagToggle : 0,
-    };
-    note._noteStatus = {
-        toolPosition : ToolPositions.top,
-        toolDefaultLine : 1,
-        toolToggle : false,
-        boldToggle : false,
-        underlineToggle : false,
-        italicToggle : false,
-        ulToggle : false,
-        olToggle : false,
-        fontSize : "",
-        letterSpacing : "",
-        lineHeight : "",
-        fontFamilie : "",
-        colorTextR : "",
-        colorTextG : "",
-        colorTextB : "",
-        colorTextO : "",
-        colorTextRGB : "",
-        colorTextOpacity : "",
-        colorBackR : "",
-        colorBackG : "",
-        colorBackB : "",
-        colorBackO : "",
-        colorBackRGB : "",
-        colorBackOpacity : "",
-    };
-    note._attFiles = {};
-    note._attImages = {};
-    note._records = {
-        recodeNotes : [],
-        recodeConting : 0,
-        recodeLimit : 100,
-    };
-
-    note._getNoteData = () => {
-        return {
-            //임시
-            textarea: document.createElement('textarea'),
-            files: note._attFiles
-        }
-    };
-    note._setNoteData = (data: HTMLTextAreaElement) => {};
-
-    return note;
 }
 
 const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttributes => {
     //속성 정리
     //note mode by device
     let noteModeByDevice = note.getAttribute("note-mode-by-device") && ["ADAPTIVE", "MOBILE", "DESKTOP"].indexOf(note.getAttribute("note-mode-by-device")!)
-     ? note.getAttribute("note-mode-by-device")!.toUpperCase() as NoteModesByDevice : vn.attributes.noteModeByDevice;
+     ? note.getAttribute("note-mode-by-device")!.toUpperCase() as NoteModeByDevice : vn.attributes.noteModeByDevice;
     //현재 디바이스가 모바일인지 한번 더 체크
     const isNoteByMobile = noteModeByDevice === "MOBILE" ? true
          : noteModeByDevice === "DESKTOP" ? false
          : isMobileDevice();
-    let toolPositions = note.getAttribute("tool-position") && ["BOTTOM", "TOP"].indexOf(note.getAttribute("tool-position")!) >= 0
-     ? note.getAttribute("tool-position") as ToolPositions : (isNoteByMobile ? ToolPositions.bottom : ToolPositions.top);
-    let toolDefaultLines = checkNumber(note.getAttribute("tool-default-line")) ? Number(note.getAttribute("tool-default-line")) : (isNoteByMobile ? 2 : 1);
-    let toolToggles = note.getAttribute("tool-toggle") ? note.getAttribute("tool-toggle")!.toUpperCase() === "true" : (isNoteByMobile ? true : false);
+    let toolPosition = note.getAttribute("tool-position") && ["BOTTOM", "TOP"].indexOf(note.getAttribute("tool-position")!) >= 0
+     ? note.getAttribute("tool-position") as ToolPosition : (isNoteByMobile ? ToolPosition.bottom : ToolPosition.top);
+    let toolDefaultLine = checkNumber(note.getAttribute("tool-default-line")) ? Number(note.getAttribute("tool-default-line")) : (isNoteByMobile ? 2 : 1);
+    let toolToggleUsing = note.getAttribute("tool-toggle") ? note.getAttribute("tool-toggle")!.toUpperCase() === "true" : (isNoteByMobile ? true : false);
 
     //text area size
     let textareaOriginWidths = note.getAttribute("textarea-width") ? note.getAttribute("textarea-width")! : vn.attributes.textareaOriginWidths;
@@ -817,8 +1859,8 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
         defaultFontFamilies.splice(0,0,defaultTextareaFontFamily);
     }
     let defaultToolFontFamily = note.getAttribute("default-tool-font-family") ? note.getAttribute("default-tool-font-family")! : vn.attributes.defaultToolFontFamily;
-    let defaultTextareaFontSize = note.getAttribute("default-font-size") ? note.getAttribute("default-font-size")! : vn.attributes.defaultTextareaFontSize;
-    let defaultTextareaLineHeight = note.getAttribute("default-line-height") ? note.getAttribute("default-line-height")! : vn.attributes.defaultTextareaLineHeight;
+    let defaultTextareaFontSize = checkNumber(note.getAttribute("default-font-size")) ? Number(note.getAttribute("default-font-size"))! : vn.attributes.defaultTextareaFontSize;
+    let defaultTextareaLineHeight = checkNumber(note.getAttribute("default-line-height")) ? Number(note.getAttribute("default-line-height"))! : vn.attributes.defaultTextareaLineHeight;
 
     //size
     let sizeLevelDesktop = checkNumber(note.getAttribute("size-level-desktop")) ? Number(note.getAttribute("size-level-desktop")) : 3;
@@ -896,9 +1938,9 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
 
     return {
         isNoteByMobile : isNoteByMobile,
-        toolPositions :toolPositions,
-        toolDefaultLines : toolDefaultLines,
-        toolToggles : toolToggles,
+        toolPosition :toolPosition,
+        toolDefaultLine : toolDefaultLine,
+        toolToggleUsing : toolToggleUsing,
         sizeRate : sizeRate,
 
         noteModeByDevice : noteModeByDevice,
@@ -929,9 +1971,6 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
         defaultToolFontFamily : defaultToolFontFamily,
         defaultTextareaFontSize : defaultTextareaFontSize,
         defaultTextareaLineHeight : defaultTextareaLineHeight,
-
-        sizeLevelDesktop : sizeLevelDesktop,
-        sizeLevelMobile : sizeLevelMobile,
 
         mainColor : mainColor,
         colorSet : colorSet,
@@ -1045,10 +2084,9 @@ const getNoteColors = (vn: Vanillanote, noteAttributes: NoteAttributes): Colors 
     return noteColors;
 }
 
-const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
+const getCsses =(noteName: string, noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
     if(!noteAttributes) throw new Error("Please insert variables object in VanillanoteConfig.");
     if(!noteColors) throw new Error("Please insert colors object in VanillanoteConfig.");
-    const sizeRates = (noteAttributes.sizeLevelDesktop + 11) / 20;
     
     const csses: Csses = {
         "template h1" : {
@@ -1158,24 +2196,24 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "max-height" : noteAttributes.textareaMaxHeight,
             "box-shadow" : "0 0.5px 1px 0.5px " + noteColors.color7,
             "background-color" : noteColors.color2,
-            "font-size" : noteAttributes.defaultTextareaFontSize,
-            "line-height" : noteAttributes.defaultTextareaLineHeight,
+            "font-size" : noteAttributes.defaultTextareaFontSize + "px",
+            "line-height" : noteAttributes.defaultTextareaLineHeight + "px",
             "font-family" : noteAttributes.defaultTextareaFontFamily,
             "color" : noteColors.color12,
             "transition": "height 0.5s",
         },
         "tool" : {
             "width" : noteAttributes.textareaOriginWidths,
-            "height" : (noteAttributes.toolDefaultLines * (sizeRates * 50)) + "px",
+            "height" : (noteAttributes.toolDefaultLine * (noteAttributes.sizeRate * 50)) + "px",
             "padding" : "2px 0",
             "max-width" : noteAttributes.textareaMaxWidth,
             "display" : "block",
-            "line-height" : (sizeRates * 50) + "px",
+            "line-height" : (noteAttributes.sizeRate * 50) + "px",
             "margin" : "0 auto",
             "text-align" : "left",
             "vertical-align" : "middle",
             "box-shadow" : "0.25px 0.25px 1px 0.5px " + noteColors.color7,
-            "font-size" : (sizeRates * 16) + "px",
+            "font-size" : (noteAttributes.sizeRate * 16) + "px",
             "background-color" : noteColors.color3,
             "font-family" : noteAttributes.defaultToolFontFamily,
         },
@@ -1188,8 +2226,8 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "color" : noteColors.color1,
         },
         "button" : {
-            "width" : (sizeRates * 50) + "px",
-            "height" : (sizeRates * 45) + "px",
+            "width" : (noteAttributes.sizeRate * 50) + "px",
+            "height" : (noteAttributes.sizeRate * 45) + "px",
             "float" : "left",
             "display" : "inline-block",
             "cursor" : "pointer",
@@ -1202,8 +2240,8 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "position" : "relative",
         },
         "select" : {
-            "width" : (sizeRates * 150) + "px",
-            "height" : (sizeRates * 45) + "px",
+            "width" : (noteAttributes.sizeRate * 150) + "px",
+            "height" : (noteAttributes.sizeRate * 45) + "px",
             "background-color" : noteColors.color4,
             "float" : "left",
             "display" : "inline-block",
@@ -1216,7 +2254,7 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "position" : "relative",
         },
         "select_box_a" : {
-            "min-width" : (sizeRates * 150) + "px",
+            "min-width" : (noteAttributes.sizeRate * 150) + "px",
             "background-color" : noteColors.color4,
             "display" : "none",
             "float" : "left",
@@ -1228,7 +2266,7 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "z-index" : "200",
         },
         "select_box_b" : {
-            "width" : (sizeRates * 50) + "px",
+            "width" : (noteAttributes.sizeRate * 50) + "px",
             "display" : " none",
             "float" : "left",
             "position" : "absolute",
@@ -1237,9 +2275,9 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "z-index" : "200",
         },
         "select_box_c" : {
-            "width" : (sizeRates * 220 + 30) + "px",
+            "width" : (noteAttributes.sizeRate * 220 + 30) + "px",
             "display" : "none",
-            "padding" : "0 " + (sizeRates * 10) + "px",
+            "padding" : "0 " + (noteAttributes.sizeRate * 10) + "px",
             "float" : "left",
             "position" : "absolute",
             "border-radius" : "5px",
@@ -1252,17 +2290,17 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
         },
         "select_list" : {
             "display" : "block",
-            "height" : (sizeRates * 45) + "px",
+            "height" : (noteAttributes.sizeRate * 45) + "px",
             "margin" : "0 !important",
-            "line-height" : (sizeRates * 45) + "px !important",
+            "line-height" : (noteAttributes.sizeRate * 45) + "px !important",
             "padding" : "3px 5px", 
             "cursor" : "pointer",
             "text-align" : "left",
             "overflow" : "hidden",
         },
         "select_list_button" : {
-            "width" : (sizeRates * 50) + "px",
-            "height" : (sizeRates * 45) + "px",
+            "width" : (noteAttributes.sizeRate * 50) + "px",
+            "height" : (noteAttributes.sizeRate * 45) + "px",
             "background-color" : noteColors.color4,
             "display" : "inline-block",
             "cursor" : "pointer",
@@ -1270,8 +2308,8 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "box-shadow" : "0px 0.25px 0.1em " + noteColors.color7,
         },
         "small_input_box" : {
-            "width" : (sizeRates * 120) + "px",
-            "height" : (sizeRates * 45) + "px",
+            "width" : (noteAttributes.sizeRate * 120) + "px",
+            "height" : (noteAttributes.sizeRate * 45) + "px",
             "background-color" : noteColors.color4,
             "float" : "left",
             "overflow" : "hidden",
@@ -1312,8 +2350,8 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "-moz-appearance" : "textfield",
         },
         "normal_button" : {
-            "min-width" : (sizeRates * 50) + "px",
-            "height" : (sizeRates * 45) + "px",
+            "min-width" : (noteAttributes.sizeRate * 50) + "px",
+            "height" : (noteAttributes.sizeRate * 45) + "px",
             "font-size" : "0.8em",
             "padding" : "0 15px",
             "display" : "inline-block",
@@ -1327,8 +2365,8 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "background-color" : noteColors.color4,
         },
         "opacity_button" : {
-            "min-width" : (sizeRates * 40) + "px",
-            "height" : (sizeRates * 40) + "px",
+            "min-width" : (noteAttributes.sizeRate * 40) + "px",
+            "height" : (noteAttributes.sizeRate * 40) + "px",
             "font-size" : "0.7em",
             "display" : "inline-block",
             "cursor" : "pointer",
@@ -1352,7 +2390,7 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "z-index" : "300",
             "font-family" : noteAttributes.defaultToolFontFamily,
             "color" : noteColors.color1,
-            "font-size" : (sizeRates * 16) + "px",
+            "font-size" : (noteAttributes.sizeRate * 16) + "px",
         },
         "modal_body" : {
             "width" : "80%",
@@ -1365,11 +2403,11 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
         },
         "modal_header" : {
             "text-align" : "left",
-            "padding-top" : (sizeRates * 20) + "px",
-            "padding-right" : (sizeRates * 10) + "px",
-            "padding-bottom" : (sizeRates * 20) + "px",
-            "padding-left" : (sizeRates * 20) + "px",
-            "margin-bottom" : (sizeRates * 10) + "px",
+            "padding-top" : (noteAttributes.sizeRate * 20) + "px",
+            "padding-right" : (noteAttributes.sizeRate * 10) + "px",
+            "padding-bottom" : (noteAttributes.sizeRate * 20) + "px",
+            "padding-left" : (noteAttributes.sizeRate * 20) + "px",
+            "margin-bottom" : (noteAttributes.sizeRate * 10) + "px",
             "background-color" : noteColors.color4,
             "border-radius" : "20px 20px 0 0",
             "font-weight" : "bold",
@@ -1377,19 +2415,19 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
         },
         "modal_footer" : {
             "text-align" : "right",
-            "margin-top" : (sizeRates * 10) + "px",
-            "padding-top" : (sizeRates * 10) + "px",
-            "padding-right" : (sizeRates * 10) + "px",
-            "padding-bottom" : (sizeRates * 10) + "px",
-            "padding-left" : (sizeRates * 10) + "px",
+            "margin-top" : (noteAttributes.sizeRate * 10) + "px",
+            "padding-top" : (noteAttributes.sizeRate * 10) + "px",
+            "padding-right" : (noteAttributes.sizeRate * 10) + "px",
+            "padding-bottom" : (noteAttributes.sizeRate * 10) + "px",
+            "padding-left" : (noteAttributes.sizeRate * 10) + "px",
             "border-top" : "1px solid " + noteColors.color6,
         },
         "modal_explain" : {
             "font-size" : "0.95em",
             "text-align" : "left",
-            "padding-top" : (sizeRates * 20) + "px",
-            "padding-bottom" : (sizeRates * 10) + "px",
-            "padding-left" : (sizeRates * 20) + "px",
+            "padding-top" : (noteAttributes.sizeRate * 20) + "px",
+            "padding-bottom" : (noteAttributes.sizeRate * 10) + "px",
+            "padding-left" : (noteAttributes.sizeRate * 20) + "px",
             "display" : "inline-block",
             "color": noteColors.color10,
             "font-family" : noteAttributes.defaultToolFontFamily,
@@ -1403,10 +2441,10 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "border" : "none",
             "border-radius" : "0",
             "border-bottom" : "1px solid " + noteColors.color6,
-            "margin-bottom" : (sizeRates * 10) + "px",
-            "margin-left" : (sizeRates * 20) + "px",
+            "margin-bottom" : (noteAttributes.sizeRate * 10) + "px",
+            "margin-left" : (noteAttributes.sizeRate * 20) + "px",
             "font-size" : "1.05em",
-            "animation" : "vanillanote-modal-input 0.7s forwards"
+            "animation" : noteName + "-modal-input 0.7s forwards"
         },
         "modal_input:focus" : {
             "outline" : "none",
@@ -1423,10 +2461,10 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "border" : "none",
             "border-radius" : "0",
             "border-bottom" : "1px solid " + noteColors.color6,
-            "margin-bottom" : (sizeRates * 10) + "px",
-            "margin-left" : (sizeRates * 20) + "px",
+            "margin-bottom" : (noteAttributes.sizeRate * 10) + "px",
+            "margin-left" : (noteAttributes.sizeRate * 20) + "px",
             "font-size" : "1.05em",
-            "animation" : "vanillanote-modal-small-input 1s forwards"
+            "animation" : noteName + "-modal-small-input 1s forwards"
         },
         "modal_small_input:focus" : {
             "outline" : "none",
@@ -1459,9 +2497,9 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "display" : "inline-block",
             "height" : "25px",
             "cursor" : "pointer",
-            "margin-top" : (sizeRates * 10) + "px",
-            "margin-bottom" : (sizeRates * 10) + "px",
-            "margin-left" : (sizeRates * 15) + "px",
+            "margin-top" : (noteAttributes.sizeRate * 10) + "px",
+            "margin-bottom" : (noteAttributes.sizeRate * 10) + "px",
+            "margin-left" : (noteAttributes.sizeRate * 15) + "px",
             "color": noteColors.color10,
         },
         "input_checkbox" : {
@@ -1523,13 +2561,13 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
         },
         "drag_drop_div" : {
             "width" : "100%",
-            "height" : sizeRates * 120 + "px",
+            "height" : noteAttributes.sizeRate * 120 + "px",
             "display" : "inline-block",
             "margin-top" : "10px",
             "border-radius" : "5px",
             "background-color" : noteColors.color4,
             "border" : "solid 1px"+noteColors.color6,
-            "line-height" : sizeRates * 130 + "px",
+            "line-height" : noteAttributes.sizeRate * 130 + "px",
             "font-size" : "0.8em",
             "color" : getRGBAFromHex(noteColors.color1, 0.8),
             "overflow-y" : "scroll",
@@ -1537,13 +2575,13 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
         },
         "image_view_div" : {
             "width" : "80%",
-            "height" : sizeRates * 120 + "px",
+            "height" : noteAttributes.sizeRate * 120 + "px",
             "display" : "inline-block",
             "margin-top" : "10px",
             "border-radius" : "5px",
             "background-color" : noteColors.color4,
             "border" : "solid 1px"+noteColors.color6,
-            "line-height" : sizeRates * 130 + "px",
+            "line-height" : noteAttributes.sizeRate * 130 + "px",
             "font-size" : "0.8em",
             "color" : getRGBAFromHex(noteColors.color1, 0.8),
             "cursor" : "pointer",
@@ -1552,8 +2590,8 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "scroll-behavior" : "smooth",
         },
         "color_button" : {
-            "width" : (sizeRates * 50) * 0.5 + "px",
-            "height" : (sizeRates * 45) * 0.5 + "px",
+            "width" : (noteAttributes.sizeRate * 50) * 0.5 + "px",
+            "height" : (noteAttributes.sizeRate * 45) * 0.5 + "px",
             "float" : "left",
             "display" : "inline-block",
             "cursor" : "pointer",
@@ -1568,15 +2606,15 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
         "color_input" : {
             "display" : "inline-block",
             "background-color" : "rgba(0,0,0,0)",
-            "width" : (sizeRates * 25) + "px",
-            "height" : (sizeRates * 40) + "px",
+            "width" : (noteAttributes.sizeRate * 25) + "px",
+            "height" : (noteAttributes.sizeRate * 40) + "px",
             "font-size" : "0.7em!important",
             "color": noteColors.color1,
             "border" : "none",
             "border-radius" : "5px",
             "text-align" : "right",
-            "margin-right" : (sizeRates * 8) + "px",
-            "margin-left" : (sizeRates * 2) + "px",
+            "margin-right" : (noteAttributes.sizeRate * 8) + "px",
+            "margin-left" : (noteAttributes.sizeRate * 2) + "px",
             "font-family" : noteAttributes.defaultToolFontFamily,
         },
         "color_input:focus" : {
@@ -1589,7 +2627,7 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
         },
         "color_explain" : {
             "display" : "inline-block",
-            "height" : (sizeRates * 25) + "px",
+            "height" : (noteAttributes.sizeRate * 25) + "px",
             "color": noteColors.color1,
             "font-family" : noteAttributes.defaultToolFontFamily,
             "font-size" : "0.7em",
@@ -1614,8 +2652,8 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "font-size" : "0.9em",
         },
         "tooltip_button" : {
-            "width" : (sizeRates * 50) * 0.7 + "px",
-            "height" : (sizeRates * 45) * 0.7 + "px",
+            "width" : (noteAttributes.sizeRate * 50) * 0.7 + "px",
+            "height" : (noteAttributes.sizeRate * 45) * 0.7 + "px",
             "float" : "left",
             "display" : "inline-block",
             "cursor" : "pointer",
@@ -1633,7 +2671,7 @@ const getCsses =(noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
             "color" : noteColors.color11,
             "text-decoration" : "underline",
             "font-size" : "0.9em",
-            "line-height" : (sizeRates * 45) * 0.8 + "px",
+            "line-height" : (noteAttributes.sizeRate * 45) * 0.8 + "px",
         },
         "help_main" : {
             "max-height" : noteAttributes.textareaOriginHeights,
@@ -1693,7 +2731,7 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         target_onBeforeTouchend : function(e: any) {return true;},
         target_onAfterTouchend : function(e: any) {},
     }
-    note._elementsEvents = {
+    note._elementEvents = {
         //textarea event
         textarea_onBeforeClick : function(e: any) {return true;},
         textarea_onAfterClick : function(e: any) {},
@@ -1706,117 +2744,94 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         paragraphStyleSelect_onBeforeClick : function(e: any) {return true;},
         paragraphStyleSelect_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //toolToggleButton event
         toolToggleButton_onBeforeClick : function(e: any) {return true;},
         toolToggleButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //styleNomal event
         styleNomal_onBeforeClick : function(e: any) {return true;},
         styleNomal_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //styleHeader1 event
         styleHeader1_onBeforeClick : function(e: any) {return true;},
         styleHeader1_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //styleHeader2 event
         styleHeader2_onBeforeClick : function(e: any) {return true;},
         styleHeader2_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //styleHeader3 event
         styleHeader3_onBeforeClick : function(e: any) {return true;},
         styleHeader3_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //styleHeader4 event
         styleHeader4_onBeforeClick : function(e: any) {return true;},
         styleHeader4_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //styleHeader5 event
         styleHeader5_onBeforeClick : function(e: any) {return true;},
         styleHeader5_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //styleHeader6 event
         styleHeader6_onBeforeClick : function(e: any) {return true;},
         styleHeader6_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //boldButton event
         boldButton_onBeforeClick : function(e: any) {return true;},
         boldButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //underlineButton event
         underlineButton_onBeforeClick : function(e: any) {return true;},
         underlineButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //italicButton event
         italicButton_onBeforeClick : function(e: any) {return true;},
         italicButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //ulButton event
         ulButton_onBeforeClick : function(e: any) {return true;},
         ulButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //olButton event
         olButton_onBeforeClick : function(e: any) {return true;},
         olButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //textAlignSelect event
         textAlignSelect_onBeforeClick : function(e: any) {return true;},
         textAlignSelect_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //textAlignLeft event
         textAlignLeft_onBeforeClick : function(e: any) {return true;},
         textAlignLeft_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //textAlignCenter event
         textAlignCenter_onBeforeClick : function(e: any) {return true;},
         textAlignCenter_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //textAlignRight event
         textAlignRight_onBeforeClick : function(e: any) {return true;},
         textAlignRight_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //attLinkButton event
         attLinkButton_onBeforeClick : function(e: any) {return true;},
         attLinkButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //attFileButton event
         attFileButton_onBeforeClick : function(e: any) {return true;},
         attFileButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //attImageButton event
         attImageButton_onBeforeClick : function(e: any) {return true;},
         attImageButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //attVideoButton event
         attVideoButton_onBeforeClick : function(e: any) {return true;},
         attVideoButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //fontSizeInputBox event
         fontSizeInputBox_onBeforeClick : function(e: any) {return true;},
         fontSizeInputBox_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //fontSizeInput event
         fontSizeInput_onBeforeClick : function(e: any) {return true;},
         fontSizeInput_onAfterClick : function(e: any) {},
@@ -1825,12 +2840,10 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         fontSizeInput_onBeforeBlur : function(e: any) {return true;},
         fontSizeInput_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //letterSpacingInputBox event
         letterSpacingInputBox_onBeforeClick : function(e: any) {return true;},
         letterSpacingInputBox_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //letterSpacingInput event
         letterSpacingInput_onBeforeClick : function(e: any) {return true;},
         letterSpacingInput_onAfterClick : function(e: any) {},
@@ -1839,12 +2852,10 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         letterSpacingInput_onBeforeBlur : function(e: any) {return true;},
         letterSpacingInput_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //lineHeightInputBox event
         lineHeightInputBox_onBeforeClick : function(e: any) {return true;},
         lineHeightInputBox_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //lineHeightInput event
         lineHeightInput_onBeforeClick : function(e: any) {return true;},
         lineHeightInput_onAfterClick : function(e: any) {},
@@ -1853,12 +2864,10 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         lineHeightInput_onBeforeBlur : function(e: any) {return true;},
         lineHeightInput_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //fontFamilySelect event
         fontFamilySelect_onBeforeClick : function(e: any) {return true;},
         fontFamilySelect_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //color text select
         colorTextSelect_onBeforeClick : function(e: any) {return true;},
         colorTextSelect_onAfterClick : function(e: any) {},
@@ -1918,7 +2927,6 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         colorTextOpacityInput_onBeforeBlur : function(e: any) {return true;},
         colorTextOpacityInput_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //color background select
         colorBackSelect_onBeforeClick : function(e: any) {return true;},
         colorBackSelect_onAfterClick : function(e: any) {},
@@ -1978,66 +2986,54 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         colorBackOpacityInput_onBeforeBlur : function(e: any) {return true;},
         colorBackOpacityInput_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //formatClearButton event
         formatClearButton_onBeforeClick : function(e: any) {return true;},
         formatClearButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //undo event
         undoButton_onBeforeClick : function(e: any) {return true;},
         undoButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //redo event
         redoButton_onBeforeClick : function(e: any) {return true;},
         redoButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //help event
         helpButton_onBeforeClick : function(e: any) {return true;},
         helpButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal back event
         modalBack_onBeforeClick : function(e: any) {return true;},
         modalBack_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att link event
         attLinkModal_onBeforeClick : function(e: any) {return true;},
         attLinkModal_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att link text input event
         attLinkText_onBeforeInput : function(e: any) {return true;},
         attLinkText_onAfterInput : function(e: any) {},
         attLinkText_onBeforeBlur : function(e: any) {return true;},
         attLinkText_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //modal att link href input event
         attLinkHref_onBeforeInput : function(e: any) {return true;},
         attLinkHref_onAfterInput : function(e: any) {},
         attLinkHref_onBeforeBlur : function(e: any) {return true;},
         attLinkHref_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //modal att link insert button event
         attLinkInsertButton_onBeforeClick : function(e: any) {return true;},
         attLinkInsertButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att file event
         attFileModal_onBeforeClick : function(e: any) {return true;},
         attFileModal_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att file upload button event
         attFileUploadButton_onBeforeClick : function(e: any) {return true;},
         attFileUploadButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att file upload div event
         attFileUploadDiv_onBeforeDragover : function(e: any) {return true;},
         attFileUploadDiv_onAfterDragover : function(e: any) {},
@@ -2046,34 +3042,28 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         attFileUploadDiv_onBeforeClick : function(e: any) {return true;},
         attFileUploadDiv_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att file upload input event
         attFileUpload_onBeforeInput : function(e: any) {return true;},
         attFileUpload_onAfterInput : function(e: any) {},
         attFileUpload_onBeforeBlur : function(e: any) {return true;},
         attFileUpload_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //modal att file insert button event
         attFileInsertButton_onBeforeClick : function(e: any) {return true;},
         attFileInsertButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //att link tooltip edit button event
         attLinkTooltipEditButton_onBeforeClick : function(e: any) {return true;},
         attLinkTooltipEditButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //att link tooltip unlink button event
         attLinkTooltipUnlinkButton_onBeforeClick : function(e: any) {return true;},
         attLinkTooltipUnlinkButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att image event
         attImageModal_onBeforeClick : function(e: any) {return true;},
         attImageModal_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att image upload button and view event
         attImageUploadButtonAndView_onBeforeDragover : function(e: any) {return true;},
         attImageUploadButtonAndView_onAfterDragover : function(e: any) {},
@@ -2082,67 +3072,56 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         attImageUploadButtonAndView_onBeforeClick : function(e: any) {return true;},
         attImageUploadButtonAndView_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att image view pre button event
         attImageViewPreButtion_onBeforeClick : function(e: any) {return true;},
         attImageViewPreButtion_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att image view next button event
         attImageViewNextButtion_onBeforeClick : function(e: any) {return true;},
         attImageViewNextButtion_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att image upload input event
         attImageUpload_onBeforeInput : function(e: any) {return true;},
         attImageUpload_onAfterInput : function(e: any) {},
         attImageUpload_onBeforeBlur : function(e: any) {return true;},
         attImageUpload_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //modal att image url input event
         attImageURL_onBeforeInput : function(e: any) {return true;},
         attImageURL_onAfterInput : function(e: any) {},
         attImageURL_onBeforeBlur : function(e: any) {return true;},
         attImageURL_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //modal att image insert button event
         attImageInsertButton_onBeforeClick : function(e: any) {return true;},
         attImageInsertButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att video event
         attVideoModal_onBeforeClick : function(e: any) {return true;},
         attVideoModal_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal att video embed id input event
         attVideoEmbedId_onBeforeInput : function(e: any) {return true;},
         attVideoEmbedId_onAfterInput : function(e: any) {},
         attVideoEmbedId_onBeforeBlur : function(e: any) {return true;},
         attVideoEmbedId_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //modal att video width input event
         attVideoWidth_onBeforeInput : function(e: any) {return true;},
         attVideoWidth_onAfterInput : function(e: any) {},
         attVideoWidth_onBeforeBlur : function(e: any) {return true;},
         attVideoWidth_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //modal att video height input event
         attVideoHeight_onBeforeInput : function(e: any) {return true;},
         attVideoHeight_onAfterInput : function(e: any) {},
         attVideoHeight_onBeforeBlur : function(e: any) {return true;},
         attVideoHeight_onAfterBlur : function(e: any) {},
         
-        //==================================================================================
         //modal att video insert button event
         attVideoInsertButton_onBeforeClick : function(e: any) {return true;},
         attVideoInsertButton_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //att image tooltip width input event
         attImageAndVideoTooltipWidthInput_onBeforeInput : function(e: any) {return true;},
         attImageAndVideoTooltipWidthInput_onAfterInput : function(e: any) {},
@@ -2151,42 +3130,34 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         attImageAndVideoTooltipWidthInput_onBeforeKeyup : function(e: any) {return true;},
         attImageAndVideoTooltipWidthInput_onAfterKeyup : function(e: any) {},
         
-        //==================================================================================
         //att image tooltip float none radio input event
         attImageAndVideoTooltipFloatRadioNone_onBeforeClick : function(e: any) {return true;},
         attImageAndVideoTooltipFloatRadioNone_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //att image tooltip float left radio input event
         attImageAndVideoTooltipFloatRadioLeft_onBeforeClick : function(e: any) {return true;},
         attImageAndVideoTooltipFloatRadioLeft_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //att image tooltip float right radio input event
         attImageAndVideoTooltipFloatRadioRight_onBeforeClick : function(e: any) {return true;},
         attImageAndVideoTooltipFloatRadioRight_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //att image tooltip shape square radio input event
         attImageAndVideoTooltipShapeRadioSquare_onBeforeClick : function(e: any) {return true;},
         attImageAndVideoTooltipShapeRadioSquare_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //att image tooltip shape radius radio input event
         attImageAndVideoTooltipShapeRadioRadius_onBeforeClick : function(e: any) {return true;},
         attImageAndVideoTooltipShapeRadioRadius_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //att image tooltip shape circle radio input event
         attImageAndVideoTooltipShapeRadioCircle_onBeforeClick : function(e: any) {return true;},
         attImageAndVideoTooltipShapeRadioCircle_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //modal help event
         helpModal_onBeforeClick : function(e: any) {return true;},
         helpModal_onAfterClick : function(e: any) {},
         
-        //==================================================================================
         //placeholder event
         placeholder_onBeforeClick : function(e: any) {return true;},
         placeholder_onAfterClick : function(e: any) {},
