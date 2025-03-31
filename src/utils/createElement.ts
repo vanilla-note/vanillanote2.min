@@ -1,7 +1,10 @@
+import { target_onClick, target_onMouseout, target_onMouseover, target_onTouchend, target_onTouchstart } from "../events/cssEvent";
 import { elementsEvent } from "../events/elementEvent";
+import { Vanillanote, VanillanoteElement } from "../types/vanillanote";
+import { getObjectNoteCss } from "./handleActive";
 import { fontFamilySelectList_onClick, selectToggle } from "./handleElement";
-import { setOriginEditSelection } from "./handleSelection";
-import { getClassName, getClickCssEventElementClassName, getEventChildrenClassName, getId, getOnOverCssEventElementClassName, getParentNote } from "./util";
+import { modifySelectedSingleElement, setOriginEditSelection } from "./handleSelection";
+import { getClassName, getClickCssEventElementClassName, getEventChildrenClassName, getHexColorFromColorName, getId, getOnOverCssEventElementClassName, getParentNote } from "./util";
 
 /**
 * setAttTempFileValid
@@ -126,23 +129,23 @@ var setAttImageUploadAndView = function(noteIndex: number) {
     vn.elements.attImageURLs[noteIndex].setAttribute("readonly","true");
 };
 
-export const createElement = function(elementTag: string, noteName: string, noteId: string, id: string, className: string, appendNodeSetObject?: any) {
+export const createElement = function(elementTag: string, note: VanillanoteElement, id: string, className: string, appendNodeSetObject?: any) {
     const element: any = document.createElement(elementTag);
     if(id !== "") {
-        element.setAttribute("id", getId(noteName, noteId, id));
+        element.setAttribute("id", getId(note._noteName, note._id, id));
     }
-    element.setAttribute("class", getClassName(noteName, noteId, className));
+    element.setAttribute("class", getClassName(note._noteName, note._id, className));
     if(appendNodeSetObject && typeof appendNodeSetObject === "object" && Object.keys(appendNodeSetObject).length !== 0) {
         var textNode;
         if(appendNodeSetObject["isIcon"]) {	//google icon
             var iconNode = document.createElement("span");
-            iconNode.setAttribute("class","material-symbols-rounded " + getEventChildrenClassName(noteName) + " " + getClickCssEventElementClassName(noteName) + " " + getOnOverCssEventElementClassName(noteName) + " " + getId(noteName, noteId, "icon"));
+            iconNode.setAttribute("class","material-symbols-rounded " + getEventChildrenClassName(note._noteName) + " " + getClickCssEventElementClassName(note._noteName) + " " + getOnOverCssEventElementClassName(note._noteName) + " " + getId(note._noteName, note._id, "icon"));
             textNode = document.createTextNode(appendNodeSetObject["text"]);
             iconNode.appendChild(textNode);
             if(appendNodeSetObject["iconStyle"]) {
                 iconNode.setAttribute("style",appendNodeSetObject["iconStyle"]);
             }
-            iconNode.setAttribute("data-note-index",(idx as any));
+            iconNode.setAttribute("data-note-id", note._id);
             element.appendChild(iconNode);
         }
         else {	//just text node
@@ -155,116 +158,103 @@ export const createElement = function(elementTag: string, noteName: string, note
 
 export const createElementBasic = function(
     elementTag: string,
-    noteName: string,
-    noteId: string,
+    note: VanillanoteElement,
     id: string,
     className: string,
-    noteElementEvent: Record<string, Function>,
-    noteCssEvents: Record<string, Function>,
     appendNodeSetObject?: any) {
-    const element = createElement(elementTag, noteName, noteId, id, className, appendNodeSetObject);
-    addClickEvent(element, id, noteName, noteElementEvent, noteCssEvents);
+    const element = createElement(elementTag, note, id, className, appendNodeSetObject);
+    addClickEvent(element, id, note);
     return element;
 };
 
 export const createElementButton = (
     elementTag: string,
-    noteName: string,
-    noteId: string,
+    note: VanillanoteElement,
     id: string,
     className: string,
-    noteElementEvent: Record<string, Function>,
-    noteCssEvents: Record<string, Function>,
     appendNodeSetObject?: any
 ) => {
-    const element = createElement(elementTag, noteName, noteId, id, className, appendNodeSetObject);
-    element.classList.add(getClickCssEventElementClassName(noteName));
-    element.classList.add(getOnOverCssEventElementClassName(noteName));
-    addClickEvent(element, id, noteName, noteElementEvent, noteCssEvents);
-    addMouseoverEvent(element, id, noteName, noteCssEvents);
-    addMouseoutEvent(element, id, noteName, noteCssEvents);
-    addTouchstartEvent(element, id, noteName, noteCssEvents);
-    addTouchendEvent(element, id, noteName, noteCssEvents);
+    const element = createElement(elementTag, note, id, className, appendNodeSetObject);
+    element.classList.add(getClickCssEventElementClassName(note._noteName));
+    element.classList.add(getOnOverCssEventElementClassName(note._noteName));
+    addClickEvent(element, id, note);
+    addMouseoverEvent(element, note);
+    addMouseoutEvent(element, note);
+    addTouchstartEvent(element, note);
+    addTouchendEvent(element, note);
     return element;
 };
 
 export const createElementSelect = (
     elementTag: string,
-    noteName: string,
-    noteId: string,
+    note: VanillanoteElement,
     id: string,
     className: string,
-    noteElementEvent: Record<string, Function>,
-    noteCssEvents: Record<string, Function>,
     appendNodeSetObject?: any
 ) => {
-    const element = createElement(elementTag, noteName, noteId, id, className, appendNodeSetObject);
-    element.classList.add(getClickCssEventElementClassName(noteName));
-    element.classList.add(getOnOverCssEventElementClassName(noteName));
+    const element = createElement(elementTag, note, id, className, appendNodeSetObject);
+    element.classList.add(getClickCssEventElementClassName(note._noteName));
+    element.classList.add(getOnOverCssEventElementClassName(note._noteName));
     element.setAttribute("type","select");
-    addClickEvent(element, id, noteName, noteElementEvent, noteCssEvents);
-    addMouseoverEvent(element, id, noteName, noteCssEvents);
-    addMouseoutEvent(element, id, noteName, noteCssEvents);
-    addTouchstartEvent(element, id, noteName, noteCssEvents);
-    addTouchendEvent(element, id, noteName, noteCssEvents);
+    addClickEvent(element, id, note);
+    addMouseoverEvent(element, note);
+    addMouseoutEvent(element, note);
+    addTouchstartEvent(element, note);
+    addTouchendEvent(element, note);
     return element;
 };
 
 export const createElementInput = (
-    noteName: string,
-    noteId: string,
+    note: VanillanoteElement,
     id: string,
     className: string,
-    noteElementEvent: Record<string, Function>,
 ) => {
-    const element = createElement("input", noteName, noteId, id, className);
-    element.setAttribute("name", getId(noteName, noteId, id));
+    const element = createElement("input", note, id, className);
+    element.setAttribute("name", getId(note._noteName, note._id, id));
     element.setAttribute("autocapitalize", "none");
     element.setAttribute("placeholder","");
     
     element.addEventListener("input", function(event: any) {
-        if(!(noteElementEvent as any)[id+"_onBeforeInput"](event)) return;
+        if(!(note._elementEvents as any)[id+"_onBeforeInput"](event)) return;
         (elementsEvent as any)[id+"_onInput"](event);
-        (noteElementEvent as any)[id+"_onAfterInput"](event);
+        (note._elementEvents as any)[id+"_onAfterInput"](event);
         
         event.stopImmediatePropagation();
     });
     element.addEventListener("blur", function(event: any) {
-        if(!(noteElementEvent as any)[id+"_onBeforeBlur"](event)) return;
+        if(!(note._elementEvents as any)[id+"_onBeforeBlur"](event)) return;
         (elementsEvent as any)[id+"_onBlur"](event);
-        (noteElementEvent as any)[id+"_onAfterBlur"](event);
+        (note._elementEvents as any)[id+"_onAfterBlur"](event);
         
         event.stopImmediatePropagation();
     });
     return element;
 };
 
-var createElementInputCheckbox = function(element: any, id: string, className: string, idx: number) {
-    element = createElement(element, "input", id, className, idx);
-    element.setAttribute("name", getId(idx, id));
+export const createElementInputCheckbox = (note: VanillanoteElement, id: string, className: string) => {
+    const element = createElement("input", note, id, className);
+    element.setAttribute("name", getId(note._noteName, note._id, id));
     element.setAttribute("placeholder","");
     element.setAttribute("type","checkbox");
     return element;
 };
 
-var createElementInputRadio = function(element: any, id: string, className: string, name: string, idx: number) {
-    element = createElement(element, "input", id, className, idx);
+export const createElementInputRadio = (note: VanillanoteElement, id: string, className: string, name: string) => {
+    const element = createElement("input", note, id, className);
     element.setAttribute("name", name);
     element.setAttribute("placeholder","");
     element.setAttribute("type","radio");
-    addClickEvent(element, id);
+    addClickEvent(element, id, note);
     return element;
 };
 
-var createElementRadioLabel = function(forId: string, iconName: string) {
-    var tempEl1;
-    var tempEl2;
-    tempEl1 = document.createElement("label");
+export const createElementRadioLabel = (note: VanillanoteElement, forId: string, iconName: string) => {
+    const tempEl1 = document.createElement("label");
     tempEl1.setAttribute("for", forId);
     tempEl1.setAttribute("style", "display:inline-block;width:30px;position:relative;margin-left:3px;;margin-left:3px;");
-    tempEl2 = document.createElement("span");
+    const tempEl2 = document.createElement("span");
     tempEl2.setAttribute("class","material-symbols-rounded");
-    tempEl2.setAttribute("style","font-size:1.3em;position:absolute;bottom:-6px;cursor:pointer;color:" + getHexColorFromColorName(vn.colors.color1[i]));
+    tempEl2.setAttribute("style","font-size:1.3em;position:absolute;bottom:-6px;cursor:pointer;color:" + getHexColorFromColorName(note._colors.color1));
     tempEl2.textContent = iconName;
     tempEl1.appendChild(tempEl2);
     return tempEl1;
@@ -272,19 +262,15 @@ var createElementRadioLabel = function(forId: string, iconName: string) {
 
 export const createElementFontFamiliySelect = (
     elementTag: string,
-    noteName: string,
-    noteId: string,
+    note: VanillanoteElement,
     id: string,
     className: string,
-    noteElementEvent: Record<string, Function>,
-    noteCssEvents: Record<string, Function>,
     appendNodeSetObject?: any
 ) => {
-    const element = createElement(elementTag, noteName, noteId, id, className, appendNodeSetObject);
+    const element = createElement(elementTag, note, id, className, appendNodeSetObject);
     // The font event is dynamically generated
-    (noteElementEvent as any)[id+"_onBeforeClick"] = function(event: any) {return true;};
+    (note._elementEvents as any)[id+"_onBeforeClick"] = function(event: any) {return true;};
     (elementsEvent as any)[id+"_onClick"] = function(event: any) {
-        const note = getParentNote(event.target);
         fontFamilySelectList_onClick(event, note);
         selectToggle(event.target, note);
         // If the selection is a single point
@@ -294,17 +280,17 @@ export const createElementFontFamiliySelect = (
         }
         else {	// Dragging
             // Specify style for dragged characters
-            modifySelectedSingleElement(noteIndex, getObjectNoteCss(noteIndex));
+            modifySelectedSingleElement(note, getObjectNoteCss(note));
         }
     };
-    (noteElementEvent as any)[id+"_onAfterClick"] = function(event: any) {};
-    element.classList.add(getClickCssEventElementClassName(noteName));
-    element.classList.add(getOnOverCssEventElementClassName(noteName));
-    addClickEvent(element, id, noteName, noteElementEvent, noteCssEvents);
-    addMouseoverEvent(element, id, noteName, noteCssEvents);
-    addMouseoutEvent(element, id, noteName, noteCssEvents);
-    addTouchstartEvent(element, id, noteName, noteCssEvents);
-    addTouchendEvent(element, id, noteName, noteCssEvents);
+    (note._elementEvents as any)[id+"_onAfterClick"] = function(event: any) {};
+    element.classList.add(getClickCssEventElementClassName(note._noteName));
+    element.classList.add(getOnOverCssEventElementClassName(note._noteName));
+    addClickEvent(element, id, note);
+    addMouseoverEvent(element, note);
+    addMouseoutEvent(element, note);
+    addTouchstartEvent(element, note);
+    addTouchendEvent(element, note);
     
     return element;
 };
@@ -312,71 +298,69 @@ export const createElementFontFamiliySelect = (
 export const addClickEvent = (
     element: HTMLElement,
     id: string,
-    noteName: string,
-    noteElementEvent: Record<string, Function>,
-    noteCssEvents: Record<string, Function>
+    note: VanillanoteElement,
 ) => {
     element.addEventListener("click", function(event: any) {
-        if(noteCssEvents.target_onBeforeClick(event) && event.target.classList.contains(getClickCssEventElementClassName(noteName))) {
-            target_onClick(event);
-            noteCssEvents.target_onAfterClick(event);
+        if(note._cssEvents.target_onBeforeClick(event) && event.target.classList.contains(getClickCssEventElementClassName(note._noteName))) {
+            target_onClick(event, note._noteName, note._id);
+            note._cssEvents.target_onAfterClick(event);
         }
         
-        if(!(noteElementEvent as any)[id+"_onBeforeClick"](event)) return;
+        if(!(note._elementEvents as any)[id+"_onBeforeClick"](event)) return;
         (elementsEvent as any)[id+"_onClick"](event);
-        (noteElementEvent as any)[id+"_onAfterClick"](event);
+        (note._elementEvents as any)[id+"_onAfterClick"](event);
         
         event.stopImmediatePropagation();
     });
 }
 
-export const  addMouseoverEvent = (element: any, id: string, noteName: string, noteCssEvents: Record<string, Function>) => {
+export const  addMouseoverEvent = (element: any, note: VanillanoteElement) => {
     element.addEventListener("mouseover", function(event: any) {
-        if(!noteCssEvents.target_onBeforeMouseover(event)) return;
-        if(!event.target.classList.contains(getOnOverCssEventElementClassName(noteName))) return;
+        if(!note._cssEvents.target_onBeforeMouseover(event)) return;
+        if(!event.target.classList.contains(getOnOverCssEventElementClassName(note._noteName))) return;
         
-        target_onMouseover(event);
+        target_onMouseover(event, note._noteName, note._id);
         
-        noteCssEvents.target_onAfterMouseover(event);
+        note._cssEvents.target_onAfterMouseover(event);
         
         event.stopImmediatePropagation();
     });
 }
 
-export const  addMouseoutEvent = (element: any, id: string, noteName: string, noteCssEvents: Record<string, Function>) => {
+export const  addMouseoutEvent = (element: any, note: VanillanoteElement) => {
     element.addEventListener("mouseout", function(event: any) {
-        if(!noteCssEvents.target_onBeforeMouseout(event)) return;
-        if(!event.target.classList.contains(getOnOverCssEventElementClassName(noteName))) return;
+        if(!note._cssEvents.target_onBeforeMouseout(event)) return;
+        if(!event.target.classList.contains(getOnOverCssEventElementClassName(note._noteName))) return;
         
-        target_onMouseout(event);
+        target_onMouseout(event, note._noteName, note._id);
         
-        noteCssEvents.target_onAfterMouseout(event);
+        note._cssEvents.target_onAfterMouseout(event);
         
         event.stopImmediatePropagation();
     });
 }
 
-export const  addTouchstartEvent = (element: any, id: string, noteName: string, noteCssEvents: Record<string, Function>) => {
+export const  addTouchstartEvent = (element: any, note: VanillanoteElement) => {
     element.addEventListener("touchstart", function(event: any) {
-        if(!noteCssEvents.target_onBeforeTouchstart(event)) return;
-        if(!event.target.classList.contains(getOnOverCssEventElementClassName(noteName))) return;
+        if(!note._cssEvents.target_onBeforeTouchstart(event)) return;
+        if(!event.target.classList.contains(getOnOverCssEventElementClassName(note._noteName))) return;
         
-        target_onTouchstart(event);
+        target_onTouchstart(event, note._noteName, note._id);
         
-        noteCssEvents.target_onAfterTouchstart(event);
+        note._cssEvents.target_onAfterTouchstart(event);
         
         event.stopImmediatePropagation();
     });
 }
 
-export const  addTouchendEvent = (element: any, id: string, noteName: string, noteCssEvents: Record<string, Function>) => {
+export const  addTouchendEvent = (element: any, note: VanillanoteElement) => {
     element.addEventListener("touchend", function(event: any) {
-        if(!noteCssEvents.target_onBeforeTouchend(event)) return;
-        if(!event.target.classList.contains(getOnOverCssEventElementClassName(noteName))) return;
+        if(!note._cssEvents.target_onBeforeTouchend(event)) return;
+        if(!event.target.classList.contains(getOnOverCssEventElementClassName(note._noteName))) return;
         
-        target_onTouchend(event);
+        target_onTouchend(event, note._noteName, note._id);
         
-        noteCssEvents.target_onAfterTouchend(event);
+        note._cssEvents.target_onAfterTouchend(event);
         
         event.stopImmediatePropagation();
     });
