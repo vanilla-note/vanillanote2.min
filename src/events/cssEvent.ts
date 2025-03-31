@@ -1,63 +1,55 @@
-var target_onClick = function(e: any) {
+import { VanillanoteElement } from "../types/vanillanote";
+
+export const target_onClick = function(e: any, noteName: string, noteId: string) {
     var target = e.target;
     // If a child element is selected, event is controlled
-    if(target.classList.contains(vn.variables.noteName + "_eventChildren")) {
+    if(target.classList.contains(noteName + "_eventChildren")) {
         target = target.parentNode;
     }
-    var noteIndex = target.getAttribute("data-note-index");
-    if(!noteIndex) return;
     // Add active CSS
-    target.classList.add(vn.variables.noteName + "_" + noteIndex + "_" + "on_active");
+    target.classList.add(noteName + "_" + noteId + "_" + "on_active");
     // Remove active CSS after 0.1 seconds
     setTimeout(function() {
-        target.classList.remove(vn.variables.noteName + "_" + noteIndex + "_" + "on_active");
+        target.classList.remove(noteName + "_" + noteId + "_" + "on_active");
     }, 100);
 };
-var target_onMouseover = function(e: any) {
+export const target_onMouseover = function(e: any, noteName: string, noteId: string) {
     var target = e.target;
     // If a child element is selected, event is controlled
-    if(target.classList.contains(vn.variables.noteName + "_eventChildren")) {
+    if(target.classList.contains(noteName + "_eventChildren")) {
         target = target.parentNode;
     }
-    var noteIndex = target.getAttribute("data-note-index");
-    if(!noteIndex) return;
-    target.classList.add(vn.variables.noteName + "_" + noteIndex + "_" + "on_mouseover");
+    target.classList.add(noteName + "_" + noteId + "_" + "on_mouseover");
 }
-var target_onMouseout = function(e: any) {
+export const target_onMouseout = function(e: any, noteName: string, noteId: string) {
     var target = e.target;
     // If a child element is selected, event is controlled
-    if(target.classList.contains(vn.variables.noteName + "_eventChildren")) {
+    if(target.classList.contains(noteName + "_eventChildren")) {
         target = target.parentNode;
     }
-    var noteIndex = target.getAttribute("data-note-index");
-    if(!noteIndex) return;
-    target.classList.remove(vn.variables.noteName + "_" + noteIndex + "_" + "on_mouseover");
+    target.classList.remove(noteName + "_" + noteId + "_" + "on_mouseover");
 };
-var target_onTouchstart = function(e: any) {
+export const target_onTouchstart = function(e: any, noteName: string, noteId: string) {
     var target = e.target;
     // If a child element is selected, event is controlled
-    if(target.classList.contains(vn.variables.noteName + "_eventChildren")) {
+    if(target.classList.contains(noteName + "_eventChildren")) {
         target = target.parentNode;
     }
-    var noteIndex = target.getAttribute("data-note-index");
-    if(!noteIndex) return;
-    target.classList.add(vn.variables.noteName + "_" + noteIndex + "_" + "on_mouseover");
-    target.classList.remove(vn.variables.noteName + "_" + noteIndex + "_" + "on_mouseout");
+    target.classList.add(noteName + "_" + noteId + "_" + "on_mouseover");
+    target.classList.remove(noteName + "_" + noteId + "_" + "on_mouseout");
 };
-var target_onTouchend = function(e: any) {
+export const target_onTouchend = function(e: any, noteName: string, noteId: string) {
     var target = e.target;
     // If a child element is selected, event is controlled
-    if(target.classList.contains(vn.variables.noteName + "_eventChildren")) {
+    if(target.classList.contains(noteName + "_eventChildren")) {
         target = target.parentNode;
     }
-    var noteIndex = target.getAttribute("data-note-index");
-    if(!noteIndex) return;
-    target.classList.add(vn.variables.noteName + "_" + noteIndex + "_" + "on_mouseout");
-    target.classList.remove(vn.variables.noteName + "_" + noteIndex + "_" + "on_mouseover");
+    target.classList.add(noteName + "_" + noteId + "_" + "on_mouseout");
+    target.classList.remove(noteName + "_" + noteId + "_" + "on_mouseover");
 };
-var doDecreaseTextareaHeight = function(textarea: any, noteIndex: number) {
+export const doDecreaseTextareaHeight = function(textarea: HTMLDivElement, note: VanillanoteElement) {
     // Stop if not in auto-scroll mode.
-    if(!vn.variables.useMobileActiveMode[noteIndex]) return;
+    if(!note._noteStatus.isNoteByMobile) return;
     textarea.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
@@ -66,7 +58,7 @@ var doDecreaseTextareaHeight = function(textarea: any, noteIndex: number) {
         decreaseTextareaHeight(textarea, noteIndex);
     }, 100);
 };
-var doIncreaseTextareaHeight = function() {
+export const doIncreaseTextareaHeight = function() {
     // Restore the note size.
     for(var i = 0; i < vn.elements.textareas.length; i++) {
         // Stop if not in auto-scroll mode.
@@ -74,7 +66,7 @@ var doIncreaseTextareaHeight = function() {
         increaseTextareaHeight(vn.elements.textareas[i]);
     }
 };
-var modifyTextareaScroll = function(textarea: any, noteIndex: number) {
+export const modifyTextareaScroll = function(textarea: any, noteIndex: number) {
     // Stop if not in auto-scroll mode.
     if(!vn.variables.useMobileActiveMode[noteIndex]) return;
     
