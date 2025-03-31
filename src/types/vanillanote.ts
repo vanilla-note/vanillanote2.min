@@ -4,7 +4,7 @@ import type { Colors } from './csses'
 import type { DocumentEvents } from './events';
 import type { LanguageSet } from './language'
 import type { Variables } from './variables';
-import { ToolPositions } from './enums';
+import { ToolPosition } from './enums';
 
 /**
  * The core object of the Vanillanote editor project.
@@ -141,6 +141,7 @@ export interface Vanillanote extends VanillanoteConfig{
 export interface VanillanoteElement extends HTMLDivElement {
 	_noteName: string; 
 	_id: string;
+	_colors: Colors;
 	_selection: {
 		editSelection: (Selection | null);
 		editRange: (Range | null);
@@ -156,31 +157,30 @@ export interface VanillanoteElement extends HTMLDivElement {
 		setEditStyleTagToggle: number;
 	};
 	_noteStatus: {
-		toolPosition: ToolPositions.top | ToolPositions.bottom; 
-		toolDefaultLine: number;
+		isNoteByMobile: boolean;
 		toolToggle: boolean;
 		boldToggle: boolean;
 		underlineToggle: boolean;
 		italicToggle: boolean;
 		ulToggle: boolean;
 		olToggle: boolean;
-		fontSize: string;
-		letterSpacing: string;
-		lineHeight: string;
-		fontFamilie: string;
+		fontSize: number;
+		letterSpacing: number;
+		lineHeight: number;
+		fontFamily: string;
 		colorTextR: string;
 		colorTextG: string;
 		colorTextB: string;
-		colorTextO: string;
+		colorTextO: number;
 		colorTextRGB: string;
-		colorTextOpacity: string;
+		colorTextOpacity: number;
 		colorBackR: string;
 		colorBackG: string;
 		colorBackB: string;
-		colorBackO: string;
+		colorBackO: number;
 		colorBackRGB: string;
-		colorBackOpacity: string;
-	}
+		colorBackOpacity: number;
+	};
 	_attTempFiles: Record<string, File>;
 	_attFiles: Record<string, File>;
 	_attTempImages: Record<string, File>;
@@ -202,8 +202,8 @@ export interface VanillanoteElement extends HTMLDivElement {
         target_onAfterTouchstart(event: TouchEvent): void;
         target_onBeforeTouchend(event: TouchEvent): boolean;
         target_onAfterTouchend(event: TouchEvent): void;
-	}
-	_elementsEvents: {
+	};
+	_elementEvents: {
 		//textarea event
 		textarea_onBeforeClick(event: Event): boolean;
 		textarea_onAfterClick(event: Event): void;
@@ -628,7 +628,7 @@ export interface VanillanoteElement extends HTMLDivElement {
 		//placeholder event
 		placeholder_onBeforeClick(event: Event): boolean;
 		placeholder_onAfterClick(event: Event): void;
-	}
+	};
 	_vn: Vanillanote;
 
 	/**
