@@ -529,7 +529,7 @@ export const elementsEvent = {
                     {
                         "class" : getClassName(noteIndex, "downloader"),
                         "uuid" : keys[i],
-                        "data-note-index" : noteIndex,
+                        "data-note-id" : noteIndex,
                         "href" : URL.createObjectURL(vn.variables.attTempFiles[noteIndex][keys[i]]),
                         "download" : vn.variables.attTempFiles[noteIndex][keys[i]].name,
                         "style" : getCssTextFromObject(getObjectNoteCss(noteIndex)),
@@ -692,7 +692,7 @@ export const elementsEvent = {
                     "",
                     {
                         "class" : getClassName(noteIndex, "image_viewer"),
-                        "data-note-index" : noteIndex,
+                        "data-note-id" : noteIndex,
                         "src" : url,
                         "style" : viewerStyle,
                         "title" : "",
@@ -733,7 +733,7 @@ export const elementsEvent = {
                         {
                             "class" : getClassName(noteIndex, "image_viewer"),
                             "uuid" : keys[i],
-                            "data-note-index" : noteIndex,
+                            "data-note-id" : noteIndex,
                             "src" : URL.createObjectURL(vn.variables.attImages[noteIndex][keys[i]]),
                             "style" : viewerStyle,
                             "title" : "",
@@ -866,7 +866,7 @@ export const elementsEvent = {
                     "",
                     {
                         "class" : getClassName(noteIndex, "video_viewer"),
-                        "data-note-index" : noteIndex,
+                        "data-note-id" : noteIndex,
                         "src" : src,
                         "title" : "YouTube video player",
                         "frameborder" : "0",
