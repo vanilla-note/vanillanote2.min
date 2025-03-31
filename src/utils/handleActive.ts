@@ -1,5 +1,5 @@
 import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
-import { setAttributesObjectToElement } from "./util";
+import { checkNumber, checkRealNumber, getHexColorFromColorName, getRGBAFromHex, setAttributesObjectToElement } from "./util";
 import { compareObject, getObjectFromCssText } from "./utils";
 
 /**
@@ -760,42 +760,36 @@ var initAttImage = function(noteIndex: number) {
     vn.elements.attImageURLs[noteIndex].removeAttribute("readonly");
 };
 
-/**
-* getObjectNoteCss
-* @description Creates and returns a style object based on the note's style toggles.
-* @param {Number} noteIndex - The index of the note.
-* @returns {Object} cssObject - The style object representing the note's styles.
-*/
-var getObjectNoteCss = function(noteIndex: number) {
+export const getObjectNoteCss = function(note: VanillanoteElement) {
     var cssObject: any = new Object();
     
-    if(vn.variables.boldToggles[noteIndex]) {
+    if(note._noteStatus.boldToggle) {
         cssObject["font-weight"] = "bold";
     }
-    if(vn.variables.underlineToggles[noteIndex]){
+    if(note._noteStatus.underlineToggle){
         cssObject["text-decoration"] = "underline";
     }
-    if(vn.variables.italicToggles[noteIndex]){
+    if(note._noteStatus.italicToggle){
         cssObject["font-style"] = "italic";
     }
-    cssObject["font-size"] = vn.variables.fontSizes[noteIndex] + "px";
-    cssObject["line-height"] = vn.variables.lineHeights[noteIndex] + "px";
+    cssObject["font-size"] = note._noteStatus.fontSize + "px";
+    cssObject["line-height"] = note._noteStatus.lineHeight + "px";
     // Add letter-spacing to the style object only if it's not 0
-    if(vn.variables.letterSpacings[noteIndex] !== "0"){
-        cssObject["letter-spacing"] = vn.variables.letterSpacings[noteIndex] + "px";
+    if(note._noteStatus.letterSpacing && checkRealNumber(note._noteStatus.letterSpacing)){
+        cssObject["letter-spacing"] = note._noteStatus.letterSpacing + "px";
     }
-    if(vn.variables.fontFamilies[noteIndex]){
-        cssObject["font-family"] = vn.variables.fontFamilies[noteIndex];
+    if(note._noteStatus.fontFamilie){
+        cssObject["font-family"] = note._noteStatus.fontFamilie;
     }
     // Add text color to the style object if it's different from the default color and opacity
-    if(getHexColorFromColorName(vn.colors.color12[noteIndex]) !== vn.variables.colorTextRGBs[noteIndex]
-        || vn.variables.colorTextOpacitys[noteIndex] !== "1") {
-        cssObject["color"] = getRGBAFromHex(vn.variables.colorTextRGBs[noteIndex], vn.variables.colorTextOpacitys[noteIndex]);
+    if(getHexColorFromColorName(note._colors.color12) !== note._noteStatus.colorTextRGB
+        || note._noteStatus.colorTextOpacity !== "1") {
+        cssObject["color"] = getRGBAFromHex(note._noteStatus.colorTextRGB, note._noteStatus.colorTextOpacity);
     }
     // Add background color to the style object if it's different from the default color and opacity
-    if(getHexColorFromColorName(vn.colors.color13[noteIndex]) !== vn.variables.colorBackRGBs[noteIndex]
-        || vn.variables.colorBackOpacitys[noteIndex] !== "0") {
-        cssObject["background-color"] = getRGBAFromHex(vn.variables.colorBackRGBs[noteIndex], vn.variables.colorBackOpacitys[noteIndex]);
+    if(getHexColorFromColorName(note._colors.color13) !== note._noteStatus.colorBackRGB
+        || note._noteStatus.colorBackOpacity !== "0") {
+        cssObject["background-color"] = getRGBAFromHex(note._noteStatus.colorBackRGB, note._noteStatus.colorBackOpacity);
     }
     
     return cssObject;
