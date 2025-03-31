@@ -4,7 +4,7 @@ import type { LanguageSet } from "../types/language";
 import type { Vanillanote, VanillanoteConfig } from "../types/vanillanote";
 import type { Variables } from "../types/variables";
 import type { Attributes } from "../types/attributes";
-import { NoteModesByDevice } from "../types/enums";
+import { NoteModeByDevice } from "../types/enums";
 import { createVanillanote } from "./createVanillanote";
 import { destroyVanillanote } from "./destroyVanillanote";
 
@@ -217,7 +217,7 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
 
 export const getVanillanoteConfig =(): VanillanoteConfig => {
     const attribute: Attributes = {
-        noteModeByDevice: NoteModesByDevice.adaptive,
+        noteModeByDevice: NoteModeByDevice.adaptive,
         textareaOriginWidths : "100%",
         textareaOriginHeights : "500px",
         textareaMaxWidth : "100%",
@@ -239,21 +239,16 @@ export const getVanillanoteConfig =(): VanillanoteConfig => {
             "video/x-flv", "video/3gpp", "video/3gpp2", "video/x-matroska"
         ],
         attImageMaxSizes : 50 * 1024 * 1024,
-        defaultTextareaFontSize: "16px",
-        defaultTextareaLineHeight: "16px",
+        defaultTextareaFontSize: 16,
+        defaultTextareaLineHeight: 16,
         defaultTextareaFontFamily: "Georgia",
         defaultToolFontFamily: "Georgia",
         language : "ENG",
-
         placeholderColor: "",
         placeholderBackgroundColor: "",
         placeholderTitle: "",
         placeholderTextContent: "",
-
         defaultFontFamilies: ["Arial","Arial Black","Arial Narrow","Comic Sans MS","Courier","Georgia","Impact"],
-
-        sizeLevelDesktop: 3,
-        sizeLevelMobile: 7,
         recodeLimit: 100,
         mainColor: "",
         colorSet: "",
@@ -283,7 +278,6 @@ export const getVanillanoteConfig =(): VanillanoteConfig => {
     const variables: Variables = {
         noteName : "vanillanote",
         observerOptions : {characterData: true, childList: true, subtree: true},
-        useMobileActiveMode : true,
         // lastActiveNote : 0,
         lastScreenHeight : null,
         mobileKeyboardExceptHeight : null,
