@@ -117,7 +117,7 @@ export const document_onSelectionchange = function(e: Event) {
     if(!isTextarea) {
         return;
     }
-    var noteIndex = textarea.getAttribute("data-note-index");
+    var noteIndex = textarea.getAttribute("data-note-id");
     // Save the current selection.
     if(!setEditSelection(noteIndex, selection)) return;	// Exit if the save was unsuccessful
 //			setEditSelection(noteIndex, selection);
