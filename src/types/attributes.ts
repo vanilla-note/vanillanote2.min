@@ -1,4 +1,4 @@
-import { NoteModesByDevice, ToolPositions } from "./enums";
+import { NoteModeByDevice, ToolPosition } from "./enums";
 
 /**
  * Runtime variables and settings that manage editor creation and behavior.
@@ -11,7 +11,7 @@ import { NoteModesByDevice, ToolPositions } from "./enums";
  * }
  */
 export interface Attributes {
-    noteModeByDevice: NoteModesByDevice.adaptive | NoteModesByDevice.desktop | NoteModesByDevice.mobile;
+    noteModeByDevice: NoteModeByDevice.adaptive | NoteModeByDevice.desktop | NoteModeByDevice.mobile;
     /**
      * - Variables for dynamically setting the size of the textarea
      * - Default width of the textarea. If not set, the value of textarea-width is inserted. Used for dynamically changing the width.
@@ -105,11 +105,11 @@ export interface Attributes {
     /**
      * default textarea font-size
      */
-    defaultTextareaFontSize: string;
+    defaultTextareaFontSize: number;
     /**
      * default textarea line-height
      */
-    defaultTextareaLineHeight: string;
+    defaultTextareaLineHeight: number;
     /**
      * default textarea font-family
      */
@@ -133,8 +133,6 @@ export interface Attributes {
     placeholderTextContent: string;
 
     defaultFontFamilies: string[];
-    sizeLevelDesktop: number;
-    sizeLevelMobile: number;
 
     recodeLimit: number;
 
@@ -167,8 +165,8 @@ export interface Attributes {
 
 export interface NoteAttributes extends Attributes {
     isNoteByMobile: boolean;
-    toolPositions: ToolPositions.bottom | ToolPositions.top;
-    toolDefaultLines: number;
-    toolToggles: boolean;
+    toolPosition: ToolPosition.bottom | ToolPosition.top;
+    toolDefaultLine: number;
+    toolToggleUsing: boolean;
     sizeRate: number;
 }
