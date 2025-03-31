@@ -1,4 +1,4 @@
-import { ToolPositions } from './enums'
+import { ToolPosition } from './enums'
 /**
  * Runtime variables and settings that manage editor creation and behavior.
  * - Includes per-instance configurations and global values.
@@ -20,12 +20,6 @@ export interface Variables {
 		childList: boolean,
 		subtree: boolean
 	};
-	/**
-	 * - A value controlling the textarea scroll movement and height adjustment in the editor. This takes precedence over .activeModeByDevice for controlling scroll movement and height adjustment.
-	 * - `true` : Default value. Scroll changes when the note is focused or blurred.
-	 * - `false` : Scroll does not change when the note is focused or blurred.
-	 */
-	useMobileActiveMode: boolean;
 	lastScreenHeight: number | null;
 	mobileKeyboardExceptHeight: number | null;
 	isSelectionProgress: boolean;
