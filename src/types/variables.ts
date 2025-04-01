@@ -20,6 +20,7 @@ export interface Variables {
 		childList: boolean,
 		subtree: boolean
 	};
+	lastActiveNoteId: string;
 	lastScreenHeight: number | null;
 	mobileKeyboardExceptHeight: number | null;
 	isSelectionProgress: boolean;
