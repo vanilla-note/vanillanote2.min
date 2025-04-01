@@ -1,18 +1,9 @@
 import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
-import { getElement, getObjectEditElementAttributes, getObjectEditElementCss, getParentTagName, getParentUnitTagElemnt, removeEmptyElment } from "./handleActive";
+import { getElement, getElementReplaceTag, getObjectEditElementAttributes, getObjectEditElementCss, getParentTagName, getParentUnitTagElemnt, removeDoubleTag, removeEmptyElment, setEditNodeAndElement } from "./handleActive";
 import { closeAllTooltip, getSpecialTag } from "./handleElement";
-import { getCssTextFromObject, getObjectFromCssText } from "./util";
+import { getCssTextFromObject, getObjectFromCssText, getParentNote, mergeObjects } from "./util";
 
-/**
-* setNewSelection
-* @description Sets the new selection range in the document.
-* @param {Node} startNode - The starting node of the selection.
-* @param {Number} startOffset - The offset within the starting node where the selection should begin.
-* @param {Node} endNode - The ending node of the selection.
-* @param {Number} endOffset - The offset within the ending node where the selection should end.
-* @returns {Selection|null} newSelection - The newly created selection or null if nodes are not present in the document.
-*/
-var setNewSelection = function(startNode: Node, startOffset: number, endNode: Node, endOffset: number) {
+export const setNewSelection = (startNode: Node, startOffset: number, endNode: Node, endOffset: number) => {
     if(!document.contains(startNode) || !document.contains(endNode)) {
         return;
     }
@@ -53,109 +44,117 @@ export const handleSpecialTagSelection = (vn: Vanillanote, noteIndex: number) =>
     }
 };
 
-/**
-* setOriginEditSelection
-* @description Moves the selection back to the original edit point for a specific note.
-* @param {Number} noteIndex - The index of the note to set the original edit selection for.
-*/
 export const setOriginEditSelection = (note: VanillanoteElement) => {
-    if(note._selection.editRanges) {
+    if(note._selection.editRange) {
         note._selection.setEditStyleTagToggle = 2;	// The 'selectiononchange' event usually occurs twice (once when removed and once when added back).
         var selection = window.getSelection();
         selection!.removeAllRanges();
-        selection!.addRange(note._selection.editRanges);
+        selection!.addRange(note._selection.editRange);
     }
 };
 
-/**
-* setEditSelection
-* @description Records the selection for a specific note and performs additional operations based on the selected elements.
-* @param {Number} noteIndex - The index of the note for which the selection is being recorded.
-* @param {Selection} selection - The selection object to be recorded.
-* @returns {Boolean} - Returns true if the selection was recorded and additional operations were performed, otherwise returns false.
-*/
-var setEditSelection = function(noteIndex: number, selection: Selection) {
+export const setEditSelection = (note: VanillanoteElement, selection: Selection) => {
+    const isInTextarea = function(noteName: string) {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount < 1) return false;
+        
+        const range = selection.getRangeAt(0);
+        let textarea: any = range.startContainer.parentNode;
+        let isTextarea = false;
+        
+        while(textarea) {
+            if(textarea.tagName === (noteName+"-textarea").toUpperCase()) {
+                isTextarea = true;
+                break;
+            }
+            else {
+                textarea = textarea.parentNode;
+            }
+        }
+        return isTextarea;
+    };
+
     // If the selection range count is less than 1 or not within a textarea, return false.
     if(selection.rangeCount < 1) return false;
-    if(!isInTextarea()) return false;
+    if(!isInTextarea(note._noteName)) return false;
     
-    vn.variables.editSelections[noteIndex] = selection;
-    vn.variables.editRanges[noteIndex] = vn.variables.editSelections[noteIndex].getRangeAt(0);
+    note._selection.editSelection = selection;
+    note._selection.editRange = note._selection.editSelection.getRangeAt(0);
     
-    vn.variables.startOffset[noteIndex] = vn.variables.editRanges[noteIndex].startOffset;
-    vn.variables.endOffset[noteIndex] = vn.variables.editRanges[noteIndex].endOffset;
+    note._selection.startOffset = note._selection.editRange.startOffset;
+    note._selection.endOffset = note._selection.editRange.endOffset;
     
-    vn.variables.editStartNode[noteIndex] = vn.variables.editRanges[noteIndex].startContainer;
-    vn.variables.editEndNode[noteIndex] = vn.variables.editRanges[noteIndex].endContainer;
+    note._selection.editStartNode = note._selection.editRange.startContainer;
+    note._selection.editEndNode = note._selection.editRange.endContainer;
     
     // If the start node is an element, find the first text node within the element.
-    if(vn.variables.editStartNode[noteIndex] instanceof Element) {
-        while(vn.variables.editStartNode[noteIndex] instanceof Element) {
-            if(!vn.variables.editStartNode[noteIndex].firstChild) break;
-            if((vn.variables.editStartNode[noteIndex] as any).firstChild.tagName === "BR") break;	//no br
-            vn.variables.editStartNode[noteIndex] = vn.variables.editStartNode[noteIndex].firstChild;
-            if(vn.variables.editStartNode[noteIndex].nodeType === 3) break;
+    if(note._selection.editStartNode instanceof Element) {
+        while(note._selection.editStartNode instanceof Element) {
+            if(!note._selection.editStartNode.firstChild) break;
+            if((note._selection.editStartNode as any).firstChild.tagName === "BR") break;	//no br
+            note._selection.editStartNode = note._selection.editStartNode.firstChild;
+            if(note._selection.editStartNode.nodeType === 3) break;
         }
-        vn.variables.startOffset[noteIndex] = 0;
+        note._selection.startOffset = 0;
     }
     // If the end node is an element, find the first text node within the element.
-    if(vn.variables.editEndNode[noteIndex] instanceof Element) {
-        while(vn.variables.editEndNode[noteIndex] instanceof Element) {
-            if(!vn.variables.editEndNode[noteIndex].firstChild) break;
-            if((vn.variables.editEndNode[noteIndex] as any).firstChild.tagName === "BR") break;	//no br
-            vn.variables.editEndNode[noteIndex] = vn.variables.editEndNode[noteIndex].firstChild;
-            if(vn.variables.editEndNode[noteIndex].nodeType === 3) break;
+    if(note._selection.editEndNode instanceof Element) {
+        while(note._selection.editEndNode instanceof Element) {
+            if(!note._selection.editEndNode.firstChild) break;
+            if((note._selection.editEndNode as any).firstChild.tagName === "BR") break;	//no br
+            note._selection.editEndNode = note._selection.editEndNode.firstChild;
+            if(note._selection.editEndNode.nodeType === 3) break;
         }
-        vn.variables.endOffset[noteIndex] = 0;
+        note._selection.endOffset = 0;
     }
     
-    vn.variables.editStartElements[noteIndex] = vn.variables.editRanges[noteIndex].startContainer instanceof Element ?
-                                                vn.variables.editRanges[noteIndex].startContainer : vn.variables.editRanges[noteIndex].startContainer.parentNode;
-    vn.variables.editEndElements[noteIndex] = vn.variables.editRanges[noteIndex].endContainer instanceof Element ?
-                                                vn.variables.editRanges[noteIndex].endContainer : vn.variables.editRanges[noteIndex].endContainer.parentNode;
+    note._selection.editStartElement = note._selection.editRange.startContainer instanceof Element ?
+                                                note._selection.editRange.startContainer : note._selection.editRange.startContainer.parentNode;
+    note._selection.editEndElement = note._selection.editRange.endContainer instanceof Element ?
+                                                note._selection.editRange.endContainer : note._selection.editRange.endContainer.parentNode;
     
     // If the start element is a unit element, find the deepest child unit element.
-    if(vn.consts.UNIT_TAG.indexOf((vn.variables.editStartElements[noteIndex] as any).tagName) > 0) {
-        while(vn.consts.UNIT_TAG.indexOf((vn.variables.editStartElements[noteIndex] as any).tagName) > 0) {
-            vn.variables.editStartElements[noteIndex] = (vn.variables.editStartElements[noteIndex] as any).firstChild;
+    if(note._vn.consts.UNIT_TAG.indexOf((note._selection.editStartElement as any).tagName) > 0) {
+        while(note._vn.consts.UNIT_TAG.indexOf((note._selection.editStartElement as any).tagName) > 0) {
+            note._selection.editStartElement = (note._selection.editStartElement as any).firstChild;
         }
     }
     // If the end element is a unit element, find the deepest child unit element.
-    if(vn.consts.UNIT_TAG.indexOf((vn.variables.editEndElements[noteIndex] as any).tagName) > 0) {
-        while(vn.consts.UNIT_TAG.indexOf((vn.variables.editEndElements[noteIndex] as any).tagName) > 0) {
-            vn.variables.editEndElements[noteIndex] = (vn.variables.editEndElements[noteIndex] as any).lastChild;
+    if(note._vn.consts.UNIT_TAG.indexOf((note._selection.editEndElement as any).tagName) > 0) {
+        while(note._vn.consts.UNIT_TAG.indexOf((note._selection.editEndElement as any).tagName) > 0) {
+            note._selection.editEndElement = (note._selection.editEndElement as any).lastChild;
         }
     }
     // If the start element is a <br> tag, update it to the parent node.
-    if(vn.variables.editStartElements[noteIndex] instanceof Element &&
-            vn.variables.editStartElements[noteIndex].tagName === "BR") {
-        vn.variables.editStartElements[noteIndex] = vn.variables.editStartElements[noteIndex].parentNode;
+    if(note._selection.editStartElement instanceof Element &&
+            note._selection.editStartElement.tagName === "BR") {
+        note._selection.editStartElement = note._selection.editStartElement.parentNode;
     }
     // If the end element is a <br> tag, update it to the parent node.
-    if(vn.variables.editEndElements[noteIndex] instanceof Element &&
-            vn.variables.editEndElements[noteIndex].tagName === "BR") {
-        vn.variables.editEndElements[noteIndex] = vn.variables.editEndElements[noteIndex].parentNode;
+    if(note._selection.editEndElement instanceof Element &&
+            note._selection.editEndElement.tagName === "BR") {
+        note._selection.editEndElement = note._selection.editEndElement.parentNode;
     }
     //If the start element is textarea, be start element to null
-    if((vn.variables.editStartElements[noteIndex] as any).tagName === (vn.variables.noteName+"-textarea").toUpperCase()) {
-        vn.variables.editStartElements[noteIndex] = null;
+    if((note._selection.editStartElement as any).tagName === (note._noteName+"-textarea").toUpperCase()) {
+        note._selection.editStartElement = null;
     }
     //If the end element is textarea, be end element to null
-    if((vn.variables.editEndElements[noteIndex] as any).tagName === (vn.variables.noteName+"-textarea").toUpperCase()) {
-        vn.variables.editEndElements[noteIndex] = null;
+    if((note._selection.editEndElement as any).tagName === (note._noteName+"-textarea").toUpperCase()) {
+        note._selection.editEndElement = null;
     }
     // Get the parent unit elements of the start and end elements.
-    vn.variables.editStartUnitElement[noteIndex] = getParentUnitTagElemnt(vn.variables.editStartElements[noteIndex]);
-    vn.variables.editEndUnitElements[noteIndex] = getParentUnitTagElemnt(vn.variables.editEndElements[noteIndex]);
+    note._selection.editStartUnitElement = getParentUnitTagElemnt(note._selection.editStartElement, note);
+    note._selection.editEndUnitElement = getParentUnitTagElemnt(note._selection.editEndElement, note);
     // Clear and populate the array with all unit elements within the selection.
-    vn.variables.editDragUnitElements[noteIndex].splice(0, vn.variables.editDragUnitElements[noteIndex].length); //initial array
+    note._selection.editDragUnitElement.splice(0, note._selection.editDragUnitElement.length); //initial array
     
-    var dragElements = modifySeletedElements(noteIndex);
-    var unitElement
-    for(var i = 0; i < dragElements.length; i++) {
-        unitElement = getParentUnitTagElemnt(dragElements[i]);
-        if(vn.variables.editDragUnitElements[noteIndex].includes(unitElement)) continue;
-        vn.variables.editDragUnitElements[noteIndex].push(unitElement);
+    const dragElements = modifySeletedElements(note);
+    let unitElement
+    for(let i = 0; i < dragElements.length; i++) {
+        unitElement = getParentUnitTagElemnt(dragElements[i], note);
+        if(note._selection.editDragUnitElement.includes(unitElement)) continue;
+        note._selection.editDragUnitElement.push(unitElement);
     }
     // Set style and tag based on the selected elements.
     setEditStyleTag(noteIndex);
@@ -182,9 +181,9 @@ export const modifySeletedElements = (note: VanillanoteElement) => {
     var isEnd = false;
     var element = note._selection.editStartNode;
     var selectedNodes: any[] = [];
-    if(!note._selection.editStartUnitElement || !note._selection.editEndUnitElements) return selectedNodes;
+    if(!note._selection.editStartUnitElement || !note._selection.editEndUnitElement) return selectedNodes;
     
-    var lastNode = note._selection.editEndUnitElements.lastChild;
+    var lastNode = note._selection.editEndUnitElement.lastChild;
     while(lastNode) {
         if(!lastNode.lastChild) break;
         lastNode = lastNode.lastChild;
@@ -226,94 +225,84 @@ export const modifySeletedElements = (note: VanillanoteElement) => {
     return selectedNodes;
 };
 
-/**
-* modifySelectedUnitElementTag
-* @description Changes the tag of the selected unit element.
-* @param {Element} target - The target element whose tag needs to be changed.
-*/
-var modifySelectedUnitElementTag = function(target: any) {
-    var noteId = getNoteId(target);
-    if(!noteIndex) return;
-    if(!isValidSelection(noteIndex)) return;
+export const modifySelectedUnitElementTag = (target: any, _note?: VanillanoteElement) => {
+    const note = _note ? _note : getParentNote(target);
+    if(!note) return;
+    if(!isValidSelection(note)) return;
     var tag = target.getAttribute("data-tag-name")
     var tempEl;
     
-    if(vn.consts.DOUBLE_TAG.indexOf(tag) >= 0) { // ul or ol
+    if(note._vn.consts.DOUBLE_TAG.indexOf(tag) >= 0) { // ul or ol
         var tempDoubleElement = document.createElement(tag);
-        for(var i = 0; i < vn.variables.editDragUnitElements[noteIndex].length; i++) {
-            if((vn.variables.editDragUnitElements[noteIndex] as any)[i].tagName === "LI") {
+        for(var i = 0; i < note._selection.editDragUnitElement.length; i++) {
+            if((note._selection.editDragUnitElement as any)[i].tagName === "LI") {
                 // Remove ul or ol tag
-                removeDoubleTag(noteIndex, (vn.variables.editDragUnitElements[noteIndex] as any)[i].parentNode);
+                removeDoubleTag(note, (note._selection.editDragUnitElement as any)[i].parentNode);
             }
-            if(tag === "UL" && vn.variables.ulToggles[noteIndex]) {
+            if(tag === "UL" && note._status.ulToggle) {
                 break;
             }
-            if(tag === "OL" && vn.variables.olToggles[noteIndex]) {
+            if(tag === "OL" && note._status.olToggle) {
                 break;
             }
             // Recreate ul or ol tag
             if(i === 0) {
-                (vn.variables.editDragUnitElements[noteIndex] as any)[0].insertAdjacentElement("beforebegin", tempDoubleElement);
+                (note._selection.editDragUnitElement as any)[0].insertAdjacentElement("beforebegin", tempDoubleElement);
             }
-            tempEl = getElementReplaceTag(vn.variables.editDragUnitElements[noteIndex][i], "LI");
+            tempEl = getElementReplaceTag(note._selection.editDragUnitElement[i], "LI");
             // Prevents the edit Node from being replaced with a unit tag when there's an empty edit unit tag (p, h1, h2, li, etc.).
-            setEditNodeAndElement(noteIndex, tempEl, vn.variables.editDragUnitElements[noteIndex][i]);
+            setEditNodeAndElement(note, tempEl, note._selection.editDragUnitElement[i]);
             
-            (vn.variables.editDragUnitElements[noteIndex] as any)[i].remove();
-            vn.variables.editDragUnitElements[noteIndex][i] = tempEl;
+            (note._selection.editDragUnitElement as any)[i].remove();
+            note._selection.editDragUnitElement[i] = tempEl;
             tempDoubleElement.append(tempEl);
         }
     } else {
-        for(var i = 0; i < vn.variables.editDragUnitElements[noteIndex].length; i++) {
-            if((vn.variables.editDragUnitElements[noteIndex] as any)[i].tagName === "LI") {
+        for(var i = 0; i < note._selection.editDragUnitElement.length; i++) {
+            if((note._selection.editDragUnitElement as any)[i].tagName === "LI") {
                 // Remove ul or ol tag
-                removeDoubleTag(noteIndex, (vn.variables.editDragUnitElements[noteIndex] as any)[i].parentNode);
+                removeDoubleTag(note, (note._selection.editDragUnitElement as any)[i].parentNode);
             }
             // Create new tag
-            tempEl = getElementReplaceTag(vn.variables.editDragUnitElements[noteIndex][i], tag);
+            tempEl = getElementReplaceTag(note._selection.editDragUnitElement[i], tag);
             
             // Prevents the edit Node from being replaced with a unit tag when there's an empty edit unit tag (p, h1, h2, li, etc.).
-            setEditNodeAndElement(noteIndex, tempEl, vn.variables.editDragUnitElements[noteIndex][i]);
+            setEditNodeAndElement(note, tempEl, note._selection.editDragUnitElement[i]);
             
-            (vn.variables.editDragUnitElements[noteIndex] as any)[i].replaceWith(tempEl);
-            vn.variables.editDragUnitElements[noteIndex][i] = tempEl;
+            (note._selection.editDragUnitElement as any)[i].replaceWith(tempEl);
+            note._selection.editDragUnitElement[i] = tempEl;
         }
     }
     
     // Sets the new selection range.
     var newStartOffset = 0
-    var newEndOffset = vn.variables.editEndElements[noteIndex] ? (vn.variables.editEndElements[noteIndex] as any).textContent.length : 0
-    if(vn.variables.editStartElements[noteIndex] === vn.variables.editEndElements[noteIndex]) {
+    var newEndOffset = note._selection.editEndElement ? (note._selection.editEndElement as any).textContent.length : 0
+    if(note._selection.editStartElement === note._selection.editEndElement) {
         newStartOffset = newEndOffset;
     }
     // Sets the new selection range.
     setNewSelection(
-            vn.variables.editStartNode[noteIndex]!,
+            note._selection.editStartNode!,
             newStartOffset,
-            vn.variables.editEndNode[noteIndex]!,
+            note._selection.editEndNode!,
             newEndOffset
             );
 };
 
-/**
-* modifySelectedUnitElementStyle
-* @description Changes the style of the selected unit element.
-* @param {Element} target - The target element whose style needs to be changed.
-*/
-var modifySelectedUnitElementStyle = function(target: any) {
-    var noteId = getNoteId(target);
-    if(!noteIndex) return;
-    if(!isValidSelection(noteIndex)) return;
+export const modifySelectedUnitElementStyle = (target: any, _note?: VanillanoteElement) => {
+    const note = _note ? _note : getParentNote(target);
+    if(!note) return;
+    if(!isValidSelection(note)) return;
     
-    var tagCssText = target.getAttribute("data-tag-style");
-    var nowCssText;
-    var newCssText;
-    var tagCssObject = getObjectFromCssText(tagCssText);
-    var nowCssObject;
-    var tempEl
+    const tagCssText = target.getAttribute("data-tag-style");
+    let nowCssText;
+    let newCssText;
+    const tagCssObject = getObjectFromCssText(tagCssText);
+    let nowCssObject;
+    let tempEl
     
-    for(var i = 0; i < vn.variables.editDragUnitElements[noteIndex].length; i++) {
-        nowCssText = (vn.variables.editDragUnitElements[noteIndex] as any)[i].getAttribute("style");
+    for(const i = 0; i < note._selection.editDragUnitElement.length; i++) {
+        nowCssText = (note._selection.editDragUnitElement as any)[i].getAttribute("style");
         // Convert style text to an object
         nowCssObject = getObjectFromCssText(nowCssText);
         
@@ -321,32 +310,24 @@ var modifySelectedUnitElementStyle = function(target: any) {
         newCssText = getCssTextFromObject(mergeObjects(nowCssObject, tagCssObject));
         
         // Perform mutation to trigger the changes by removing and recreating the element
-        tempEl = (vn.variables.editDragUnitElements[noteIndex] as any)[i].cloneNode(true);
+        tempEl = (note._selection.editDragUnitElement as any)[i].cloneNode(true);
         tempEl.setAttribute("style",newCssText);
-        (vn.variables.editDragUnitElements[noteIndex] as any)[i].parentNode.replaceChild(tempEl, (vn.variables.editDragUnitElements[noteIndex] as any)[i]);
-        vn.variables.editDragUnitElements[noteIndex][i] = tempEl;
+        (note._selection.editDragUnitElement as any)[i].parentNode.replaceChild(tempEl, (note._selection.editDragUnitElement as any)[i]);
+        note._selection.editDragUnitElement[i] = tempEl;
     }
     
     // Sets the new selection range.
-    var newStartOffset = 0
-    var newEndOffset = (vn.variables.editEndElements[noteIndex] as any).childNodes ? (vn.variables.editEndElements[noteIndex] as any).childNodes.length : 0
+    const newStartOffset = 0
+    const newEndOffset = (note._selection.editEndElement as any).childNodes ? (note._selection.editEndElement as any).childNodes.length : 0
     // Sets the new selection range.
     setNewSelection(
-            (vn.variables.editDragUnitElements[noteIndex] as any)[0],
+            (note._selection.editDragUnitElement as any)[0],
             0,
-            (vn.variables.editDragUnitElements[noteIndex] as any)[vn.variables.editDragUnitElements[noteIndex].length - 1],
+            (note._selection.editDragUnitElement as any)[note._selection.editDragUnitElement.length - 1],
             1
             );
 };
 
-/**
- * modifySelectedSingleElement
- * @description Changes the selected individual element by modifying its style, tag, or attributes.
- * @param {number} noteIndex - The index of the note where modifications are applied.
- * @param {object} csses - An object representing the style properties to be applied to the selected element.
- * @param {string} tagName - A string representing the new tag name to be used for the selected element.
- * @param {object} attributes - An object representing the attributes to be applied to the selected element.
- */
 export const modifySelectedSingleElement = (note: VanillanoteElement, csses: Record<string, string> | null, tagName?: string, attributes?: Record<string, string>) => {
     if(!isValidSelection(note)) return;
     let tempEl, tempUnitEl;
@@ -400,7 +381,7 @@ export const modifySelectedSingleElement = (note: VanillanoteElement, csses: Rec
     for(var i = 0; i < selectedNodes.length; i++) {
         if(selectedNodes[i].nodeType === 3) {	// A comment indicating that the subsequent code handles text nodes in the selection.
             if(!attributes) newAttributes = getObjectEditElementAttributes(selectedNodes[i], note);	// If no attributes are provided for the new element, use the existing attributes of the node being replaced.
-            if(!tagName) newTagName = getSpecialTag(selectedNodes[i]);	// If no tag name is provided for the new element, use the existing tag name of the node being replaced.
+            if(!tagName) newTagName = getSpecialTag(selectedNodes[i], note);	// If no tag name is provided for the new element, use the existing tag name of the node being replaced.
             if(!csses) newCssText = getCssTextFromObject(getObjectEditElementCss(selectedNodes[i], note));	// If no style is provided for the new element, use the existing style of the node being replaced.
             
             // An exception for headers where the font size should be ignored.
@@ -624,24 +605,6 @@ var textarea_onKeydownEnter = function(target: any) {
     
     (vn.variables.editStartUnitElement[noteIndex] as any).replaceWith(tempEl1);
     
-    // Sets the new selection range.
-    setNewSelection(tempEl1, 0, tempEl1, 0);
-};
-
-/**
-* initTextarea
-* @description Initializes the edit note by setting its content to a default state (<p><br></p>).
-* @param {HTMLTextAreaElement} textarea - The textarea element representing the edit note.
-*/
-export const initTextarea = function(textarea: HTMLTextAreaElement) {
-    // Remove all existing child elements of the textarea.
-    while(textarea.firstChild) {
-        textarea.removeChild(textarea.firstChild);
-    }
-    var tempEl1 = document.createElement("P");
-    var tempEl2 = document.createElement("BR");
-    tempEl1.appendChild(tempEl2);
-    textarea.appendChild(tempEl1);
     // Sets the new selection range.
     setNewSelection(tempEl1, 0, tempEl1, 0);
 };
