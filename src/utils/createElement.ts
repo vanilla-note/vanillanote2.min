@@ -1,17 +1,10 @@
-import { target_onClick, target_onMouseout, target_onMouseover, target_onTouchend, target_onTouchstart } from "../events/cssEvent";
-import { elementsEvent } from "../events/elementEvent";
-import { Vanillanote, VanillanoteElement } from "../types/vanillanote";
+import { VanillanoteElement } from "../types/vanillanote";
 import { getObjectNoteCss } from "./handleActive";
 import { fontFamilySelectList_onClick, selectToggle } from "./handleElement";
 import { modifySelectedSingleElement, setOriginEditSelection } from "./handleSelection";
 import { getClassName, getClickCssEventElementClassName, getEventChildrenClassName, getHexColorFromColorName, getId, getOnOverCssEventElementClassName, getParentNote } from "./util";
 
-/**
-* setAttTempFileValid
-* @description Filters and keeps only valid files in the attTempFiles object of the specified note.
-* @param {number} noteIndex - The index of the note where the attTempFiles object needs to be filtered.
-*/
-var setAttTempFileValid = function(noteIndex: number) {
+export const setAttTempFileValid = (noteIndex: number) => {
     var newAttTempFiles: any = new Object;
     var keys = Object.keys(vn.variables.attTempFiles[noteIndex]);
     for(var i = 0; i < keys.length; i++) {
@@ -38,12 +31,7 @@ var setAttTempFileValid = function(noteIndex: number) {
     vn.variables.attTempFiles[noteIndex] = newAttTempFiles;
 };
 
-/**
-* setAttFileUploadDiv
-* @description Sets up the attFileUploadDiv for the specified note.
-* @param {number} noteIndex - The index of the note for which the attFileUploadDiv needs to be set up.
-*/
-var setAttFileUploadDiv = function(noteIndex: number) {
+export const setAttFileUploadDiv = (noteIndex: number) => {
     if((vn.variables.attTempFiles[noteIndex] as any).length <= 0) {
         vn.elements.attFileUploadDivs[noteIndex].style.removeProperty("line-height");
         vn.elements.attFileUploadDivs[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].attFileUploadDiv;
@@ -134,6 +122,7 @@ export const createElement = function(elementTag: string, note: VanillanoteEleme
     if(id !== "") {
         element.setAttribute("id", getId(note._noteName, note._id, id));
     }
+    element.setAttribute("data-note-id",note._id);
     element.setAttribute("class", getClassName(note._noteName, note._id, className));
     if(appendNodeSetObject && typeof appendNodeSetObject === "object" && Object.keys(appendNodeSetObject).length !== 0) {
         var textNode;
