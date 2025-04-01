@@ -1,13 +1,8 @@
-//import { document_onSelectionchange, window_onResize, window_resizeViewport } from "../events/documentEvent";
-//import { redoButton_onClick, undoButton_onClick } from "../events/elementEvent";
-import { note_observer } from "../events/documentEvent";
-import { elementsEvent } from "../events/elementEvent";
-import { NoteAttributes } from "../types/attributes";
-import { Colors, Csses } from "../types/csses";
-import { NoteModeByDevice, ToolPosition } from "../types/enums";
 import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
+import type { NoteAttributes } from "../types/attributes";
+import type { Colors, Csses } from "../types/csses";
+import { NoteModeByDevice, ToolPosition } from "../types/enums";
 import { addClickEvent, createElement, createElementBasic, createElementButton, createElementFontFamiliySelect, createElementInput, createElementInputCheckbox, createElementInputRadio, createElementRadioLabel, createElementSelect } from "../utils/createElement";
-import { initTextarea } from "../utils/handleSelection";
 import {
     checkAlphabetAndNumber,
     checkNumber,
@@ -24,6 +19,10 @@ import {
     getRGBAFromHex,
     isMobileDevice,
 } from "../utils/util";
+import { initTextarea } from "../utils/handleElement";
+import { setDocumentEvents } from "../events/setDocumentEvent";
+import { ElementEvents } from "../types/events";
+import { setCssEvents } from "../events/setCssEvent";
 
 export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     //The logic for using document, window and navigator to use getVanillanote in an SSR environment is declared below.
@@ -53,10 +52,10 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     //create note
     notes.forEach((note) => {
         const noteId = note.getAttribute('data-id')!;
-        console.log(noteId);
         const vanillanote: VanillanoteElement = note as VanillanoteElement;
         vanillanote.setAttribute('id', getId(vn.variables.noteName, noteId, 'note'));
         vanillanote.setAttribute('class', getClassName(vn.variables.noteName, noteId, 'note'));
+        vanillanote.setAttribute("data-note-id", noteId);
         vanillanote._noteName = vn.variables.noteName;
         vanillanote._id = noteId;
         vanillanote._vn = vn;
@@ -100,32 +99,9 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
         document.head.appendChild(linkElementGoogleIcons);
     }
 
-    //document, window event 등록
-    /*
-    vn.documentEvents.selectionchange = (event: Event) => {
-        document_onSelectionchange(event);
-    };
-    vn.documentEvents.keydown = (event: KeyboardEvent) => {
-        if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z")) {
-            event.preventDefault();
-            undoButton_onClick(event);
-        }
-        if ((event.ctrlKey || event.metaKey) && (event.key === "y" || event.key === "Y")) {
-            event.preventDefault();
-            redoButton_onClick(event);
-        }
-    };
-    vn.documentEvents.resize = function(event: UIEvent) {
-        window_onResize(event);
-    };
-    vn.documentEvents.resizeViewport = function(event: Event) {
-        window_resizeViewport(event);
-    };
-    document.addEventListener("selectionchange", vn.documentEvents.selectionchange);
-    document.addEventListener("keydown", vn.documentEvents.keydown);
-    window.addEventListener("resize", vn.documentEvents.resize);
-    if(window.visualViewport) window.visualViewport.addEventListener("resize", vn.documentEvents.resizeViewport);
-    */
+    //event 등록
+    setDocumentEvents(vn);
+    setCssEvents(vn);
 
     //vanillanote element methods
     var getNoteData = function() {
@@ -176,15 +152,13 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     const setNoteData = () => {};
 
     // To prevent the Google icon from initially displaying as text, it is shown after a delay of 0.1 seconds.
-    /*
     setTimeout(function() {
-        for(var i = 0; i < vn.elements.templates.length; i++) {
-            vn.elements.templates[i].removeAttribute("style");
-        }
+        Object.keys(vn.vanillanoteElements).forEach((id) => {
+            vn.vanillanoteElements[id]._elements.template.removeAttribute("style");
+        });
         // Resize the size.
-        elementsEvent["window_onResize"](event);
+        (vn.events.documentEvents as any)["resize"]();
     }, vn.variables.loadInterval);
-    */
     
 }
 
@@ -223,8 +197,30 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteEleme
         editDragUnitElement : [],
         setEditStyleTagToggle : 0,
     };
-    note._noteStatus = {
+    note._attributes = {
         isNoteByMobile : noteAttributes.isNoteByMobile,
+        language: noteAttributes.language,
+        sizeRate : noteAttributes.sizeRate,
+        toolPosition : noteAttributes.toolPosition,
+		toolToggleUsing: noteAttributes.toolToggleUsing,
+        toolDefaultLine : noteAttributes.toolDefaultLine,
+        textareaOriginHeight : noteAttributes.textareaOriginHeight,
+		defaultTextareaFontFamily: noteAttributes.defaultTextareaFontFamily,
+		defaultFontFamilies: noteAttributes.defaultFontFamilies,
+		attFilePreventTypes: noteAttributes.attFilePreventTypes,
+		attFileAcceptTypes: noteAttributes.attFileAcceptTypes,
+		attFileMaxSizes: noteAttributes.attFileMaxSizes,
+		attImagePreventTypes: noteAttributes.attImagePreventTypes,
+		attImageAcceptTypes: noteAttributes.attImageAcceptTypes,
+		attImageMaxSizes: noteAttributes.attImageMaxSizes,
+        placeholderIsVisible : noteAttributes.placeholderIsVisible,
+		placeholderWidth: noteAttributes.placeholderWidth,
+		placeholderAddTop: noteAttributes.placeholderAddTop,
+		placeholderAddLeft: noteAttributes.placeholderAddLeft,
+		placeholderTitle: noteAttributes.placeholderTitle,
+		placeholderTextContent: noteAttributes.placeholderTextContent,
+    }
+    note._status = {
         toolToggle : false,
         boldToggle : false,
         underlineToggle : false,
@@ -238,15 +234,15 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteEleme
         colorTextR : getExtractColorValue(note._colors.color12,"R"),
         colorTextG : getExtractColorValue(note._colors.color12,"G"),
         colorTextB : getExtractColorValue(note._colors.color12,"B"),
-        colorTextO : 1,
+        colorTextO : "1",
         colorTextRGB : note._colors.color12,
-        colorTextOpacity : 1,
+        colorTextOpacity : "1",
         colorBackR : getExtractColorValue(note._colors.color13,"R"),
         colorBackG : getExtractColorValue(note._colors.color13,"G"),
         colorBackB : getExtractColorValue(note._colors.color13,"B"),
-        colorBackO : 0,
+        colorBackO : "0",
         colorBackRGB : note._colors.color13,
-        colorBackOpacity : 0,
+        colorBackOpacity : "0",
     };
     note._records = {
         recodeNotes : [],
@@ -299,32 +295,32 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     textarea.setAttribute("spellcheck",true);
     textarea.setAttribute("autocorrect",true);
     textarea.setAttribute("name",getId(note._noteName, note._id, vn.consts.CLASS_NAMES.textarea.id));
-    textarea.setAttribute("title", vn.languageSet[noteAttributes.language].textareaTooltip);
+    textarea.setAttribute("title", vn.languageSet[note._attributes.language].textareaTooltip);
     textarea.addEventListener("focus", function(event: any) {
         if(!note._elementEvents.textarea_onBeforeFocus(event)) return;
-        elementsEvent["textarea_onFocus"](event);
+        (vn.events.elementEvents as any)["textarea_onFocus"](event);
         note._elementEvents.textarea_onAfterFocus(event);
         event.stopImmediatePropagation();
     });
     textarea.addEventListener(getIsIOS() ? "mouseout" : "blur", function(event: any) {
         if(!note._elementEvents.textarea_onBeforeBlur(event)) return;
-        elementsEvent["textarea_onBlur"](event);
+        (vn.events.elementEvents as any)["textarea_onBlur"](event);
         note._elementEvents.textarea_onAfterBlur(event);
         event.stopImmediatePropagation();
     });
     textarea.addEventListener("keydown", function(event: any) {
-        elementsEvent["textarea_onKeydown"](event);
+        (vn.events.elementEvents as any)["textarea_onKeydown"](event);
         event.stopImmediatePropagation();
     });
     textarea.addEventListener("keyup", function(event: any) {
-        elementsEvent["textarea_onKeyup"](event);
+        (vn.events.elementEvents as any)["textarea_onKeyup"](event);
         event.stopImmediatePropagation();
     });
     textarea.addEventListener("beforeinput", function(event: any) {
-        elementsEvent["textarea_onBeforeinput"](event);
+        (vn.events.elementEvents as any)["textarea_onBeforeinput"](event);
         event.stopImmediatePropagation();
     });
-    note_observer.observe(textarea, vn.variables.observerOptions);
+    vn.events.documentEvents.noteObserver!.observe(textarea, vn.variables.observerOptions);
     initTextarea(textarea);
 
     //tool
@@ -346,7 +342,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.paragraphStyleSelect.className,
         {"isIcon":true, "text":"auto_fix_high"}
     );
-    paragraphStyleSelect.setAttribute("title", vn.languageSet[noteAttributes.language].styleTooltip);
+    paragraphStyleSelect.setAttribute("title", vn.languageSet[note._attributes.language].styleTooltip);
     const paragraphStyleSelectBox = createElement(
         "div",
         note,
@@ -426,7 +422,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.boldButton.className,
         {"isIcon":true, "text":"format_bold"}
     );
-    boldButton.setAttribute("title", vn.languageSet[noteAttributes.language].boldTooltip);
+    boldButton.setAttribute("title", vn.languageSet[note._attributes.language].boldTooltip);
     //under-line
     const underlineButton = createElementButton(
         "span",
@@ -435,7 +431,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.underlineButton.className,
         {"isIcon":true, "text":"format_underlined"}
     );
-    underlineButton.setAttribute("title", vn.languageSet[noteAttributes.language].underlineTooltip);
+    underlineButton.setAttribute("title", vn.languageSet[note._attributes.language].underlineTooltip);
     //italic
     const italicButton = createElementButton(
         "span",
@@ -444,7 +440,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.italicButton.className,
         {"isIcon":true, "text":"format_italic"}
     );
-    italicButton.setAttribute("title", vn.languageSet[noteAttributes.language].italicTooltip);
+    italicButton.setAttribute("title", vn.languageSet[note._attributes.language].italicTooltip);
     //ul
     const ulButton = createElementButton(
         "span",
@@ -453,7 +449,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.ulButton.className,
         {"isIcon":true, "text":"format_list_bulleted"}
     );
-    ulButton.setAttribute("title", vn.languageSet[noteAttributes.language].ulTooltip);
+    ulButton.setAttribute("title", vn.languageSet[note._attributes.language].ulTooltip);
     ulButton.setAttribute("data-tag-name","UL");
     //ol
     const olButton = createElementButton(
@@ -463,7 +459,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.olButton.className,
         {"isIcon":true, "text":"format_list_numbered"}
     );
-    olButton.setAttribute("title", vn.languageSet[noteAttributes.language].olTooltip);
+    olButton.setAttribute("title", vn.languageSet[note._attributes.language].olTooltip);
     olButton.setAttribute("data-tag-name","OL");
 
     //text-align
@@ -474,7 +470,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.textAlignSelect.className,
         {"isIcon":true, "text":"notes"}
     );
-    textAlignSelect.setAttribute("title", vn.languageSet[noteAttributes.language].textAlignTooltip);
+    textAlignSelect.setAttribute("title", vn.languageSet[note._attributes.language].textAlignTooltip);
     const textAlignSelectBox = createElement(
         "div",
         note,
@@ -518,7 +514,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attLinkButton.className,
         {"isIcon":true, "text":"link"}
     );
-    attLinkButton.setAttribute("title", vn.languageSet[noteAttributes.language].attLinkTooltip);
+    attLinkButton.setAttribute("title", vn.languageSet[note._attributes.language].attLinkTooltip);
     //att file
     const attFileButton = createElementButton(
         "span",
@@ -527,7 +523,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attFileButton.className,
         {"isIcon":true, "text":"attach_file"}
     );
-    attFileButton.setAttribute("title", vn.languageSet[noteAttributes.language].attFileTooltip);
+    attFileButton.setAttribute("title", vn.languageSet[note._attributes.language].attFileTooltip);
     //att image
     const attImageButton = createElementButton(
         "span",
@@ -536,7 +532,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attImageButton.className,
         {"isIcon":true, "text":"image"}
     );
-    attImageButton.setAttribute("title", vn.languageSet[noteAttributes.language].attImageTooltip);
+    attImageButton.setAttribute("title", vn.languageSet[note._attributes.language].attImageTooltip);
     //att video
     const attVideoButton = createElementButton(
         "span",
@@ -545,7 +541,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attVideoButton.className,
         {"isIcon":true, "text":"videocam"}
     );
-    attVideoButton.setAttribute("title", vn.languageSet[noteAttributes.language].attVideoTooltip);
+    attVideoButton.setAttribute("title", vn.languageSet[note._attributes.language].attVideoTooltip);
     
     //font size
     const fontSizeInputBox = createElementButton(
@@ -561,7 +557,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.fontSizeInput.className,
     );
     fontSizeInput.setAttribute("type","number");
-    fontSizeInput.setAttribute("title", vn.languageSet[noteAttributes.language].fontSizeTooltip);
+    fontSizeInput.setAttribute("title", vn.languageSet[note._attributes.language].fontSizeTooltip);
     addClickEvent(
         fontSizeInput,
         vn.consts.CLASS_NAMES.fontSizeInput.id,
@@ -582,7 +578,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.letterSpacingInput.className,
     );
     letterSpacingInput.setAttribute("type","number");
-    letterSpacingInput.setAttribute("title", vn.languageSet[noteAttributes.language].letterSpacingTooltip);
+    letterSpacingInput.setAttribute("title", vn.languageSet[note._attributes.language].letterSpacingTooltip);
     addClickEvent(
         letterSpacingInput,
         vn.consts.CLASS_NAMES.letterSpacingInput.id,
@@ -603,7 +599,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.lineHeightInput.className,
     );
     lineHeightInput.setAttribute("type","number");
-    lineHeightInput.setAttribute("title", vn.languageSet[noteAttributes.language].lineHeightTooltip);
+    lineHeightInput.setAttribute("title", vn.languageSet[note._attributes.language].lineHeightTooltip);
     addClickEvent(
         lineHeightInput,
         vn.consts.CLASS_NAMES.lineHeightInput.id,
@@ -619,12 +615,12 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.fontFamilySelect.className,
         {
             "isIcon" : false,
-            "text" : noteAttributes.defaultTextareaFontFamily.length > 12 
-                    ? noteAttributes.defaultTextareaFontFamily.substr(0,12) + "..." : noteAttributes.defaultTextareaFontFamily
+            "text" : note._attributes.defaultTextareaFontFamily.length > 12 
+                    ? note._attributes.defaultTextareaFontFamily.substr(0,12) + "..." : note._attributes.defaultTextareaFontFamily
         }
     );
-    fontFamilySelect.setAttribute("style","font-family:" + noteAttributes.defaultTextareaFontFamily + ";");
-    fontFamilySelect.setAttribute("title", vn.languageSet[noteAttributes.language].fontFamilyTooltip);
+    fontFamilySelect.setAttribute("style","font-family:" + note._attributes.defaultTextareaFontFamily + ";");
+    fontFamilySelect.setAttribute("title", vn.languageSet[note._attributes.language].fontFamilyTooltip);
     const fontFamilySelectBox = createElement(
         "div",
         note,
@@ -632,16 +628,16 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.fontFamilySelectBox.className,
     );
     fontFamilySelect.appendChild(fontFamilySelectBox);
-    for(var fontIdx = 0; fontIdx < noteAttributes.defaultFontFamilies.length; fontIdx++) {
+    for(var fontIdx = 0; fontIdx < note._attributes.defaultFontFamilies.length; fontIdx++) {
         const tempElement = createElementFontFamiliySelect(
             "div",
             note,
             vn.consts.CLASS_NAMES.fontFamily.id + fontIdx,
             vn.consts.CLASS_NAMES.fontFamily.className,
-            {"isIcon" : false, "text" : noteAttributes.defaultFontFamilies[fontIdx]}
+            {"isIcon" : false, "text" : note._attributes.defaultFontFamilies[fontIdx]}
         );
-        tempElement.setAttribute("data-font-family", noteAttributes.defaultFontFamilies[fontIdx]);
-        tempElement.setAttribute("style", "font-family:" + noteAttributes.defaultFontFamilies[fontIdx] + ";");
+        tempElement.setAttribute("data-font-family", note._attributes.defaultFontFamilies[fontIdx]);
+        tempElement.setAttribute("style", "font-family:" + note._attributes.defaultFontFamilies[fontIdx] + ";");
         fontFamilySelectBox.appendChild(tempElement);
     }
 
@@ -653,7 +649,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.colorTextSelect.className,
         {"isIcon":true, "text":"format_color_text", "iconStyle" : "-webkit-text-stroke: 0.5px black; font-size: 1.1em"}
     );
-    colorTextSelect.setAttribute("title",vn.languageSet[noteAttributes.language].colorTextTooltip);
+    colorTextSelect.setAttribute("title",vn.languageSet[note._attributes.language].colorTextTooltip);
     const colorTextSelectBox = createElement(
         "div",
         note,
@@ -668,7 +664,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.colorTextRExplain.className,
         {"isIcon":false, "text":"R"}
     );
-    colorTextRIcon.style.paddingLeft = (noteAttributes.sizeRate * 8) + "px";
+    colorTextRIcon.style.paddingLeft = (note._attributes.sizeRate * 8) + "px";
     colorTextSelectBox.appendChild(colorTextRIcon);
     const colorTextRInput = createElementInput(
         note,
@@ -762,7 +758,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.colorBackSelect.className,
         {"isIcon":true, "text":"format_color_fill", "iconStyle" : "font-size: 1.1em; -webkit-text-stroke: 0.5px " + note._colors.color1 + ";"}
     );
-    colorBackSelect.setAttribute("title",vn.languageSet[noteAttributes.language].colorBackTooltip);
+    colorBackSelect.setAttribute("title",vn.languageSet[note._attributes.language].colorBackTooltip);
     const colorBackSelectBox = createElement(
         "div",
         note,
@@ -776,7 +772,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.colorBackRExplain.className,
         {"isIcon":false, "text":"R"}
     );
-    colorBackRIcon.style.paddingLeft = (noteAttributes.sizeRate * 8) + "px";
+    colorBackRIcon.style.paddingLeft = (note._attributes.sizeRate * 8) + "px";
     colorBackSelectBox.appendChild(colorBackRIcon);
     const colorBackRInput = createElementInput(
         note,
@@ -863,13 +859,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     colorBackSelectBox.appendChild(colorBack7);
 
     //formatClearButton
-    const formatClearButton = createElementButton("span",
+    const formatClearButton = createElementButton(
+        "span",
         note,
         vn.consts.CLASS_NAMES.formatClearButton.id,
         vn.consts.CLASS_NAMES.formatClearButton.className,
         {"isIcon":true, "text":"format_clear"}
     );
-    formatClearButton.setAttribute("title",vn.languageSet[noteAttributes.language].formatClearButtonTooltip);
+    formatClearButton.setAttribute("title",vn.languageSet[note._attributes.language].formatClearButtonTooltip);
     //undo
     const undoButton = createElementButton(
         "span",
@@ -878,7 +875,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.undoButton.className,
         {"isIcon":true, "text":"undo"}
     );
-    undoButton.setAttribute("title",vn.languageSet[noteAttributes.language].undoTooltip);
+    undoButton.setAttribute("title",vn.languageSet[note._attributes.language].undoTooltip);
     //redo
     const redoButton = createElementButton(
         "span",
@@ -887,7 +884,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.redoButton.className,
         {"isIcon":true, "text":"redo"}
     );
-    redoButton.setAttribute("title",vn.languageSet[noteAttributes.language].redoTooltip);
+    redoButton.setAttribute("title",vn.languageSet[note._attributes.language].redoTooltip);
     //help
     const helpButton = createElementButton(
         "span",
@@ -896,7 +893,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.helpButton.className,
         {"isIcon":true, "text":"help"}
     );
-    helpButton.setAttribute("title",vn.languageSet[noteAttributes.language].helpTooltip);
+    helpButton.setAttribute("title",vn.languageSet[note._attributes.language].helpTooltip);
 
     //modal
     const modalBack = createElementBasic(
@@ -918,7 +915,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attLinkHeader.id,
         vn.consts.CLASS_NAMES.attLinkHeader.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attLinkModalTitle}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attLinkModalTitle}
     );
     attLinkModal.appendChild(attLinkModalTitle);
     const attLinkInTextExplain = createElement(
@@ -926,7 +923,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attLinkExplain1.id,
         vn.consts.CLASS_NAMES.attLinkExplain1.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attLinkInTextExplain}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attLinkInTextExplain}
     );
     attLinkModal.appendChild(attLinkInTextExplain);
     const attLinkText = createElementInput(
@@ -934,14 +931,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attLinkText.id,
         vn.consts.CLASS_NAMES.attLinkText.className
     );
-    attLinkText.setAttribute("title",vn.languageSet[noteAttributes.language].attLinkInTextTooltip);
+    attLinkText.setAttribute("title",vn.languageSet[note._attributes.language].attLinkInTextTooltip);
     attLinkModal.appendChild(attLinkText);
     const attLinkInLinkExplain = createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attLinkExplain2.id,
         vn.consts.CLASS_NAMES.attLinkExplain2.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attLinkInLinkExplain}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attLinkInLinkExplain}
     );
     attLinkModal.appendChild(attLinkInLinkExplain);
     const attLinkHref = createElementInput(
@@ -949,20 +946,20 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attLinkHref.id,
         vn.consts.CLASS_NAMES.attLinkHref.className
     );
-    attLinkHref.setAttribute("title",vn.languageSet[noteAttributes.language].attLinkInLinkTooltip);
+    attLinkHref.setAttribute("title",vn.languageSet[note._attributes.language].attLinkInLinkTooltip);
     attLinkModal.appendChild(attLinkHref);
     const attLinkIsBlankCheckbox = createElementInputCheckbox(
         note,
         vn.consts.CLASS_NAMES.attLinkIsBlankCheckbox.id,
         vn.consts.CLASS_NAMES.attLinkIsBlankCheckbox.className
     );
-    attLinkIsBlankCheckbox.setAttribute("title",vn.languageSet[noteAttributes.language].attLinkIsOpenTooltip);
+    attLinkIsBlankCheckbox.setAttribute("title",vn.languageSet[note._attributes.language].attLinkIsOpenTooltip);
     const attLinkIsOpenExplain = createElement(
         "label",
         note,
         vn.consts.CLASS_NAMES.attLinkIsBlankLabel.id,
         vn.consts.CLASS_NAMES.attLinkIsBlankLabel.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attLinkIsOpenExplain}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attLinkIsOpenExplain}
     );
     attLinkIsOpenExplain.insertBefore(attLinkIsBlankCheckbox, attLinkIsOpenExplain.firstChild);
     attLinkModal.appendChild(attLinkIsOpenExplain);
@@ -1008,7 +1005,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attFileHeader.id,
         vn.consts.CLASS_NAMES.attFileHeader.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attFileModalTitle}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attFileModalTitle}
     );
     attFileModal.appendChild(attFileModalTitle);
     //layout : upload file
@@ -1023,7 +1020,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attFileExplain1.id,
         vn.consts.CLASS_NAMES.attFileExplain1.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attFileExplain1}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attFileExplain1}
     );
     attFilelayout.appendChild(attFileExplain1);
     tempElement = document.createElement("br");
@@ -1035,17 +1032,17 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attFileUploadDiv.id,
         vn.consts.CLASS_NAMES.attFileUploadDiv.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attFileUploadDiv}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attFileUploadDiv}
     );
     attFileUploadDiv.addEventListener("dragover", function(event: any) {
         if(!note._elementEvents.attFileUploadDiv_onBeforeDragover(event)) return;
-        elementsEvent["attFileUploadDiv_onDragover"](event);
+        (vn.events.elementEvents as any)["attFileUploadDiv_onDragover"](event);
         note._elementEvents.attFileUploadDiv_onAfterDragover(event);
         event.stopImmediatePropagation();
     });
     attFileUploadDiv.addEventListener("drop", function(event: any) {
         if(!note._elementEvents.attFileUploadDiv_onBeforeDrop(event)) return;
-        elementsEvent["attFileUploadDiv_onDrop"](event);
+        (vn.events.elementEvents as any)["attFileUploadDiv_onDrop"](event);
         note._elementEvents.attFileUploadDiv_onAfterDrop(event);
         event.stopImmediatePropagation();
     });
@@ -1058,7 +1055,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attFileUploadButton.id,
         vn.consts.CLASS_NAMES.attFileUploadButton.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attFileUploadButton}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attFileUploadButton}
     );
     attFileUploadButtonBox.appendChild(attFileUploadButton);
     attFilelayout.appendChild(attFileUploadButtonBox);
@@ -1100,7 +1097,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attImageHeader.id,
         vn.consts.CLASS_NAMES.attImageHeader.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attImageModalTitle}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attImageModalTitle}
     );
     attImageModal.appendChild(attImageModalTitle);
     const attImageExplain1 = createElement(
@@ -1108,7 +1105,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attImageExplain1.id,
         vn.consts.CLASS_NAMES.attImageExplain1.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attImageExplain1}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attImageExplain1}
     );
     attImageModal.appendChild(attImageExplain1);
     tempElement = document.createElement("br");
@@ -1129,17 +1126,17 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attImageUploadButtonAndView.id,
         vn.consts.CLASS_NAMES.attImageUploadButtonAndView.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attImageUploadButtonAndView}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attImageUploadButtonAndView}
     );
     attImageUploadButtonAndView.addEventListener("dragover", function(event: any) {
         if(!note._elementEvents.attImageUploadButtonAndView_onBeforeDragover(event)) return;
-        elementsEvent["attImageUploadButtonAndView_onDragover"](event);
+        (vn.events.elementEvents as any)["attImageUploadButtonAndView_onDragover"](event);
         note._elementEvents.attImageUploadButtonAndView_onAfterDragover(event);
         event.stopImmediatePropagation();
     });
     attImageUploadButtonAndView.addEventListener("drop", function(event: any) {
         if(!note._elementEvents.attImageUploadButtonAndView_onBeforeDrop(event)) return;
-        elementsEvent["attImageUploadButtonAndView_onDrop"](event);
+        (vn.events.elementEvents as any)["attImageUploadButtonAndView_onDrop"](event);
         note._elementEvents.attImageUploadButtonAndView_onAfterDrop(event);
         event.stopImmediatePropagation();
     });
@@ -1161,7 +1158,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     attImageUpload.setAttribute("type","file");
     attImageUpload.setAttribute("multiple","");
-    const attImageAcceptTypes = getCommaStrFromArr(noteAttributes.attImageAcceptTypes)
+    const attImageAcceptTypes = getCommaStrFromArr(note._attributes.attImageAcceptTypes)
     attImageUpload.setAttribute("accept", attImageAcceptTypes);	    
     attImageModal.appendChild(attImageUpload);
     const attImageExplain2 = createElement(
@@ -1169,7 +1166,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attImageExplain2.id,
         vn.consts.CLASS_NAMES.attImageExplain2.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attImageExplain2}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attImageExplain2}
     );
     attImageModal.appendChild(attImageExplain2);
     tempElement = document.createElement("br");
@@ -1179,7 +1176,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attImageURL.id,
         vn.consts.CLASS_NAMES.attImageURL.className
     );
-    attImageURL.setAttribute("title",vn.languageSet[noteAttributes.language].attImageURLTooltip);
+    attImageURL.setAttribute("title",vn.languageSet[note._attributes.language].attImageURLTooltip);
     attImageModal.appendChild(attImageURL);
     const attImageInsertButtonBox = createElement(
         "div",
@@ -1209,7 +1206,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attVideoHeader.id,
         vn.consts.CLASS_NAMES.attVideoHeader.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attVideoModalTitle}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attVideoModalTitle}
     );
     attVideoModal.appendChild(attVideoModalTitle);
     const attVideoExplain1 = createElement(
@@ -1217,7 +1214,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.attVideoExplain1.id,
         vn.consts.CLASS_NAMES.attVideoExplain1.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attVideoExplain1}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attVideoExplain1}
     );
     attVideoModal.appendChild(attVideoExplain1);
     const attVideoEmbedId = createElementInput(
@@ -1225,14 +1222,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attVideoEmbedId.id,
         vn.consts.CLASS_NAMES.attVideoEmbedId.className
     );
-    attVideoEmbedId.setAttribute("title",vn.languageSet[noteAttributes.language].attVideoEmbedIdTooltip);
+    attVideoEmbedId.setAttribute("title",vn.languageSet[note._attributes.language].attVideoEmbedIdTooltip);
     attVideoModal.appendChild(attVideoEmbedId);
     const attVideoExplain2 = createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attVideoExplain2.id,
         vn.consts.CLASS_NAMES.attVideoExplain2.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].attVideoExplain2}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].attVideoExplain2}
     );
     attVideoModal.appendChild(attVideoExplain2);
     const attVideoWidthTextBox = document.createElement("div");
@@ -1250,7 +1247,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attVideoWidth.id,
         vn.consts.CLASS_NAMES.attVideoWidth.className
     );
-    attVideoWidth.setAttribute("title",vn.languageSet[noteAttributes.language].attVideoWidthTooltip);
+    attVideoWidth.setAttribute("title",vn.languageSet[note._attributes.language].attVideoWidthTooltip);
     attVideoWidth.setAttribute("type", "number");
     attVideoWidth.setAttribute("style","text-align:right;");
     attVideoWidthTextBox.appendChild(attVideoWidth);
@@ -1279,7 +1276,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attVideoHeight.id,
         vn.consts.CLASS_NAMES.attVideoHeight.className
     );
-    attVideoHeight.setAttribute("title",vn.languageSet[noteAttributes.language].attVideoHeightTooltip);
+    attVideoHeight.setAttribute("title",vn.languageSet[note._attributes.language].attVideoHeightTooltip);
     attVideoHeight.setAttribute("type", "number");
     attVideoHeight.setAttribute("style","text-align:right;");
     attVideoHeightTextBox.appendChild(attVideoHeight);
@@ -1366,7 +1363,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     const attImageAndVideoTooltipWidthText = document.createElement("span");
     attImageAndVideoTooltipWidthText.setAttribute("class",getClassName(note._noteName, note.id, "small_text_box"));
     attImageAndVideoTooltipWidthText.setAttribute("style","padding: 0 0 0 10px;");
-    attImageAndVideoTooltipWidthText.textContent = vn.languageSet[noteAttributes.language].attImageAndVideoTooltipWidthInput;
+    attImageAndVideoTooltipWidthText.textContent = vn.languageSet[note._attributes.language].attImageAndVideoTooltipWidthInput;
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipWidthText);
     const attImageAndVideoTooltipWidthInput = createElementInput(
         note,
@@ -1375,7 +1372,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     attImageAndVideoTooltipWidthInput.addEventListener("keyup", function(event: any) {
         if(!note._elementEvents.attImageAndVideoTooltipWidthInput_onBeforeKeyup(event)) return;
-        elementsEvent["attImageAndVideoTooltipWidthInput_onKeyup"](event);
+        (vn.events.elementEvents as any)["attImageAndVideoTooltipWidthInput_onKeyup"](event);
         note._elementEvents.attImageAndVideoTooltipWidthInput_onAfterKeyup(event);
         event.stopImmediatePropagation();
     });
@@ -1388,7 +1385,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipWidthUnit);
     const attImageAndVideoTooltipFloatRadioBox = document.createElement("span");
     attImageAndVideoTooltipFloatRadioBox.setAttribute("class",getClassName(note._noteName, note.id, "small_text_box"));
-    attImageAndVideoTooltipFloatRadioBox.textContent = vn.languageSet[noteAttributes.language].attImageAndVideoTooltipFloatRadio;
+    attImageAndVideoTooltipFloatRadioBox.textContent = vn.languageSet[note._attributes.language].attImageAndVideoTooltipFloatRadio;
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioBox);
     const attImageAndVideoTooltipFloatRadioNone = createElementInputRadio(
         note,
@@ -1433,7 +1430,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     const attImageAndVideoTooltipShapeBox = document.createElement("div");
     const attImageAndVideoTooltipShapeRadioBox = document.createElement("span");
     attImageAndVideoTooltipShapeRadioBox.setAttribute("class",getClassName(note._noteName, note.id, "small_text_box"));
-    attImageAndVideoTooltipShapeRadioBox.textContent = vn.languageSet[noteAttributes.language].attImageAndVideoTooltipShapeRadio;
+    attImageAndVideoTooltipShapeRadioBox.textContent = vn.languageSet[note._attributes.language].attImageAndVideoTooltipShapeRadio;
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioBox);
     const attImageAndVideoTooltipShapeRadioSquare = createElementInputRadio(
         note,
@@ -1488,7 +1485,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         note,
         vn.consts.CLASS_NAMES.helpHeader.id,
         vn.consts.CLASS_NAMES.helpHeader.className,
-        {"isIcon":false, "text":vn.languageSet[noteAttributes.language].helpModalTitle}
+        {"isIcon":false, "text":vn.languageSet[note._attributes.language].helpModalTitle}
     );
     helpModal.appendChild(helpHeader);
     const helpMain = createElement(
@@ -1498,7 +1495,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.helpMain.className
     );
     const helpMainTable = document.createElement("table");
-    vn.languageSet[noteAttributes.language].helpContent.forEach((h) => {
+    vn.languageSet[note._attributes.language].helpContent.forEach((h) => {
         const tr = document.createElement("tr");
         Object.keys(h).forEach((k) => {
             const td1 = document.createElement("td");
@@ -1530,14 +1527,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.placeholder.id,
         vn.consts.CLASS_NAMES.placeholder.className
     );
-    if(noteAttributes.placeholderTitle) {
+    if(note._attributes.placeholderTitle) {
         const placeholderTitle = document.createElement("h5");
-        placeholderTitle.innerText = noteAttributes.placeholderTitle;
+        placeholderTitle.innerText = note._attributes.placeholderTitle;
         placeholder.appendChild(placeholderTitle);
     }
-    if(noteAttributes.placeholderTextContent) {
+    if(note._attributes.placeholderTextContent) {
         const placeholderTextContent = document.createElement("p");
-        placeholderTextContent.innerText = noteAttributes.placeholderTextContent;
+        placeholderTextContent.innerText = note._attributes.placeholderTextContent;
         placeholder.appendChild(placeholderTextContent);
     }
 
@@ -1549,7 +1546,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     modalBack.appendChild(helpModal);
     template.appendChild(modalBack);
     template.appendChild(placeholder);
-    if(noteAttributes.toolToggleUsing) {
+    if(note._attributes.toolToggleUsing) {
         tool.appendChild(toolToggleButton);
     }
     tool.appendChild(paragraphStyleSelect);
@@ -1573,7 +1570,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     tool.appendChild(undoButton);
     tool.appendChild(redoButton);
     tool.appendChild(helpButton);
-    if(noteAttributes.toolPosition === ToolPosition.bottom) {
+    if(note._attributes.toolPosition === ToolPosition.bottom) {
         template.appendChild(textarea);
         template.appendChild(attLinkTooltip);
         template.appendChild(attImageAndVideoTooltip);
@@ -1588,19 +1585,19 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     note.appendChild(template);
 
     //set value
-    fontSizeInput.value = note._noteStatus.fontSize;
-    letterSpacingInput.value = note._noteStatus.letterSpacing;
-    lineHeightInput.value = note._noteStatus.lineHeight;
+    fontSizeInput.value = note._status.fontSize;
+    letterSpacingInput.value = note._status.letterSpacing;
+    lineHeightInput.value = note._status.lineHeight;
 
-    colorTextRInput.value = note._noteStatus.colorTextR;
-    colorTextGInput.value = note._noteStatus.colorTextG;
-    colorTextBInput.value = note._noteStatus.colorTextB;
-    colorTextOpacityInput.value = note._noteStatus.colorTextO;
+    colorTextRInput.value = note._status.colorTextR;
+    colorTextGInput.value = note._status.colorTextG;
+    colorTextBInput.value = note._status.colorTextB;
+    colorTextOpacityInput.value = note._status.colorTextO;
 
-    colorBackRInput.value = note._noteStatus.colorBackR;
-    colorBackGInput.value = note._noteStatus.colorBackG;
-    colorBackBInput.value = note._noteStatus.colorBackB;
-    colorBackOpacityInput.value = note._noteStatus.colorBackO;
+    colorBackRInput.value = note._status.colorBackR;
+    colorBackGInput.value = note._status.colorBackG;
+    colorBackBInput.value = note._status.colorBackB;
+    colorBackOpacityInput.value = note._status.colorBackO;
 
     //버튼 숨김 처리
     if(!noteAttributes.usingParagraphStyle) paragraphStyleSelect.style.display = "none";
@@ -1634,6 +1631,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         paragraphStyleSelect : paragraphStyleSelect,
         paragraphStyleSelectBox : paragraphStyleSelectBox,
         paragraphStyleNormalButton : paragraphStyleNormalButton,
+        paragraphStyleHeader1Button : paragraphStyleHeader1Button,
         paragraphStyleHeader2Button : paragraphStyleHeader2Button,
         paragraphStyleHeader3Button : paragraphStyleHeader3Button,
         paragraphStyleHeader4Button : paragraphStyleHeader4Button,
@@ -1802,8 +1800,8 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
     let toolToggleUsing = note.getAttribute("tool-toggle") ? note.getAttribute("tool-toggle")!.toUpperCase() === "true" : (isNoteByMobile ? true : false);
 
     //text area size
-    let textareaOriginWidths = note.getAttribute("textarea-width") ? note.getAttribute("textarea-width")! : vn.attributes.textareaOriginWidths;
-    let textareaOriginHeights = note.getAttribute("textarea-height") ? note.getAttribute("textarea-height")! : vn.attributes.textareaOriginHeights;
+    let textareaOriginWidth = note.getAttribute("textarea-width") ? note.getAttribute("textarea-width")! : vn.attributes.textareaOriginWidth;
+    let textareaOriginHeight = note.getAttribute("textarea-height") ? note.getAttribute("textarea-height")! : vn.attributes.textareaOriginHeight;
     let textareaMaxWidth = note.getAttribute("textarea-max-width") ? note.getAttribute("textarea-max-width")! : vn.attributes.textareaMaxWidth;
     let textareaMaxHeight = note.getAttribute("textarea-max-height") ? note.getAttribute("textarea-max-height")! : vn.attributes.textareaMaxHeight;
     let textareaHeightIsModify =note.getAttribute("textarea-height-isModify") ? note.getAttribute("textarea-height-isModify")!.toUpperCase() === "true" : vn.attributes.textareaHeightIsModify;
@@ -1944,8 +1942,8 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
         sizeRate : sizeRate,
 
         noteModeByDevice : noteModeByDevice,
-        textareaOriginWidths : textareaOriginWidths,
-        textareaOriginHeights : textareaOriginHeights,
+        textareaOriginWidth : textareaOriginWidth,
+        textareaOriginHeight : textareaOriginHeight,
         textareaMaxWidth : textareaMaxWidth,
         textareaMaxHeight : textareaMaxHeight,
         textareaHeightIsModify : textareaHeightIsModify,
@@ -2182,8 +2180,8 @@ const getCsses =(noteName: string, noteAttributes: NoteAttributes, noteColors: C
             "position" : "relative",
         },
         "textarea" : {
-            "width" : noteAttributes.textareaOriginWidths,
-            "height" : noteAttributes.textareaOriginHeights,
+            "width" : noteAttributes.textareaOriginWidth,
+            "height" : noteAttributes.textareaOriginHeight,
             "display" : "block",
             "margin" : "0 auto",
             "outline" : "none",
@@ -2203,7 +2201,7 @@ const getCsses =(noteName: string, noteAttributes: NoteAttributes, noteColors: C
             "transition": "height 0.5s",
         },
         "tool" : {
-            "width" : noteAttributes.textareaOriginWidths,
+            "width" : noteAttributes.textareaOriginWidth,
             "height" : (noteAttributes.toolDefaultLine * (noteAttributes.sizeRate * 50)) + "px",
             "padding" : "2px 0",
             "max-width" : noteAttributes.textareaMaxWidth,
@@ -2633,7 +2631,7 @@ const getCsses =(noteName: string, noteAttributes: NoteAttributes, noteColors: C
             "font-size" : "0.7em",
         },
         "tooltip" : {
-            "width" : noteAttributes.textareaOriginWidths,
+            "width" : noteAttributes.textareaOriginWidth,
             "max-width" : noteAttributes.textareaMaxWidth,
             "margin" : "0 auto",
             "padding" : "2px 0",
@@ -2674,12 +2672,12 @@ const getCsses =(noteName: string, noteAttributes: NoteAttributes, noteColors: C
             "line-height" : (noteAttributes.sizeRate * 45) * 0.8 + "px",
         },
         "help_main" : {
-            "max-height" : noteAttributes.textareaOriginHeights,
+            "max-height" : noteAttributes.textareaOriginHeight,
             "color" : noteColors.color10,
             "overflow-y" : "auto",
         },
         "placeholder" : {
-            "width" : noteAttributes.textareaOriginWidths,
+            "width" : noteAttributes.textareaOriginWidth,
             "padding" : "10px",
             "background-color" : getRGBAFromHex(noteColors.color3, 0.8),
             "color" : noteColors.color1,
