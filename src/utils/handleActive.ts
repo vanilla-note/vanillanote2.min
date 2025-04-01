@@ -1,5 +1,7 @@
+import { Consts } from "../types/consts";
 import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
-import { checkNumber, checkRealNumber, getHexColorFromColorName, getRGBAFromHex, setAttributesObjectToElement } from "./util";
+import { button_onToggle } from "./handleElement";
+import { checkNumber, checkRealNumber, getCssTextFromObject, getHexColorFromColorName, getRGBAFromHex, setAttributesObjectToElement } from "./util";
 import { compareObject, getObjectFromCssText } from "./utils";
 
 /**
@@ -165,11 +167,11 @@ export const getAttributesObjectFromElement = (element: any) => {
     return attriesObject;
 };
 
-export const getSpecialTag = (el: any) => {
+export const getSpecialTag = (el: any, note: VanillanoteElement) => {
     var element = el;
     var tagName = element.tagName;
-    while(element && vn.consts.UNIT_TAG.indexOf(tagName) < 0) {
-        if(vn.consts.SPECIAL_TAG.indexOf(tagName) >= 0) return tagName;
+    while(element && note._vn.consts.UNIT_TAG.indexOf(tagName) < 0) {
+        if(note._vn.consts.SPECIAL_TAG.indexOf(tagName) >= 0) return tagName;
         element = element.parentNode;
         if(!element) break;
         tagName = element.tagName;
@@ -275,21 +277,15 @@ export const getObjectEditElementCss = (el: any, note: VanillanoteElement) => {
     return cssObject;
 };
 
-/**
-* getEditElementTag
-* @description Retrieves the tag name of the editing unit element.
-* @param {Number} noteIndex - The index of the note.
-* @returns {String} rtnTagName - The tag name of the editing unit element. If there are multiple different tag names, an empty string is returned.
-*/
-var getEditElementTag = function(noteIndex: number) {
-    var rtnTagName = "";
-    var tempTagName = "";
-    for(var i = 0; i < vn.variables.editDragUnitElements[noteIndex].length; i++) {
-        if((vn.variables.editDragUnitElements as any)[noteIndex][i].tagName === "LI") {
-            tempTagName = (vn.variables.editDragUnitElements as any)[noteIndex][i].parentNode.tagName;
+export const getEditElementTag = function(note: VanillanoteElement) {
+    let rtnTagName = "";
+    let tempTagName = "";
+    for(let i = 0; i < note._selection.editDragUnitElement.length; i++) {
+        if((note._selection.editDragUnitElement as any)[i].tagName === "LI") {
+            tempTagName = (note._selection.editDragUnitElement as any)[i].parentNode.tagName;
         }
         else {
-            tempTagName = (vn.variables.editDragUnitElements as any)[noteIndex][i].tagName;
+            tempTagName = (note._selection.editDragUnitElement as any)[i].tagName;
         }
         
         if(rtnTagName && rtnTagName !== tempTagName) {
@@ -300,32 +296,7 @@ var getEditElementTag = function(noteIndex: number) {
     return rtnTagName;
 };
 
-/**
-* getSpecialTag
-* @description Checks if there are any parent elements of the editing element (up to the unit element) that contain a special tag (e.g., <a>, <img>, etc.).
-* @param {Element} el - The element whose parent elements will be checked.
-* @returns {String} tagName - The tag name of the first encountered special tag, or "SPAN" if none is found.
-*/
-var getSpecialTag = function(el: any) {
-    var element = el;
-    var tagName = element.tagName;
-    while(element && vn.consts.UNIT_TAG.indexOf(tagName) < 0) {
-        if(vn.consts.SPECIAL_TAG.indexOf(tagName) >= 0) return tagName;
-        element = element.parentNode;
-        if(!element) break;
-        tagName = element.tagName;
-    }
-    return "SPAN";
-};
-
-/**
-* getPreviousElementsUntilNotTag
-* @description Retrieves the elements preceding the start element until an element with a different tag and attributes is encountered.
-* @param {Element} startEl - The element from which to start retrieving the previous elements.
-* @param {String} tag - The tag name to compare against while retrieving the previous elements.
-* @returns {Array} previouses - An array containing the elements preceding the start element until a different tag and attributes are encountered.
-*/
-var getPreviousElementsUntilNotTag = function(startEl: any, tag: string) {
+export const getPreviousElementsUntilNotTag = (startEl: any, tag: string, consts: Consts) => {
     var previouses = [];
     var previous = startEl;
     var attributes = getAttributesObjectFromElement(startEl);
@@ -334,18 +305,18 @@ var getPreviousElementsUntilNotTag = function(startEl: any, tag: string) {
     while (previous) {
         while (previous.previousSibling) {
             previous = previous.previousSibling;
-            if (previous.tagName && vn.consts.DOUBLE_TAG.indexOf(previous.tagName) > 0) {
+            if (previous.tagName && consts.DOUBLE_TAG.indexOf(previous.tagName) > 0) {
                 while(previous.lastChild) {
                     previous = previous.lastChild
                 }
             }
-            else if (previous.tagName && vn.consts.UNIT_TAG.indexOf(previous.tagName) > 0) {
+            else if (previous.tagName && consts.UNIT_TAG.indexOf(previous.tagName) > 0) {
                 while(previous.lastChild) {
                     previous = previous.lastChild
                 }
             }
             if(previous.nodeType === 3) previous = previous.parentNode;
-            if (vn.consts.UNIT_TAG.indexOf(previous.tagName) > 0
+            if (consts.UNIT_TAG.indexOf(previous.tagName) > 0
                 || !previous.tagName || previous.tagName !== tag.toUpperCase()
                 || !compareObject(attributes, getAttributesObjectFromElement(previous))) {
                 return previouses;
@@ -357,14 +328,7 @@ var getPreviousElementsUntilNotTag = function(startEl: any, tag: string) {
     return previouses;
 };
 
-/**
-* getNextElementsUntilNotTag
-* @description Retrieves the elements following the start element until an element with a different tag and attributes is encountered.
-* @param {Element} startEl - The element from which to start retrieving the following elements.
-* @param {String} tag - The tag name to compare against while retrieving the following elements.
-* @returns {Array} nexts - An array containing the elements following the start element until a different tag and attributes are encountered.
-*/
-var getNextElementsUntilNotTag = function(startEl: any, tag: string) {
+export const getNextElementsUntilNotTag = (startEl: any, tag: string, consts: Consts) => {
     var nexts = [];
     var next = startEl;
     var attributes = getAttributesObjectFromElement(startEl);
@@ -373,18 +337,18 @@ var getNextElementsUntilNotTag = function(startEl: any, tag: string) {
     while (next) {
         while (next.nextSibling) {
             next = next.nextSibling;
-            if (next.tagName && vn.consts.DOUBLE_TAG.indexOf(next.tagName) > 0) {
+            if (next.tagName && consts.DOUBLE_TAG.indexOf(next.tagName) > 0) {
                 while(next.firstChild) {
                     next = next.firstChild
                 }
             }
-            else if (next.tagName && vn.consts.UNIT_TAG.indexOf(next.tagName) > 0) {
+            else if (next.tagName && consts.UNIT_TAG.indexOf(next.tagName) > 0) {
                 while(next.firstChild) {
                     next = next.firstChild
                 }
             }
             if(next.nodeType === 3) next = next.parentNode;
-            if (vn.consts.UNIT_TAG.indexOf(next.tagName) > 0
+            if (consts.UNIT_TAG.indexOf(next.tagName) > 0
                 || !next.tagName || next.tagName !== tag.toUpperCase()
                 || !compareObject(attributes, getAttributesObjectFromElement(next))) {
                 return nexts;
@@ -396,57 +360,34 @@ var getNextElementsUntilNotTag = function(startEl: any, tag: string) {
     return nexts;
 };
 
-/**
-* setTagToggle
-* @description Changes the note's tag variables based on the provided tag.
-* @param {Number} noteIndex - The index of the note.
-* @param {String} tag - The tag to set for the note.
-*/
-var setTagToggle = function(noteIndex: number, tag: string) {
+export const setTagToggle = (note: VanillanoteElement, tag: string) => {
     if(tag === "UL") {
-        vn.variables.ulToggles[noteIndex] = true;
+        note._status.ulToggle = true;
     }
     else {
-        vn.variables.ulToggles[noteIndex] = false;
+        note._status.ulToggle = false;
     }
     
     if(tag === "OL") {
-        vn.variables.olToggles[noteIndex] = true;
+        note._status.olToggle = true;
     }
     else {
-        vn.variables.olToggles[noteIndex] = false;
+        note._status.olToggle = false;
     }
 };
 
-/**
-* initToggleButtonVariables
-* @description Initializes the toggle button variables (Bold, Underline, Italic, Unordered List, Ordered List) for the note editor to false. Then, triggers the `button_onToggle` function for each of them to update their state.
-* @param {number} noteIndex - The index of the note editor where the toggle buttons will be initialized.
-*/
-var initToggleButtonVariables = function(noteIndex: number) {
-    vn.variables.boldToggles[noteIndex] = false;
-    vn.variables.underlineToggles[noteIndex] = false;
-    vn.variables.italicToggles[noteIndex] = false;
-    vn.variables.ulToggles[noteIndex] = false;
-    vn.variables.olToggles[noteIndex] = false;
+export const initToggleButtonVariables = (note: VanillanoteElement) => {
+    note._status.boldToggle = false;
+    note._status.underlineToggle = false;
+    note._status.italicToggle = false;
+    note._status.ulToggle = false;
+    note._status.olToggle = false;
     //format
-    button_onToggle(vn.elements.boldButtons[noteIndex], vn.variables.boldToggles[noteIndex]);
-    button_onToggle(vn.elements.underlineButtons[noteIndex], vn.variables.underlineToggles[noteIndex]);
-    button_onToggle(vn.elements.italicButtons[noteIndex], vn.variables.italicToggles[noteIndex]);
-    button_onToggle(vn.elements.ulButtons[noteIndex], vn.variables.ulToggles[noteIndex]);
-    button_onToggle(vn.elements.olButtons[noteIndex], vn.variables.olToggles[noteIndex]);
-    /*Do not toggle color, font family and font size, etc.
-    //color
-    vn.elements.colorTextSelects[noteIndex].querySelector("."+getEventChildrenClassName()).style.color = vn.colors.color12[noteIndex];
-    vn.elements.colorBackSelects[noteIndex].querySelector("."+getEventChildrenClassName()).style.color = vn.colors.color13[noteIndex];
-    //font family
-    vn.elements.fontFamilySelects[noteIndex].firstChild.textContent = vn.variables.defaultStyles[noteIndex]["font-family"].length > 12 ? vn.variables.defaultStyles[noteIndex]["font-family"].substr(0,12) + "..." : vn.variables.defaultStyles[noteIndex]["font-family"];
-    vn.elements.fontFamilySelects[noteIndex].style.fontFamily = vn.variables.defaultStyles[noteIndex]["font-family"];
-    //size
-    vn.elements.fontSizeInputs[noteIndex].value = vn.variables.defaultStyles[noteIndex]["font-size"];
-    vn.elements.letterSpacingInputs[noteIndex].value = vn.variables.defaultStyles[noteIndex]["letter-spacing"];
-    vn.elements.lineHeightInputs[noteIndex].value = vn.variables.defaultStyles[noteIndex]["line-height"];
-    */
+    button_onToggle(note._elements.boldButton, note._status.boldToggle);
+    button_onToggle(note._elements.underlineButton, note._status.underlineToggle);
+    button_onToggle(note._elements.italicButton, note._status.italicToggle);
+    button_onToggle(note._elements.ulButton, note._status.ulToggle);
+    button_onToggle(note._elements.olButton, note._status.olToggle);
 };
 
 /**
@@ -463,39 +404,7 @@ var isInNote = function(el: any) {
     return false;
 };
 
-/**
-* isInTextarea
-* @description Checks if the current selection is within the textarea of the note.
-* @returns {boolean} Returns true if the selection is within the textarea of the note, otherwise false.
-*/
-var isInTextarea = function() {
-    var selection = window.getSelection();
-    if (!selection || selection.rangeCount < 1) return false;
-    
-    var range = selection.getRangeAt(0);
-    var textarea: any = range.startContainer.parentNode;
-    var isTextarea = false;
-    
-    while(textarea) {
-        if(textarea.tagName === (vn.variables.noteName+"-textarea").toUpperCase()) {
-            isTextarea = true;
-            break;
-        }
-        else {
-            textarea = textarea.parentNode;
-        }
-    }
-    return isTextarea;
-};
-
-/**
-* getElementReplaceTag
-* @description Replaces the tag of the given element and returns the new element.
-* @param {Element} element - The element whose tag needs to be replaced.
-* @param {string} tag - The new tag to be assigned to the element.
-* @returns {Element} Returns the new element with the replaced tag.
-*/
-var getElementReplaceTag = function(element: any, tag: string) {
+export const getElementReplaceTag = (element: any, tag: string) => {
     var tempEl = document.createElement(tag);
     var childNodes = element.childNodes;
     var csses: any;
@@ -520,22 +429,16 @@ var getElementReplaceTag = function(element: any, tag: string) {
     return tempEl;
 };
 
-/**
-* removeDoubleTag
-* @description Removes the <ul> or <ol> tag and replaces it with <p> tags for each list item.
-* @param {number} noteIndex - The index of the note.
-* @param {Element} element - The element containing the <ul> or <ol> tag.
-*/
-var removeDoubleTag = function(noteIndex: number, element: any) {
-    if(vn.consts.DOUBLE_TAG.indexOf(element.tagName) < 0) return;
+export const removeDoubleTag = (note: VanillanoteElement, element: any) => {
+    if(note._vn.consts.DOUBLE_TAG.indexOf(element.tagName) < 0) return;
     var tempEl;
     var childNodes = element.childNodes;
     for(var i = 0; i < childNodes.length; i++) {
         tempEl = getElementReplaceTag(childNodes[i], "P");
         element.insertAdjacentElement("beforebegin", tempEl);
-        for(var j = 0; j < vn.variables.editDragUnitElements[noteIndex].length; j++) {
-            if(vn.variables.editDragUnitElements[noteIndex][j] === childNodes[i]) {
-                vn.variables.editDragUnitElements[noteIndex][j] = tempEl;
+        for(var j = 0; j < note._selection.editDragUnitElement.length; j++) {
+            if(note._selection.editDragUnitElement[j] === childNodes[i]) {
+                note._selection.editDragUnitElement[j] = tempEl;
                 break;
             }
         }
@@ -560,38 +463,30 @@ export const getElement = (text: string, tagName: string, cssText: string, attri
     return tempEl;
 };
 
-/**
-* setEditNodeAndElement
-* @description Prevents empty edit unit tags (p, h1, h2, li, etc.) from being replaced by the edit node when setElement is one of them. Compares setElement with the current edit elements saved in the noteIndex to update them if necessary.
-* @param {number} noteIndex - The index of the note to be updated.
-* @param {Element} setElement - The element to be set.
-* @param {Element} compareElement - The element to compare with the current edit elements.
-* @returns {boolean} - Returns true if at least one of the edit elements has changed; otherwise, returns false.
-*/
-var setEditNodeAndElement = function(noteIndex: number, setElement: any, compareElement: any) {
+export const setEditNodeAndElement = (note: VanillanoteElement, setElement: any, compareElement: any) => {
     var isChange = false;
-    if(vn.variables.editStartNodes[noteIndex] === compareElement) {
-        vn.variables.editStartNodes[noteIndex] = setElement;
+    if(note._selection.editStartNode === compareElement) {
+        note._selection.editStartNode = setElement;
         isChange = true;
     }
-    if(vn.variables.editEndNodes[noteIndex] === compareElement) {
-        vn.variables.editEndNodes[noteIndex] = setElement;
+    if(note._selection.editEndNode === compareElement) {
+        note._selection.editEndNode = setElement;
         isChange = true;
     }
-    if(vn.variables.editStartElements[noteIndex] === compareElement) {
-        vn.variables.editStartElements[noteIndex] = setElement;
+    if(note._selection.editStartElement === compareElement) {
+        note._selection.editStartElement = setElement;
         isChange = true;
     }
-    if(vn.variables.editEndElements[noteIndex] === compareElement) {
-        vn.variables.editEndElements[noteIndex] = setElement;
+    if(note._selection.editEndElement === compareElement) {
+        note._selection.editEndElement = setElement;
         isChange = true;
     }
-    if(vn.variables.editStartUnitElements[noteIndex] === compareElement) {
-        vn.variables.editStartUnitElements[noteIndex] = setElement;
+    if(note._selection.editStartUnitElement === compareElement) {
+        note._selection.editStartUnitElement = setElement;
         isChange = true;
     }
-    if(vn.variables.editEndUnitElements[noteIndex] === compareElement) {
-        vn.variables.editEndUnitElements[noteIndex] = setElement;
+    if(note._selection.editEndUnitElement === compareElement) {
+        note._selection.editEndUnitElement = setElement;
         isChange = true;
     }
     return isChange;
@@ -647,7 +542,7 @@ var doEditUnitCheck = function(noteIndex: number) {
     //Disconnect the observer.
     elementsEvent["note_observer"].disconnect();
     // In the editor, elements not surrounded by unit tags are recreated, wrapped with unit tags.
-    editUnitCheck(vn.elements.textareas[noteIndex]);
+    editUnitCheck(note._elements.textareas[noteIndex]);
     // Reconnect the observer.
     connectObserver();
 }
@@ -657,19 +552,12 @@ var doEditUnitCheck = function(noteIndex: number) {
 * @description Connects the observer to all note textareas.
 */
 var connectObserver = function() {
-    for(var i = 0; i < vn.elements.textareas.length; i++) {
-        elementsEvent["note_observer"].observe(vn.elements.textareas[i], vn.variables.observerOptions);
+    for(var i = 0; i < note._elements.textareas.length; i++) {
+        elementsEvent["note_observer"].observe(note._elements.textareas[i], vn.variables.observerOptions);
     }
 };
 
-/**
-* isElementInParentBounds
-* @description Checks whether a child element is fully contained within the bounds of its parent element.
-* @param {HTMLElement} parent - The parent element.
-* @param {HTMLElement} child - The child element to check.
-* @returns {boolean} Returns true if the child element is fully contained within the bounds of its parent, otherwise false.
-*/
-var isElementInParentBounds = function(parent: any, child: any) {
+export const isElementInParentBounds = (parent: any, child: any) => {
     if(parent.offsetParent === null) return false;
     var parentRect = parent.getBoundingClientRect();
     
@@ -688,29 +576,24 @@ var isElementInParentBounds = function(parent: any, child: any) {
     );
 };
 
-/**
-* validCheckAttLink
-* @description Validates the link attachment in the specified note.
-* @param {number} noteIndex - The index of the note where the link attachment needs to be validated.
-*/
-var validCheckAttLink = function(noteIndex: number) {
-    if(!(vn.elements.attLinkTexts[noteIndex] as any).value) {
-        (vn.elements.attLinkValidCheckboxes[noteIndex] as any).checked = false;
-        vn.elements.attLinkValidCheckTexts[noteIndex].style.color = getHexColorFromColorName(vn.colors.color9[noteIndex]);
-        vn.elements.attLinkValidCheckTexts[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].attLinkInTextTooltip;	//COMMENT
+export const validCheckAttLink = (note: VanillanoteElement) => {
+    if(!(note._elements.attLinkText as any).value) {
+        (note._elements.attLinkValidCheckbox as any).checked = false;
+        note._elements.attLinkValidCheckText.style.color = getHexColorFromColorName(note._colors.color9);
+        note._elements.attLinkValidCheckText.textContent = note._vn.languageSet[note._attributes.language].attLinkInTextTooltip;	//COMMENT
         return;
     }
     
-    if(!(vn.elements.attLinkHrefs[noteIndex] as any).value) {
-        (vn.elements.attLinkValidCheckboxes[noteIndex] as any).checked = false;
-        vn.elements.attLinkValidCheckTexts[noteIndex].style.color = getHexColorFromColorName(vn.colors.color9[noteIndex]);
-        vn.elements.attLinkValidCheckTexts[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].attLinkInLinkTooltip;	//COMMENT
+    if(!(note._elements.attLinkHref as any).value) {
+        (note._elements.attLinkValidCheckbox as any).checked = false;
+        note._elements.attLinkValidCheckText.style.color = getHexColorFromColorName(note._colors.color9);
+        note._elements.attLinkValidCheckText.textContent = note._vn.languageSet[note._attributes.language].attLinkInLinkTooltip;	//COMMENT
         return;
     }
     
-    (vn.elements.attLinkValidCheckboxes[noteIndex] as any).checked = true;
-    vn.elements.attLinkValidCheckTexts[noteIndex].style.color = getHexColorFromColorName(vn.colors.color8[noteIndex]);
-    vn.elements.attLinkValidCheckTexts[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].thanks;	//COMMENT
+    (note._elements.attLinkValidCheckbox as any).checked = true;
+    note._elements.attLinkValidCheckText.style.color = getHexColorFromColorName(note._colors.color8);
+    note._elements.attLinkValidCheckText.textContent = note._vn.languageSet[note._attributes.language].thanks;	//COMMENT
 };
 
 /**
@@ -719,77 +602,73 @@ var validCheckAttLink = function(noteIndex: number) {
 * @param {number} noteIndex - The index of the note where the video attachment needs to be validated.
 */
 var validCheckAttVideo = function(noteIndex: number) {
-    if(!(vn.elements.attVideoEmbedIds[noteIndex] as any).value) {
-        (vn.elements.attVideoValidCheckboxes[noteIndex] as any).checked = false;
-        vn.elements.attVideoValidCheckTexts[noteIndex].style.color = getHexColorFromColorName(vn.colors.color9[noteIndex]);
-        vn.elements.attVideoValidCheckTexts[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].attVideoEmbedIdTooltip;	//COMMENT
+    if(!(note._elements.attVideoEmbedIds[noteIndex] as any).value) {
+        (note._elements.attVideoValidCheckboxes[noteIndex] as any).checked = false;
+        note._elements.attVideoValidCheckTexts[noteIndex].style.color = getHexColorFromColorName(vn.colors.color9[noteIndex]);
+        note._elements.attVideoValidCheckTexts[noteIndex].textContent = vn.languageSet[note._attributes.language].attVideoEmbedIdTooltip;	//COMMENT
         return;
     }
     
-    (vn.elements.attVideoValidCheckboxes[noteIndex] as any).checked = true;
-    vn.elements.attVideoValidCheckTexts[noteIndex].style.color = getHexColorFromColorName(vn.colors.color8[noteIndex]);
-    vn.elements.attVideoValidCheckTexts[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].thanks;	//COMMENT
+    (note._elements.attVideoValidCheckboxes[noteIndex] as any).checked = true;
+    note._elements.attVideoValidCheckTexts[noteIndex].style.color = getHexColorFromColorName(vn.colors.color8[noteIndex]);
+    note._elements.attVideoValidCheckTexts[noteIndex].textContent = vn.languageSet[note._attributes.language].thanks;	//COMMENT
 };
 
-/**
-* initAttFile
-* @description Initializes the attTempFiles and attFileUploadDiv for the specified note.
-* @param {number} noteIndex - The index of the note for which the attTempFiles and attFileUploadDiv need to be initialized.
-*/
-var initAttFile = function(noteIndex: number) {
-    delete vn.variables.attTempFiles[noteIndex];
-    (vn.variables.attTempFiles[noteIndex] as any) = new Object;
-    vn.elements.attFileUploadDivs[noteIndex].replaceChildren();
-    vn.elements.attFileUploadDivs[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].attFileUploadDiv;
-    vn.elements.attFileUploadDivs[noteIndex].style.lineHeight = vn.variables.sizeRates[noteIndex] * 130 + "px";
-    (vn.elements.attFileUploads[noteIndex] as any).value = "";
+export const initAttLink = (note: VanillanoteElement) => {
+    note._elements.attLinkText.value = "";
+    note._elements.attLinkHref.value = "";
+    note._elements.attLinkIsBlankCheckbox.checked = false;
 };
 
-/**
-* initAttImage
-* @description Initializes the attTempImages, attImageUploadButtonAndViews, and attImageURLs for the specified note.
-* @param {number} noteIndex - The index of the note for which the attTempImages, attImageUploadButtonAndViews, and attImageURLs need to be initialized.
-*/
-var initAttImage = function(noteIndex: number) {
-    delete vn.variables.attTempImages[noteIndex];
-    (vn.variables.attTempImages[noteIndex] as any) = new Object;
-    vn.elements.attImageUploadButtonAndViews[noteIndex].replaceChildren();
-    vn.elements.attImageUploadButtonAndViews[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].attImageUploadButtonAndView;
-    (vn.elements.attImageUploads[noteIndex] as any).value = "";
-    (vn.elements.attImageURLs[noteIndex] as any).value = "";
-    vn.elements.attImageURLs[noteIndex].removeAttribute("readonly");
+export const initAttFile = function(note: VanillanoteElement) {
+    delete note._attTempFiles;
+    note._attTempFiles = {};
+    note._elements.attFileUploadDiv.replaceChildren();
+    note._elements.attFileUploadDiv.textContent = note._vn.languageSet[note._attributes.language].attFileUploadDiv;
+    note._elements.attFileUploadDiv.style.lineHeight = note._attributes.sizeRate * 130 + "px";
+    note._elements.attFileUpload.value = "";
+};
+
+export const initAttImage = function(note: VanillanoteElement) {
+    delete note._attTempImages;
+    note._attTempImages = {};
+    note._elements.attImageUploadButtonAndView.replaceChildren();
+    note._elements.attImageUploadButtonAndView.textContent = note._vn.languageSet[note._attributes.language].attImageUploadButtonAndView;
+    note._elements.attImageUpload.value = "";
+    note._elements.attImageURL.value = "";
+    note._elements.attImageURL.removeAttribute("readonly");
 };
 
 export const getObjectNoteCss = function(note: VanillanoteElement) {
     var cssObject: any = new Object();
     
-    if(note._noteStatus.boldToggle) {
+    if(note._status.boldToggle) {
         cssObject["font-weight"] = "bold";
     }
-    if(note._noteStatus.underlineToggle){
+    if(note._status.underlineToggle){
         cssObject["text-decoration"] = "underline";
     }
-    if(note._noteStatus.italicToggle){
+    if(note._status.italicToggle){
         cssObject["font-style"] = "italic";
     }
-    cssObject["font-size"] = note._noteStatus.fontSize + "px";
-    cssObject["line-height"] = note._noteStatus.lineHeight + "px";
+    cssObject["font-size"] = note._status.fontSize + "px";
+    cssObject["line-height"] = note._status.lineHeight + "px";
     // Add letter-spacing to the style object only if it's not 0
-    if(note._noteStatus.letterSpacing && checkRealNumber(note._noteStatus.letterSpacing)){
-        cssObject["letter-spacing"] = note._noteStatus.letterSpacing + "px";
+    if(note._status.letterSpacing && checkRealNumber(note._status.letterSpacing)){
+        cssObject["letter-spacing"] = note._status.letterSpacing + "px";
     }
-    if(note._noteStatus.fontFamilie){
-        cssObject["font-family"] = note._noteStatus.fontFamilie;
+    if(note._status.fontFamilie){
+        cssObject["font-family"] = note._status.fontFamilie;
     }
     // Add text color to the style object if it's different from the default color and opacity
-    if(getHexColorFromColorName(note._colors.color12) !== note._noteStatus.colorTextRGB
-        || note._noteStatus.colorTextOpacity !== "1") {
-        cssObject["color"] = getRGBAFromHex(note._noteStatus.colorTextRGB, note._noteStatus.colorTextOpacity);
+    if(getHexColorFromColorName(note._colors.color12) !== note._status.colorTextRGB
+        || note._status.colorTextOpacity !== "1") {
+        cssObject["color"] = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
     }
     // Add background color to the style object if it's different from the default color and opacity
-    if(getHexColorFromColorName(note._colors.color13) !== note._noteStatus.colorBackRGB
-        || note._noteStatus.colorBackOpacity !== "0") {
-        cssObject["background-color"] = getRGBAFromHex(note._noteStatus.colorBackRGB, note._noteStatus.colorBackOpacity);
+    if(getHexColorFromColorName(note._colors.color13) !== note._status.colorBackRGB
+        || note._status.colorBackOpacity !== "0") {
+        cssObject["background-color"] = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
     }
     
     return cssObject;
