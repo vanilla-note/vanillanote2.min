@@ -1,7 +1,7 @@
 import type { Attributes } from './attributes';
 import type { Consts } from './consts';
 import type { Colors } from './csses'
-import type { DocumentEvents } from './events';
+import type { CssEvents, DocumentEvents, ElementEvents } from './events';
 import type { LanguageSet } from './language'
 import type { Variables } from './variables';
 import { ToolPosition } from './enums';
@@ -72,10 +72,22 @@ export interface Vanillanote extends VanillanoteConfig{
      * Modifying these values may cause severe errors and is not recommended.
      */
 	consts: Consts;
-    /**
-     * Events applied to document
-     */
-	documentEvents: DocumentEvents;
+
+	events: {
+		/**
+		 * Events applied to document
+		 */
+		documentEvents: DocumentEvents;
+		/**
+		 * Events applied to target css
+		 */
+		cssEvents: CssEvents;
+		/**
+		 * Events applied to elements
+		 */
+		elementEvents: ElementEvents;
+
+	}
 	/**
 	 * List of vanillanote elements generated
 	 */
@@ -139,7 +151,7 @@ export interface Vanillanote extends VanillanoteConfig{
  * - This interface extends `HTMLElement` and adds three utility methods that allow you to retrieve the editor's internal data and reference objects.
  */
 export interface VanillanoteElement extends HTMLDivElement {
-	_noteName: string; 
+	_noteName: string;
 	_id: string;
 	_colors: Colors;
 	_selection: {
@@ -156,8 +168,32 @@ export interface VanillanoteElement extends HTMLDivElement {
 		editDragUnitElement: (Element | Node | null)[];
 		setEditStyleTagToggle: number;
 	};
-	_noteStatus: {
+	_attributes: {
 		isNoteByMobile: boolean;
+		language: string;
+		sizeRate: number;
+		toolPosition: ToolPosition.bottom | ToolPosition.top;
+		toolToggleUsing: boolean;
+		toolDefaultLine: number;
+		textareaOriginHeight: string;
+		defaultTextareaFontFamily: string;
+		defaultFontFamilies: string[];
+
+		attFilePreventTypes: string[];
+		attFileAcceptTypes: string[];
+		attFileMaxSizes: number;
+		attImagePreventTypes: string[];
+		attImageAcceptTypes: string[];
+		attImageMaxSizes: number;
+
+		placeholderIsVisible: boolean,
+		placeholderWidth: string;
+		placeholderAddTop: number;
+		placeholderAddLeft: number;
+		placeholderTitle: string;
+		placeholderTextContent: string;
+	}
+	_status: {
 		toolToggle: boolean;
 		boldToggle: boolean;
 		underlineToggle: boolean;
@@ -171,26 +207,196 @@ export interface VanillanoteElement extends HTMLDivElement {
 		colorTextR: string;
 		colorTextG: string;
 		colorTextB: string;
-		colorTextO: number;
+		colorTextO: string;
 		colorTextRGB: string;
-		colorTextOpacity: number;
+		colorTextOpacity: string;
 		colorBackR: string;
 		colorBackG: string;
 		colorBackB: string;
-		colorBackO: number;
+		colorBackO: string;
 		colorBackRGB: string;
-		colorBackOpacity: number;
+		colorBackOpacity: string;
 	};
-	_attTempFiles: Record<string, File>;
+	_attTempFiles?: Record<string, File>;
 	_attFiles: Record<string, File>;
-	_attTempImages: Record<string, File>;
+	_attTempImages?: Record<string, File>;
 	_attImages: Record<string, File>;
 	_records: {
-        recodeNotes : HTMLElement[],
-        recodeConting : number,
-        recodeLimit : number,
+        recodeNotes: Node[],
+        recodeConting: number,
+        recodeLimit: number,
 	};
-	_elements: Record<string, HTMLElement>;
+	_elements: {
+		template: HTMLDivElement,
+		textarea: HTMLElement,
+		tool: HTMLDivElement,
+		toolToggleButton: HTMLSpanElement,
+		paragraphStyleSelect: HTMLSpanElement,
+		paragraphStyleSelectBox: HTMLDivElement,
+		paragraphStyleNormalButton: HTMLDivElement,
+		paragraphStyleHeader1Button: HTMLHeadingElement,
+		paragraphStyleHeader2Button: HTMLHeadingElement,
+		paragraphStyleHeader3Button: HTMLHeadingElement,
+		paragraphStyleHeader4Button: HTMLHeadingElement,
+		paragraphStyleHeader5Button: HTMLHeadingElement,
+		paragraphStyleHeader6Button: HTMLHeadingElement,
+
+		boldButton: HTMLSpanElement,
+		underlineButton: HTMLSpanElement,
+		italicButton: HTMLSpanElement,
+		ulButton: HTMLSpanElement,
+		olButton: HTMLSpanElement,
+		textAlignSelect: HTMLSpanElement,
+		textAlignSelectBox: HTMLDivElement,
+		textAlignLeftButton: HTMLSpanElement,
+		textAlignCenterButton: HTMLSpanElement,
+		textAlignRightButton: HTMLSpanElement,
+		attLinkButton: HTMLSpanElement,
+		attFileButton: HTMLSpanElement,
+		attImageButton: HTMLSpanElement,
+		attVideoButton: HTMLSpanElement,
+
+		fontSizeInputBox: HTMLSpanElement,
+		fontSizeInput: HTMLInputElement,
+		letterSpacingInputBox: HTMLSpanElement,
+		letterSpacingInput: HTMLInputElement,
+		lineHeightInputBox: HTMLSpanElement,
+		lineHeightInput: HTMLInputElement,
+		fontFamilySelect: HTMLSpanElement,
+		fontFamilySelectBox: HTMLDivElement,
+
+		colorTextSelect: HTMLSpanElement,
+		colorTextSelectBox: HTMLDivElement,
+		colorTextRIcon: HTMLSpanElement,
+		colorTextRInput: HTMLInputElement,
+		colorTextGIcon: HTMLSpanElement,
+		colorTextGInput: HTMLInputElement,
+		colorTextBIcon: HTMLSpanElement,
+		colorTextBInput: HTMLInputElement,
+		colorTextOpacityIcon: HTMLSpanElement,
+		colorTextOpacityInput: HTMLInputElement,
+		colorText0: HTMLDivElement,
+		colorText1: HTMLDivElement,
+		colorText2: HTMLDivElement,
+		colorText3: HTMLDivElement,
+		colorText4: HTMLDivElement,
+		colorText5: HTMLDivElement,
+		colorText6: HTMLDivElement,
+		colorText7: HTMLDivElement,
+
+		colorBackSelect: HTMLSpanElement,
+		colorBackSelectBox: HTMLDivElement,
+		colorBackRIcon: HTMLSpanElement,
+		colorBackRInput: HTMLInputElement,
+		colorBackGIcon: HTMLSpanElement,
+		colorBackGInput: HTMLInputElement,
+		colorBackBIcon: HTMLSpanElement,
+		colorBackBInput: HTMLInputElement,
+		colorBackOpacityIcon: HTMLSpanElement,
+		colorBackOpacityInput: HTMLInputElement,
+		colorBack0: HTMLDivElement,
+		colorBack1: HTMLDivElement,
+		colorBack2: HTMLDivElement,
+		colorBack3: HTMLDivElement,
+		colorBack4: HTMLDivElement,
+		colorBack5: HTMLDivElement,
+		colorBack6: HTMLDivElement,
+		colorBack7: HTMLDivElement,
+
+		formatClearButton: HTMLSpanElement,
+		undoButton: HTMLSpanElement,
+		redoButton: HTMLSpanElement,
+		helpButton: HTMLSpanElement,
+
+		modalBack: HTMLDivElement,
+		attLinkModal: HTMLDivElement,
+		attLinkModalTitle: HTMLDivElement,
+		attLinkInTextExplain: HTMLDivElement,
+		attLinkText: HTMLInputElement,
+		attLinkInLinkExplain: HTMLDivElement,
+		attLinkHref: HTMLInputElement,
+		attLinkIsBlankCheckbox: HTMLInputElement,
+		attLinkIsOpenExplain: HTMLLabelElement,
+		attLinkValidCheckText: HTMLSpanElement,
+		attLinkValidCheckbox: HTMLInputElement,
+		attModalBox: HTMLDivElement,
+		attLinkInsertButton: HTMLButtonElement,
+
+		attFileModal: HTMLDivElement,
+		attFileModalTitle: HTMLDivElement,
+		attFilelayout: HTMLDivElement,
+		attFileExplain1: HTMLDivElement,
+		attFileUploadDivBox: HTMLDivElement,
+		attFileUploadDiv: HTMLDivElement,
+		attFileUploadButtonBox: HTMLDivElement,
+		attFileUploadButton: HTMLButtonElement,
+		attFileUpload: HTMLInputElement,
+		attFileInsertButtonBox: HTMLDivElement,
+		attFileInsertButton: HTMLButtonElement,
+
+		attImageModal: HTMLDivElement,
+		attImageModalTitle: HTMLDivElement,
+		attImageExplain1: HTMLDivElement,
+		attImageUploadButtonAndViewBox: HTMLDivElement,
+		attImageViewPreButtion: HTMLButtonElement,
+		attImageUploadButtonAndView: HTMLDivElement,
+		attImageViewNextButtion: HTMLButtonElement,
+		attImageUpload: HTMLInputElement,
+		attImageExplain2: HTMLDivElement,
+		attImageURL: HTMLInputElement,
+		attImageInsertButtonBox: HTMLDivElement,
+		attImageInsertButton: HTMLButtonElement,
+
+		attVideoModal: HTMLDivElement,
+		attVideoModalTitle: HTMLDivElement,
+		attVideoExplain1: HTMLDivElement,
+		attVideoEmbedId: HTMLInputElement,
+		attVideoExplain2: HTMLDivElement,
+		attVideoWidthTextBox: HTMLDivElement,
+		attVideoWidthText: HTMLSpanElement,
+		attVideoWidth: HTMLInputElement,
+		attVideoWidthUnit: HTMLSpanElement,
+		attVideoHeightTextBox: HTMLDivElement,
+		attVideoHeightText: HTMLSpanElement,
+		attVideoHeight: HTMLInputElement,
+		attVideoHeightUnit: HTMLSpanElement,
+		attVideoFooter: HTMLDivElement,
+		attVideoValidCheckText: HTMLSpanElement,
+		attVideoValidCheckbox: HTMLInputElement,
+		attVideoInsertButton: HTMLButtonElement,
+
+		attLinkTooltip: HTMLDivElement,
+		attLinkTooltipHref: HTMLAnchorElement,
+		attLinkTooltipEditButton: HTMLSpanElement,
+		attLinkTooltipUnlinkButton: HTMLSpanElement,
+		attImageAndVideoTooltip: HTMLDivElement,
+		attImageAndVideoTooltipWidthAndFloatBox: HTMLDivElement,
+		attImageAndVideoTooltipWidthText: HTMLSpanElement,
+		attImageAndVideoTooltipWidthInput: HTMLInputElement,
+		attImageAndVideoTooltipWidthUnit: HTMLSpanElement,
+		attImageAndVideoTooltipFloatRadioBox: HTMLSpanElement,
+		attImageAndVideoTooltipFloatRadioNone: HTMLInputElement,
+		attImageAndVideoTooltipFloatRadioNoneLabel: HTMLLabelElement,
+		attImageAndVideoTooltipFloatRadioLeft: HTMLInputElement,
+		attImageAndVideoTooltipFloatRadioLeftLabel: HTMLLabelElement,
+		attImageAndVideoTooltipFloatRadioRight: HTMLInputElement,
+		attImageAndVideoTooltipFloatRadioRightLabel: HTMLLabelElement,
+		attImageAndVideoTooltipShapeBox: HTMLDivElement,
+		attImageAndVideoTooltipShapeRadioBox: HTMLSpanElement,
+		attImageAndVideoTooltipShapeRadioSquare: HTMLInputElement,
+		attImageAndVideoTooltipShapeRadioSquareLabel: HTMLLabelElement,
+		attImageAndVideoTooltipShapeRadioRadius: HTMLInputElement,
+		attImageAndVideoTooltipShapeRadioRadiusLabel: HTMLLabelElement,
+		attImageAndVideoTooltipShapeRadioCircle: HTMLInputElement,
+		attImageAndVideoTooltipShapeRadioCircleLabel: HTMLLabelElement,
+
+		helpModal: HTMLDivElement,
+		helpHeader: HTMLDivElement,
+		helpMain: HTMLDivElement,
+		helpMainTable: HTMLTableElement,
+		helpFooter: HTMLDivElement,
+		placeholder: HTMLDivElement,
+	};
 	_cssEvents: {
         target_onBeforeClick(event: MouseEvent): boolean;
         target_onAfterClick(event: MouseEvent): void;
