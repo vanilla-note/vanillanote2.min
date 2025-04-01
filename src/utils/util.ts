@@ -46,12 +46,6 @@ export const getUUID = () => { // Public Domain/MIT
     });
 };
 
-/**
-* getNoteId
-* @description Retrieves the note id by iterating from the current element to its parent until a note id is found (default is 0).
-* @param {Element} el - The element from which to start iterating.
-* @returns {string|null} noteId - The note id retrieved from the element's attributes or null if not found.
-*/
 export const getNoteId = (el: any) => {
     if(!el) return null;
     var noteId;
