@@ -1,5 +1,8 @@
-import { VanillanoteElement } from "../types/vanillanote";
-import { extractNumber, extractUnit, getEventChildrenClassName, getId, getObjectFromCssText, getParentNote, isCloserToRight } from "./util";
+import { ToolPosition } from "../types/enums";
+import { Vanillanote, VanillanoteConfig, VanillanoteElement } from "../types/vanillanote";
+import { getEditElementTag, getObjectEditElementCss, initAttFile, initAttImage, initAttLink, initToggleButtonVariables, isElementInParentBounds, setTagToggle, validCheckAttLink } from "./handleActive";
+import { isValidSelection } from "./handleSelection";
+import { checkNumber, compareObject, extractNumber, extractUnit, getEventChildrenClassName, getHexColorFromColorName, getHexFromRGBA, getId, getObjectFromCssText, getOpacityFromRGBA, getParentNote, getRGBAFromHex, isCloserToRight } from "./util";
 
 /**
 * closeAllTooltip
@@ -13,136 +16,92 @@ export const closeAllTooltip = (noteIndex: number) => {
     vn.elements.attImageAndVideoTooltips[noteIndex].style.height  = "0";
 };
 
-/**
-* setVariableButtonTogle
-* @description Changes the note's style variables based on the provided CSS object.
-* @param {Number} noteIndex - The index of the note.
-* @param {Object} cssObject - The CSS object containing style properties.
-*/
-var setVariableButtonTogle = function(noteIndex: number, cssObject: Record<string, string>) {
+export const setVariableButtonTogle = (note: VanillanoteElement, cssObject: Record<string, string>) => {
     //bold
     if(cssObject["font-weight"] === "bold") {
-        vn.variables.boldToggles[noteIndex] = true;
+        note._status.boldToggle = true;
     }
     else {
-        vn.variables.boldToggles[noteIndex] = false;
+        note._status.boldToggle = false;
     }
     //underline
     if(cssObject["text-decoration"] === "underline" || cssObject["text-decoration-line"] === "underline") {
-        vn.variables.underlineToggles[noteIndex] = true;
+        note._status.underlineToggle = true;
     }
     else {
-        vn.variables.underlineToggles[noteIndex] = false;
+        note._status.underlineToggle = false;
     }
     //italic
     if(cssObject["font-style"] === "italic") {
-        vn.variables.italicToggles[noteIndex] = true;
+        note._status.italicToggle = true;
     }
     else {
-        vn.variables.italicToggles[noteIndex] = false;
+        note._status.italicToggle = false;
     }
     //color
     if(cssObject["color"]) {
-        vn.variables.colorTextRGBs[noteIndex] = getHexFromRGBA(cssObject["color"])!;
-        vn.variables.colorTextOpacitys[noteIndex] = getOpacityFromRGBA(cssObject["color"])!;
+        note._status.colorTextRGB = getHexFromRGBA(cssObject["color"])!;
+        note._status.colorTextOpacity = getOpacityFromRGBA(cssObject["color"])!;
         // If color is not in rgba format, use the default color and opacity
-        if(!vn.variables.colorTextRGBs[noteIndex]) {
-            vn.variables.colorTextRGBs[noteIndex] = getHexColorFromColorName(vn.colors.color12[noteIndex]);
-            vn.variables.colorTextOpacitys[noteIndex] = "1";
+        if(!note._status.colorTextRGB) {
+            note._status.colorTextRGB = getHexColorFromColorName(note._colors.color12);
+            note._status.colorTextOpacity = "1";
         }
         else {
             // If opacity is not present in rgba format, use 1 as default opacity
-            if(!vn.variables.colorTextOpacitys[noteIndex]) {
+            if(!note._status.colorTextOpacity) {
                 if(cssObject["opacity"]) {
-                    vn.variables.colorTextOpacitys[noteIndex] = cssObject["opacity"];
+                    note._status.colorTextOpacity = cssObject["opacity"];
                 }
                 else {
-                    vn.variables.colorTextOpacitys[noteIndex] = "1";
+                    note._status.colorTextOpacity = "1";
                 }
             }
         }
         
     }
     else {
-        vn.variables.colorTextRGBs[noteIndex] = getHexColorFromColorName(vn.colors.color12[noteIndex]);
-        vn.variables.colorTextOpacitys[noteIndex] = "1";
+        note._status.colorTextRGB = getHexColorFromColorName(note._colors.color12);
+        note._status.colorTextOpacity = "1";
     }
     //background color
     if(cssObject["background-color"]) {
-        vn.variables.colorBackRGBs[noteIndex] = getHexFromRGBA(cssObject["background-color"])!;
-        vn.variables.colorBackOpacitys[noteIndex] = getOpacityFromRGBA(cssObject["background-color"])!;
+        note._status.colorBackRGB = getHexFromRGBA(cssObject["background-color"])!;
+        note._status.colorBackOpacity = getOpacityFromRGBA(cssObject["background-color"])!;
         // If background-color is not in rgba format, use the default color and opacity
-        if(!vn.variables.colorTextRGBs[noteIndex]) {
-            vn.variables.colorTextRGBs[noteIndex] = getHexColorFromColorName(vn.colors.color12[noteIndex]);
-            vn.variables.colorTextOpacitys[noteIndex] = "1";
+        if(!note._status.colorTextRGB) {
+            note._status.colorTextRGB = getHexColorFromColorName(note._colors.color12);
+            note._status.colorTextOpacity = "1";
         }
         else {
             // If opacity is not present in rgba format, use 0 as default opacity
-            if(!vn.variables.colorBackOpacitys[noteIndex]) {
+            if(!note._status.colorBackOpacity) {
                 if(cssObject["opacity"]) {
-                    vn.variables.colorBackOpacitys[noteIndex] = cssObject["opacity"];
+                    note._status.colorBackOpacity = cssObject["opacity"];
                 }
                 else {
-                    vn.variables.colorBackOpacitys[noteIndex] = "0";
+                    note._status.colorBackOpacity = "0";
                 }
             }
         }
     }
     else {
-        vn.variables.colorBackRGBs[noteIndex] = getHexColorFromColorName(vn.colors.color13[noteIndex]);
-        vn.variables.colorBackOpacitys[noteIndex] = "0";
+        note._status.colorBackRGB = getHexColorFromColorName(note._colors.color13);
+        note._status.colorBackOpacity = "0";
     }
-    /* Do not toggle font family and font size, etc.
-    //font family
-    if(cssObject["font-family"]) {
-        vn.variables.fontFamilies[noteIndex] = cssObject["font-family"];
-    }
-    else {
-        vn.variables.fontFamilies[noteIndex] = vn.variables.defaultStyles[noteIndex]["font-family"];
-    }
-    //font size
-    if(cssObject["font-size"]) {
-        vn.variables.fontSizes[noteIndex] = extractNumber(cssObject["font-size"]);
-    }
-    else {
-        vn.variables.fontSizes[noteIndex] = extractNumber(vn.variables.defaultStyles[noteIndex]["font-size"]);
-    }
-    //letter spacing
-    if(cssObject["letter-spacing"]) {
-        vn.variables.letterSpacings[noteIndex] = extractNumber(cssObject["letter-spacing"]);
-    }
-    else {
-        vn.variables.letterSpacings[noteIndex] = 0;
-    }
-    //line height
-    if(cssObject["line-height"]) {
-        vn.variables.lineHeights[noteIndex] = extractNumber(cssObject["line-height"]);
-    }
-    else {
-        vn.variables.lineHeights[noteIndex] = extractNumber(vn.variables.defaultStyles[noteIndex]["line-height"]);
-    }
-    */
 };
 
-/**
-* button_onToggle
-* @description Toggles the button on or off based on the 'toggle' parameter.
-* @param {HTMLElement} target - The target button to be toggled.
-* @param {Boolean} toggle - If true, the button is toggled on, otherwise it is toggled off.
-*/
-var button_onToggle = function(target: any, toggle: boolean) {
+export const button_onToggle = function(target: any, toggle: boolean) {
+    const note = getParentNote(target);
+    if(!note) return;
     // If a child element is selected, event is controlled
-    if(target.classList.contains(getEventChildrenClassName())) {
+    if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
         target = target.parentNode;
     }
     if(toggle) {
-        var noteId = getNoteId(target);
-        if(!noteIndex) return;
-        target.classList.add(getId(noteIndex, "on_button_on"));
+        target.classList.add(getId(note._noteName, note._id, "on_button_on"));
     } else {
-        var noteId = getNoteId(target);
-        if(!noteIndex) return;
-        target.classList.remove(getId(noteIndex, "on_button_on"));
+        target.classList.remove(getId(note._noteName, note._id, "on_button_on"));
     }
 };
 
@@ -151,27 +110,18 @@ var button_onToggle = function(target: any, toggle: boolean) {
 * @description Toggles all buttons of a specific note.
 * @param {number} noteIndex - The index of the note whose buttons need to be toggled.
 */
-var allButtonToggle = function(noteIndex: number) {
+var allButtonToggle = function(note: VanillanoteElement) {
     //format
-    button_onToggle(vn.elements.boldButtons[noteIndex], vn.variables.boldToggles[noteIndex]);
-    button_onToggle(vn.elements.underlineButtons[noteIndex], vn.variables.underlineToggles[noteIndex]);
-    button_onToggle(vn.elements.italicButtons[noteIndex], vn.variables.italicToggles[noteIndex]);
-    button_onToggle(vn.elements.ulButtons[noteIndex], vn.variables.ulToggles[noteIndex]);
-    button_onToggle(vn.elements.olButtons[noteIndex], vn.variables.olToggles[noteIndex]);
+    button_onToggle(note._elements.boldButton, note._status.boldToggle);
+    button_onToggle(note._elements.underlineButton, note._status.underlineToggle);
+    button_onToggle(note._elements.italicButton, note._status.italicToggle);
+    button_onToggle(note._elements.ulButton, note._status.ulToggle);
+    button_onToggle(note._elements.olButton, note._status.olToggle);
     //color
-    (vn.elements.colorTextSelects[noteIndex] as any).querySelector("."+getEventChildrenClassName()).style.color
-    = getRGBAFromHex(vn.variables.colorTextRGBs[noteIndex], vn.variables.colorTextOpacitys[noteIndex] === "0" ? "1" : vn.variables.colorTextOpacitys[noteIndex]);
-    (vn.elements.colorBackSelects[noteIndex] as any).querySelector("."+getEventChildrenClassName()).style.color
-        = getRGBAFromHex(vn.variables.colorBackRGBs[noteIndex], vn.variables.colorBackOpacitys[noteIndex] === "0" ? "1" : vn.variables.colorBackOpacitys[noteIndex]);
-    /*Do not toggle font family and font size, etc.
-    //font family
-    vn.elements.fontFamilySelects[noteIndex].firstChild.textContent = vn.variables.fontFamilies[noteIndex].length > 12 ? vn.variables.fontFamilies[noteIndex].substr(0,12) + "..." : vn.variables.fontFamilies[noteIndex];
-    vn.elements.fontFamilySelects[noteIndex].style.fontFamily = vn.variables.fontFamilies[noteIndex];
-    //size
-    vn.elements.fontSizeInputs[noteIndex].value = vn.variables.fontSizes[noteIndex];
-    vn.elements.letterSpacingInputs[noteIndex].value = vn.variables.letterSpacings[noteIndex];
-    vn.elements.lineHeightInputs[noteIndex].value = vn.variables.lineHeights[noteIndex];
-    */
+    (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+    = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity === "0" ? "1" : note._status.colorTextOpacity);
+    (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+    = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity === "0" ? "1" : note._status.colorBackOpacity);
 };
 
 export const selectToggle = (target: any, _note?: VanillanoteElement) => {
@@ -234,8 +184,8 @@ export const selectToggle = (target: any, _note?: VanillanoteElement) => {
         var selectBoxRect = selectBox.getBoundingClientRect();
         if(selectBoxRect.top === 0) return
         
-        if(note._elements.tools.offsetParent === null) return;
-        var toolRect = note._elements.tools.getBoundingClientRect();
+        if(note._elements.tool.offsetParent === null) return;
+        var toolRect = note._elements.tool.getBoundingClientRect();
         
         if(toolRect.left > selectBoxRect.left) {
             selectBox.style.right = selectBoxRect.left - 1 + "px";
@@ -250,8 +200,8 @@ export const selectToggle = (target: any, _note?: VanillanoteElement) => {
         var selectBoxRect = selectBox.getBoundingClientRect();
         if(selectBoxRect.top === 0) return
         
-        if(note._elements.tools.offsetParent === null) return;
-        var toolRect = note._elements.tools.getBoundingClientRect();
+        if(note._elements.tool.offsetParent === null) return;
+        var toolRect = note._elements.tool.getBoundingClientRect();
         
         if(toolRect.right < selectBoxRect.right) {
             selectBox.style.left = toolRect.right - (selectBoxRect.right + 1) + "px";
@@ -263,16 +213,16 @@ export const closeAllSelectBoxes = (note: VanillanoteElement) => {
     var displayBlock = getId(note._noteName, note._id, "on_display_block");
     var displayNone = getId(note._noteName, note._id, "on_display_none");
     
-    note._elements.paragraphStyleSelectBoxes.classList.remove(displayBlock);
-    note._elements.paragraphStyleSelectBoxes.classList.add(displayNone);
-    note._elements.textAlignSelectBoxes.classList.remove(displayBlock);
-    note._elements.textAlignSelectBoxes.classList.add(displayNone);
-    note._elements.fontFamilySelectBoxes.classList.remove(displayBlock);
-    note._elements.fontFamilySelectBoxes.classList.add(displayNone);
-    note._elements.colorTextSelectBoxes.classList.remove(displayBlock);
-    note._elements.colorTextSelectBoxes.classList.add(displayNone);
-    note._elements.colorBackSelectBoxes.classList.remove(displayBlock);
-    note._elements.colorBackSelectBoxes.classList.add(displayNone);
+    note._elements.paragraphStyleSelectBox.classList.remove(displayBlock);
+    note._elements.paragraphStyleSelectBox.classList.add(displayNone);
+    note._elements.textAlignSelectBox.classList.remove(displayBlock);
+    note._elements.textAlignSelectBox.classList.add(displayNone);
+    note._elements.fontFamilySelectBox.classList.remove(displayBlock);
+    note._elements.fontFamilySelectBox.classList.add(displayNone);
+    note._elements.colorTextSelectBox.classList.remove(displayBlock);
+    note._elements.colorTextSelectBox.classList.add(displayNone);
+    note._elements.colorBackSelectBox.classList.remove(displayBlock);
+    note._elements.colorBackSelectBox.classList.add(displayNone);
 };
 
 export const fontFamilySelectList_onClick = (e: any, _note?: VanillanoteElement) => {
@@ -283,59 +233,54 @@ export const fontFamilySelectList_onClick = (e: any, _note?: VanillanoteElement)
     var oldStyleObject: any = getObjectFromCssText(note._elements.fontFamilySelect.getAttribute("style")!);
     oldStyleObject["font-family"] = fontFamily;
     // Change the font family in the variables and the displayed select list option.
-    note._noteStatus.fontFamilies = fontFamily;
-    (note._elements.fontFamilySelects as any).firstChild.textContent = fontFamily.length > 12 ? fontFamily.substr(0,12) + "..." : fontFamily;
-    (note._elements.fontFamilySelects as any).style.fontFamily = fontFamily;
+    note._status.fontFamilies = fontFamily;
+    (note._elements.fontFamilySelect as any).firstChild.textContent = fontFamily.length > 12 ? fontFamily.substr(0,12) + "..." : fontFamily;
+    (note._elements.fontFamilySelect as any).style.fontFamily = fontFamily;
 };
 
-/**
-* setEditStyleTag
-* @description Sets buttons and variables based on the selected element's styles and tags.
-* @param {Number} noteIndex - The index of the note.
-*/
-var setEditStyleTag = function(noteIndex: number) {
-    if(vn.variables.setEditStyleTagToggle > 0) {
-        vn.variables.setEditStyleTagToggle--;
+export const setEditStyleTag = (note: VanillanoteElement) => {
+    if(note._selection.setEditStyleTagToggle > 0) {
+        note._selection.setEditStyleTagToggle--;
         return;
     }
-    var tempEl: any = vn.variables.editStartUnitElements[noteIndex];
+    var tempEl: any = note._selection.editStartUnitElement;
     var textarea = tempEl;
     while(tempEl) {
-        if(tempEl.tagName === (vn.variables.noteName+"-textarea").toUpperCase()) {
+        if(tempEl.tagName === (note._noteName+"-textarea").toUpperCase()) {
             textarea = tempEl;
             break;
         }
         tempEl = tempEl.parentNode;
     }
     if(!textarea) {
-        for(var i = 0; i < vn.elements.notes.length; i++) {
-            initToggleButtonVariables(i);
-        }
+        Object.keys(note._vn.vanillanoteElements).forEach((id) => {
+            initToggleButtonVariables(note._vn.vanillanoteElements[id]);
+        });
         return;
     }
     
     // Get styles of the selected element
-    var cssObjectEl = getObjectEditElementCss(vn.variables.editStartElements[noteIndex]);
+    var cssObjectEl = getObjectEditElementCss(note._selection.editStartElement, note);
     // If multiple elements are selected, check if all tags have the same styles
     // If not, clear the cssObjectEl
-    if(vn.variables.editStartNodes[noteIndex] !== vn.variables.editEndNodes[noteIndex]) {
+    if(note._selection.editStartNode !== note._selection.editEndNode) {
         var tempCssObjectEl = cssObjectEl;
         var isCheck = false;
         var isEnd = false;
         var getCheckAllStyle = function(element: any) {
             for(var i = 0; i < element.childNodes.length; i++) {
                 if(isEnd) break;
-                if(vn.variables.editStartNodes[noteIndex] === element.childNodes[i]) {
+                if(note._selection.editStartNode === element.childNodes[i]) {
                     isCheck = true;
                 }
                 if(isCheck && element.childNodes[i].nodeType === 3 && element.childNodes[i].textContent) {
-                    tempCssObjectEl = getObjectEditElementCss(element.childNodes[i]);
+                    tempCssObjectEl = getObjectEditElementCss(element.childNodes[i], note);
                 }
                 if(!compareObject(cssObjectEl, tempCssObjectEl)) {
                     cssObjectEl = {};
                     isEnd = true;
                 }
-                if(vn.variables.editEndNodes[noteIndex] === element.childNodes[i]) {
+                if(note._selection.editEndNode === element.childNodes[i]) {
                     isEnd = true;
                 }
                 if(element.childNodes[i].childNodes) {
@@ -343,27 +288,21 @@ var setEditStyleTag = function(noteIndex: number) {
                 }
             }
         };
-        for(var i = 0; i < vn.variables.editDragUnitElements[noteIndex].length; i++) {
-            getCheckAllStyle(vn.variables.editDragUnitElements[noteIndex][i]);
+        for(let i = 0; i < note._selection.editDragUnitElement.length; i++) {
+            getCheckAllStyle(note._selection.editDragUnitElement[i]);
         }
     }
     // Change the note's style variables
-    setVariableButtonTogle(noteIndex, cssObjectEl);
+    setVariableButtonTogle(note, cssObjectEl);
     // Get the current selected tag
-    var nowTag = getEditElementTag(noteIndex);
+    const nowTag = getEditElementTag(note);
     // Change the note's tag variables (toggle)
-    setTagToggle(noteIndex, nowTag);
+    setTagToggle(note, nowTag);
     // Toggle buttons for the note
-    allButtonToggle(noteIndex);
+    allButtonToggle(note);
 };
 
-/**
-* setElementScroll
-* @description Animates the scrolling of the parent element to bring the child element into view.
-* @param {Element} parentElement - The parent element to be scrolled.
-* @param {Element} childElement - The child element to bring into view.
-*/
-var setElementScroll = function(parentElement: any, childElement: any) {
+export const setElementScroll = (parentElement: any, childElement: any) => {
     if(!parentElement || !childElement) return;
     if(childElement.nodeType === 3) childElement = childElement.parentNode;
     var start: any = null;
@@ -387,107 +326,72 @@ var setElementScroll = function(parentElement: any, childElement: any) {
     window.requestAnimationFrame(step);
 };
 
-export const decreaseTextareaHeight = function(textarea: HTMLDivElement, noteIndex: number) {
-    if(extractUnit(vn.variables.textareaOriginHeights[noteIndex]) !== 'px') return;
-    if(vn.variables.mobileKeyboardExceptHeight! < extractNumber(vn.variables.textareaOriginHeights[noteIndex])!
-        && vn.variables.mobileKeyboardExceptHeight! < textarea.offsetHeight) {
-        textarea.style.height = vn.variables.mobileKeyboardExceptHeight + "px";
-    }
-};
-
-/**
-* increaseTextareaHeight
-* @description Increases the height of the textarea to its original height.
-* @param {HTMLTextAreaElement} textarea - The textarea element to be resized.
-*/
-var increaseTextareaHeight = function(textarea: any) {
-    var noteId = textarea.getAttribute("data-note-id");
-    textarea.style.height = vn.variables.textareaOriginHeights[noteIndex];
-};
-
-/**
-* getCheckSelectBoxesOpened
-* @description Checks if any select box is in open state. Returns true if at least one select box is open.
-* @param {Number} noteIndex - The index of the note where the select boxes are located.
-* @returns {Boolean} - Returns true if any select box is open, false otherwise.
-*/
-var getCheckSelectBoxesOpened = function(noteIndex: number) {
-    var displayBlock = getId(noteIndex, "on_display_block");
+export const getCheckSelectBoxesOpened = (note: VanillanoteElement) => {
+    var displayBlock = getId(note._noteName, note._id, "on_display_block");
     
-    if(vn.elements.paragraphStyleSelectBoxes[noteIndex].classList.contains(displayBlock)) return true;
-    if(vn.elements.textAlignSelectBoxes[noteIndex].classList.contains(displayBlock)) return true;
-    if(vn.elements.fontFamilySelectBoxes[noteIndex].classList.contains(displayBlock)) return true;
-    if(vn.elements.colorTextSelectBoxes[noteIndex].classList.contains(displayBlock)) return true;
-    if(vn.elements.colorBackSelectBoxes[noteIndex].classList.contains(displayBlock)) return true;
+    if(note._elements.paragraphStyleSelectBox.classList.contains(displayBlock)) return true;
+    if(note._elements.textAlignSelectBox.classList.contains(displayBlock)) return true;
+    if(note._elements.fontFamilySelectBox.classList.contains(displayBlock)) return true;
+    if(note._elements.colorTextSelectBox.classList.contains(displayBlock)) return true;
+    if(note._elements.colorBackSelectBox.classList.contains(displayBlock)) return true;
     
     return false;
 };
 
-/**
-* closeAllModal
-* @description Closes all modals and initializes attachment link, file, and image modals.
-* @param {Number} noteIndex - The index of the note where the modals are located.
-*/
-var closeAllModal = function(noteIndex: number) {
-    var displayBlock = getId(noteIndex, "on_display_block");
-    var displayNone = getId(noteIndex, "on_display_none");
+export const closeAllModal = (note: VanillanoteElement) => {
+    var displayBlock = getId(note._noteName, note._id, "on_display_block");
+    var displayNone = getId(note._noteName, note._id, "on_display_none");
     
-    vn.elements.backModals[noteIndex].classList.remove(displayBlock);
-    vn.elements.backModals[noteIndex].classList.add(displayNone);
-    vn.elements.attLinkModals[noteIndex].classList.remove(displayBlock);
-    vn.elements.attLinkModals[noteIndex].classList.add(displayNone);
-    vn.elements.attFileModals[noteIndex].classList.remove(displayBlock);
-    vn.elements.attFileModals[noteIndex].classList.add(displayNone);
-    vn.elements.attImageModals[noteIndex].classList.remove(displayBlock);
-    vn.elements.attImageModals[noteIndex].classList.add(displayNone);
-    vn.elements.attVideoModals[noteIndex].classList.remove(displayBlock);
-    vn.elements.attVideoModals[noteIndex].classList.add(displayNone);
-    vn.elements.helpModals[noteIndex].classList.remove(displayBlock);
-    vn.elements.helpModals[noteIndex].classList.add(displayNone);
+    note._elements.modalBack.classList.remove(displayBlock);
+    note._elements.modalBack.classList.add(displayNone);
+    note._elements.attLinkModal.classList.remove(displayBlock);
+    note._elements.attLinkModal.classList.add(displayNone);
+    note._elements.attFileModal.classList.remove(displayBlock);
+    note._elements.attFileModal.classList.add(displayNone);
+    note._elements.attImageModal.classList.remove(displayBlock);
+    note._elements.attImageModal.classList.add(displayNone);
+    note._elements.attVideoModal.classList.remove(displayBlock);
+    note._elements.attVideoModal.classList.add(displayNone);
+    note._elements.helpModal.classList.remove(displayBlock);
+    note._elements.helpModal.classList.add(displayNone);
     
     //Initialize attachment link modal
-    initAttLink(noteIndex);
+    initAttLink(note);
     //Initialize attachment file modal
-    initAttFile(noteIndex);
+    initAttFile(note);
     //Initialize attachment image modal
-    initAttImage(noteIndex);
+    initAttImage(note);
 };
 
-/**
-* openAttLinkModal
-* @description Opens the attachment link modal for a specific note. It also handles closing all other modals,
-* adjusting modal size, and setting focus based on whether the range is collapsed or not.
-* @param {String or Number} noteIndex - The index of the note for which the attachment link modal should be opened.
-*/
-var openAttLinkModal = function(noteIndex: number) {
+export const openAttLinkModal = (note: VanillanoteElement) => {
     // Restore the note size.
-    doIncreaseTextareaHeight();
+    doIncreaseTextareaHeight(note._vn);
     
     // Close all modals
-    closeAllModal(noteIndex);
+    closeAllModal(note);
     // Close all selects
-    closeAllSelectBoxes(noteIndex);
+    closeAllSelectBoxes(note);
     // Adjust modal size
-    setAllModalSize(noteIndex);
+    setAllModalSize(note);
     // Open modal background
-    var displayBlock = getId(noteIndex, "on_display_block");
-    var displayNone = getId(noteIndex, "on_display_none");
-    vn.elements.backModals[noteIndex].classList.remove(displayNone);
-    vn.elements.backModals[noteIndex].classList.add(displayBlock);
-    vn.elements.attLinkModals[noteIndex].classList.remove(displayNone);
-    vn.elements.attLinkModals[noteIndex].classList.add(displayBlock);
+    var displayBlock = getId(note._noteName, note._id, "on_display_block");
+    var displayNone = getId(note._noteName, note._id, "on_display_none");
+    note._elements.modalBack.classList.remove(displayNone);
+    note._elements.modalBack.classList.add(displayBlock);
+    note._elements.attLinkModal.classList.remove(displayNone);
+    note._elements.attLinkModal.classList.add(displayBlock);
     
-    if(!isValidSelection(noteIndex)) {
-        validCheckAttLink(noteIndex);
+    if(!isValidSelection(note)) {
+        validCheckAttLink(note);
         return;	
     }
     
-    var attLinkText: any = vn.elements.attLinkTexts[noteIndex];
-    var attLinkHref: any = vn.elements.attLinkHrefs[noteIndex];
-    attLinkText.value = vn.variables.editRanges[noteIndex]!.toString();
+    var attLinkText: any = note._elements.attLinkText;
+    var attLinkHref: any = note._elements.attLinkHref;
+    attLinkText.value = note._selection.editRange!.toString();
     attLinkHref.value = "";
     
-    if(!vn.variables.editRanges[noteIndex]!.collapsed) {
+    if(!note._selection.editRange!.collapsed) {
         attLinkText.setAttribute("readonly","true");
         attLinkHref.focus();
     }
@@ -496,96 +400,69 @@ var openAttLinkModal = function(noteIndex: number) {
         attLinkText.focus();
     }
     
-    validCheckAttLink(noteIndex);
+    validCheckAttLink(note);
 };
 
-/**
-* openPlaceholder
-* @description Opens the placeholder if it is visible and the associated textarea contains no text or a single character.
-* @param {Number} noteIndex - The index of the note where the placeholder is located.
-*/
-var openPlaceholder = function(noteIndex: number) {
-    if(vn.variables.placeholderIsVisible[noteIndex]
-        && vn.elements.textareas[noteIndex].innerText.length <= 1
-        && vn.elements.textareas[noteIndex].textContent!.length < 1
-        && vn.elements.textareas[noteIndex].childNodes.length <= 1
-        && vn.elements.textareas[noteIndex].childNodes[0]
-        && vn.elements.textareas[noteIndex].childNodes[0].childNodes.length <= 1
-        && vn.elements.textareas[noteIndex].childNodes[0].childNodes[0]
-        && (vn.elements.textareas[noteIndex].childNodes[0].childNodes[0] as any).tagName === "BR"
+var openPlaceholder = function(note: VanillanoteElement) {
+    if(note._attributes.placeholderIsVisible
+        && note._elements.textarea.innerText.length <= 1
+        && note._elements.textarea.textContent!.length < 1
+        && note._elements.textarea.childNodes.length <= 1
+        && note._elements.textarea.childNodes[0]
+        && note._elements.textarea.childNodes[0].childNodes.length <= 1
+        && note._elements.textarea.childNodes[0].childNodes[0]
+        && (note._elements.textarea.childNodes[0].childNodes[0] as any).tagName === "BR"
     ) {
-        vn.elements.placeholders[noteIndex].classList.remove(getId(noteIndex, "on_display_none"));
-        vn.elements.placeholders[noteIndex].classList.add(getId(noteIndex, "on_display_block"));
+        note._elements.placeholder.classList.remove(getId(note._noteName, note._id, "on_display_none"));
+        note._elements.placeholder.classList.add(getId(note._noteName, note._id, "on_display_block"));
     }
 };
 
-/**
-* closePlaceholder
-* @description Closes the placeholder if it is visible and the associated textarea contains no text or a single character.
-* @param {Number} noteIndex - The index of the note where the placeholder is located.
-*/
-var closePlaceholder = function(noteIndex: number) {
-    if(vn.variables.placeholderIsVisible[noteIndex]) {
-        vn.elements.placeholders[noteIndex].classList.remove(getId(noteIndex, "on_display_block"));
-        vn.elements.placeholders[noteIndex].classList.add(getId(noteIndex, "on_display_none"));
+export const closePlaceholder = (note: VanillanoteElement) => {
+    if(note._attributes.placeholderIsVisible) {
+        note._elements.placeholder.classList.remove(getId(note._noteName, note._id, "on_display_block"));
+        note._elements.placeholder.classList.add(getId(note._noteName, note._id, "on_display_none"));
     }
 };
 
-/**
-* setAllModalSize
-* @description Controls the size of all modals. It adjusts the size of modals to match the height of the textarea. 
-*              It uses setTimeout to adjust the height according to the textarea's dynamic size change.
-* @param {Number} noteIndex - The index of the note where the modals are located.
-*/
-var setAllModalSize = function(noteIndex: number) {
-    if(vn.elements.templates[noteIndex].offsetParent === null) return
+export const setAllModalSize = (note: VanillanoteElement) => {
+    if(note._elements.template.offsetParent === null) return
     // Use setTimeout to adjust size according to the dynamic change in textarea's size.
     setTimeout(function() {
-        vn.elements.backModals[noteIndex].style.width = vn.elements.templates[noteIndex].clientWidth + "px";
-        vn.elements.backModals[noteIndex].style.height = vn.elements.templates[noteIndex].clientHeight + "px";
-        vn.elements.attLinkModals[noteIndex].style.width = vn.elements.textareas[noteIndex].clientWidth*0.8 + "px"
-        vn.elements.attLinkModals[noteIndex].style.marginTop = vn.elements.templates[noteIndex].clientHeight*0.1 + "px"
-        vn.elements.attFileModals[noteIndex].style.width = vn.elements.textareas[noteIndex].clientWidth*0.8 + "px"
-        vn.elements.attFileModals[noteIndex].style.marginTop = vn.elements.templates[noteIndex].clientHeight*0.1 + "px"
-        vn.elements.attImageModals[noteIndex].style.width = vn.elements.textareas[noteIndex].clientWidth*0.8 + "px"
-        vn.elements.attImageModals[noteIndex].style.marginTop = vn.elements.templates[noteIndex].clientHeight*0.1 + "px"
-        vn.elements.attVideoModals[noteIndex].style.width = vn.elements.textareas[noteIndex].clientWidth*0.8 + "px"
-        vn.elements.attVideoModals[noteIndex].style.marginTop = vn.elements.templates[noteIndex].clientHeight*0.1 + "px"
-        vn.elements.helpModals[noteIndex].style.width = vn.elements.textareas[noteIndex].clientWidth*0.8 + "px"
-        vn.elements.helpModals[noteIndex].style.marginTop = vn.elements.templates[noteIndex].clientHeight*0.1 + "px"
+        note._elements.modalBack.style.width = note._elements.template.clientWidth + "px";
+        note._elements.modalBack.style.height = note._elements.template.clientHeight + "px";
+        note._elements.attLinkModal.style.width = note._elements.textarea.clientWidth*0.8 + "px"
+        note._elements.attLinkModal.style.marginTop = note._elements.template.clientHeight*0.1 + "px"
+        note._elements.attFileModal.style.width = note._elements.textarea.clientWidth*0.8 + "px"
+        note._elements.attFileModal.style.marginTop = note._elements.template.clientHeight*0.1 + "px"
+        note._elements.attImageModal.style.width = note._elements.textarea.clientWidth*0.8 + "px"
+        note._elements.attImageModal.style.marginTop = note._elements.template.clientHeight*0.1 + "px"
+        note._elements.attVideoModal.style.width = note._elements.textarea.clientWidth*0.8 + "px"
+        note._elements.attVideoModal.style.marginTop = note._elements.template.clientHeight*0.1 + "px"
+        note._elements.helpModal.style.width = note._elements.textarea.clientWidth*0.8 + "px"
+        note._elements.helpModal.style.marginTop = note._elements.template.clientHeight*0.1 + "px"
     },500);
 };
 
-/**
-* setPlaceholderSize
-* @description Controls the size and position of the placeholder for the specified note.
-* @param {number} noteIndex - The index of the note for which to set the placeholder size.
-*/
-var setPlaceholderSize = function(noteIndex: number) {
+export const setPlaceholderSize = (note: VanillanoteElement) => {
     // Use setTimeout to adjust size according to the dynamic change in textarea's size.
     setTimeout(function() {
-        if(!vn.variables.placeholderIsVisible[noteIndex]) return;
-        closePlaceholder(noteIndex);
-        if(vn.elements.textareas[noteIndex].offsetParent === null) return
-        vn.elements.placeholders[noteIndex].style.top = (vn.elements.textareas[noteIndex].offsetTop + vn.variables.placeholderAddTop[noteIndex]) + "px";
-        vn.elements.placeholders[noteIndex].style.left = (vn.elements.textareas[noteIndex].offsetLeft + vn.variables.placeholderAddLeft[noteIndex]) + "px";
-        vn.elements.placeholders[noteIndex].style.width = vn.variables.placeholderWidth[noteIndex] ? vn.variables.placeholderWidth[noteIndex] : vn.elements.textareas[noteIndex].clientWidth + "px";
-        openPlaceholder(noteIndex);
+        if(!note._attributes.placeholderIsVisible) return;
+        closePlaceholder(note);
+        if(note._elements.textarea.offsetParent === null) return
+        note._elements.placeholder.style.top = (note._elements.textarea.offsetTop + note._attributes.placeholderAddTop) + "px";
+        note._elements.placeholder.style.left = (note._elements.textarea.offsetLeft + note._attributes.placeholderAddLeft) + "px";
+        note._elements.placeholder.style.width = note._attributes.placeholderWidth ? note._attributes.placeholderWidth : note._elements.textarea.clientWidth + "px";
+        openPlaceholder(note);
     },100);
 };
 
-/**
-* setAllToolTipPosition
-* @description Adjusts the position of tooltips based on the ToolPosition value for the specified note.
-* @param {number} noteIndex - The index of the note for which to adjust tooltip positions.
-*/
-var setAllToolTipPosition = function(noteIndex: number) {
-    if(vn.variables.ToolPosition[noteIndex] === "BOTTOM") {
-        vn.elements.attLinkTooltips[noteIndex].style.bottom = vn.elements.tools[noteIndex].style.height;
-        vn.elements.attImageAndVideoTooltips[noteIndex].style.bottom = vn.elements.tools[noteIndex].style.height;
+export const setAllToolTipPosition = (note: VanillanoteElement) => {
+    if(note._attributes.toolPosition === ToolPosition.bottom) {
+        note._elements.attLinkTooltip.style.bottom = note._elements.tool.style.height;
+        note._elements.attImageAndVideoTooltip.style.bottom = note._elements.tool.style.height;
     }
 };
-
 
 /**
 * appearAttLinkToolTip
@@ -687,16 +564,11 @@ var setImageAndVideoWidth = function(el: any) {
     vn.variables.editStartNodes[noteIndex] = imgNode;
 };
 
-/**
-* setAllToolSize
-* @description Adjusts the size of the toolbar based on certain conditions and element positions.
-* @param {number} noteIndex - The index of the note (assumed to be a unique identifier).
-*/
-var setAllToolSize = function(noteIndex: number) {
-    var toolButtons: any =  vn.elements.tools[noteIndex].childNodes;
+export const setAllToolSize = (note: VanillanoteElement) => {
+    var toolButtons: any =  note._elements.tool.childNodes;
     
-    var displayInlineBlock = getId(noteIndex, "on_display_inline_block");
-    var displayNone = getId(noteIndex, "on_display_none");
+    var displayInlineBlock = getId(note._noteName, note.id, "on_display_inline_block");
+    var displayNone = getId(note._noteName, note.id, "on_display_none");
     
     // Display all buttons (reset their display style)
     for(var i = toolButtons.length - 1; i >= 0; i--) {
@@ -704,10 +576,10 @@ var setAllToolSize = function(noteIndex: number) {
         toolButtons[i].classList.remove(displayNone);
     }
     
-    if(vn.elements.tools[noteIndex].offsetParent === null) return;
+    if(note._elements.tool.offsetParent === null) return;
     
     // Control toolbar size based on toggle state
-    if(!vn.variables.toolToggles[noteIndex]) {	// Toggle false state: Resize the toolbar based on the last visible button.
+    if(!note._status.toolToggle) {	// Toggle false state: Resize the toolbar based on the last visible button.
         var toolAbsoluteTop;
         var lastButton;
         var lastButtonAbsoluteTop;
@@ -720,18 +592,18 @@ var setAllToolSize = function(noteIndex: number) {
             }
         }
         
-        if(vn.elements.tools[noteIndex].offsetParent === null) return;
-        toolAbsoluteTop = window.pageYOffset + vn.elements.tools[noteIndex].getBoundingClientRect().top;
+        if(note._elements.tool.offsetParent === null) return;
+        toolAbsoluteTop = window.pageYOffset + note._elements.tool.getBoundingClientRect().top;
         lastButtonAbsoluteTop = window.pageYOffset + lastButton.getBoundingClientRect().top;
-        differ = lastButtonAbsoluteTop - toolAbsoluteTop + (vn.variables.sizeRates[noteIndex] * 52);
+        differ = lastButtonAbsoluteTop - toolAbsoluteTop + (note._attributes.sizeRate * 52);
         
-        vn.elements.tools[noteIndex].style.height = (differ) + "px";	// Set the height of the toolbar accordingly.
+        note._elements.tool.style.height = (differ) + "px";	// Set the height of the toolbar accordingly.
     }
     else {// Toggle true state: Keep the size to default lines and hide overflowing buttons.
-        vn.elements.tools[noteIndex].style.height = (vn.variables.toolDefaultLines[noteIndex] * (vn.variables.sizeRates[noteIndex] * 52)) + "px";
+        note._elements.tool.style.height = (note._attributes.toolDefaultLine * (note._attributes.sizeRate * 52)) + "px";
         // Hide buttons that are not within the bounds of the toolbar.
         for(var i = toolButtons.length - 1; i >= 0; i--) {
-            if(!isElementInParentBounds(vn.elements.tools[noteIndex],toolButtons[i])) {
+            if(!isElementInParentBounds(note._elements.tool,toolButtons[i])) {
                 toolButtons[i].classList.remove(displayInlineBlock);
                 toolButtons[i].classList.add(displayNone);
             }
@@ -739,13 +611,79 @@ var setAllToolSize = function(noteIndex: number) {
     }
 };
 
-/**
-* initAttLink
-* @description Initializes attLinkText, attLinkHref, and attLinkCheckbox in the specified note.
-* @param {number} noteIndex - The index of the note where the elements need to be initialized.
-*/
-var initAttLink = function(noteIndex: number) {
-    (vn.elements.attLinkTexts[noteIndex] as any).value = "";
-    (vn.elements.attLinkHrefs[noteIndex] as any).value = "";
-    (vn.elements.attLinkIsBlankCheckboxes[noteIndex] as any).checked = false;
+export const doDecreaseTextareaHeight = (note: VanillanoteElement) => {
+    // Stop if not in auto-scroll mode.
+    if(!note._attributes.isNoteByMobile) return;
+    note._elements.textarea.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+    });
+    setTimeout(function() {
+        if(extractUnit(note._attributes.textareaOriginHeight) !== 'px') return;
+        if(note._vn.variables.mobileKeyboardExceptHeight! < extractNumber(note._attributes.textareaOriginHeight)!
+            && note._vn.variables.mobileKeyboardExceptHeight! < note._elements.textarea.offsetHeight) {
+            note._elements.textarea.style.height = note._vn.variables.mobileKeyboardExceptHeight + "px";
+        }
+    }, 100);
+};
+
+export const doIncreaseTextareaHeight = (vn: Vanillanote) => {
+    const noteIds = Object.keys(vn.vanillanoteElements);
+    // Restore the note size.
+    for(var i = 0; i < noteIds.length; i++) {
+        const note = vn.vanillanoteElements[noteIds[i]]
+        if(!note._attributes.isNoteByMobile) continue;
+        note._elements.textarea.style.height = note._attributes.textareaOriginHeight;
+    }
+};
+
+export const modifyTextareaScroll = function(textarea: any, note: VanillanoteElement) {
+    // Stop if not in auto-scroll mode.
+    if(!note._attributes.isNoteByMobile) return;
+    
+    if(note._vn.variables.preventChangeScroll > 0) {
+        note._vn.variables.preventChangeScroll--;
+        return;	
+    }
+    if(note._vn.variables.isSelectionProgress) return;
+    note._vn.variables.isSelectionProgress = true;
+    // 0.05 seconds time out.
+    setTimeout(function() {
+        note._vn.variables.isSelectionProgress = false;
+        
+        //If there is unvalid selection, return.
+        if(!isValidSelection(note)) return;
+        
+        // The number of the middle element from the currently dragged elements.
+        const indexMiddleUnit = checkNumber(note._selection.editDragUnitElement.length / 2) ?
+        note._selection.editDragUnitElement.length / 2 - 1 : Math.floor(note._selection.editDragUnitElement.length / 2);
+        // The total height of the currently dragged elements.
+        const heightSumDragUnitElements = (note._selection.editDragUnitElement as any)[(note._selection.editDragUnitElement as any).length - 1].offsetTop
+        - (note._selection.editDragUnitElement as any)[0].offsetTop
+        + (note._selection.editDragUnitElement as any)[(note._selection.editDragUnitElement as any).length - 1].offsetHeight;
+        // If the total height of the currently dragged elements is larger than the current textarea's height, do not scroll. (With a margin of about 30px).
+        if(heightSumDragUnitElements > textarea.offsetHeight - 30) return;
+        // If any select box is open, do not scroll.
+        if(getCheckSelectBoxesOpened(note)) return;
+        if((note._selection.editRange as any).collapsed) {
+            setElementScroll(textarea, note._selection.editStartElement);
+        }
+        else {
+            setElementScroll(textarea, note._selection.editDragUnitElement[indexMiddleUnit]);
+        }
+                
+    }, 50);
+}
+
+export const initTextarea = (textarea: HTMLTextAreaElement) =>  {
+    // Remove all existing child elements of the textarea.
+    while(textarea.firstChild) {
+        textarea.removeChild(textarea.firstChild);
+    }
+    var tempEl1 = document.createElement("P");
+    var tempEl2 = document.createElement("BR");
+    tempEl1.appendChild(tempEl2);
+    textarea.appendChild(tempEl1);
+    // Sets the new selection range.
+    setNewSelection(tempEl1, 0, tempEl1, 0);
 };
