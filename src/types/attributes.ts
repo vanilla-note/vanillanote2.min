@@ -16,12 +16,12 @@ export interface Attributes {
      * - Variables for dynamically setting the size of the textarea
      * - Default width of the textarea. If not set, the value of textarea-width is inserted. Used for dynamically changing the width.
      */
-    textareaOriginWidths: string;
+    textareaOriginWidth: string;
     /**
      * - Variables for dynamically setting the size of the textarea
      * - Default height of the textarea. If not set, the value of textarea-height is inserted. Used for dynamically changing the height. Only insert css style in px units.(ex. 400px)
      */
-    textareaOriginHeights: string;
+    textareaOriginHeight: string;
     /**
      * - Variables for dynamically setting the max size of the textarea
      * - Default max-width of the textarea. If not set, the value of textarea-max-width is inserted. Used for dynamically changing the width.
