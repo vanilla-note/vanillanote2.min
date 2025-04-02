@@ -1,4 +1,3 @@
-import { ToolPosition } from './enums'
 /**
  * Runtime variables and settings that manage editor creation and behavior.
  * - Includes per-instance configurations and global values.
@@ -6,7 +5,7 @@ import { ToolPosition } from './enums'
  *
  * @example
  * if (isMobileDevice) {
- *   vn.variables.attFileMaxSizes[0] = 50 * 1024 * 1024; // Increase max upload size on mobile
+ *   vn.variables.attFileMaxSize[0] = 50 * 1024 * 1024; // Increase max upload size on mobile
  * }
  */
 export interface Variables {
@@ -40,5 +39,5 @@ export interface Variables {
 	 * - Interval given when loading the editor. Default value is 100. For arranging visual elements like converting text to icons and adjusting editor size before displaying.
 	 */
 	loadInterval: number;
-	canEvents: boolean;
+	canEvent: boolean;
 }
