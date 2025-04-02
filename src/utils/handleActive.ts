@@ -1,17 +1,11 @@
-import { Consts } from "../types/consts";
+import type { Consts } from "../types/consts";
 import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
 import { button_onToggle } from "./handleElement";
-import { checkNumber, checkRealNumber, getCssTextFromObject, getHexColorFromColorName, getRGBAFromHex, setAttributesObjectToElement } from "./util";
-import { compareObject, getObjectFromCssText } from "./utils";
+import { setNewSelection } from "./handleSelection";
+import { checkRealNumber, compareObject, getCssTextFromObject, getHexColorFromColorName, getObjectFromCssText, getRGBAFromHex, setAttributesObjectToElement } from "./util";
 
-/**
-* onEventDisable
-* @description This function temporarily disables user interaction for a specific note when an event occurs.
-* @param {Vanillanote} vn - vanillanote object
-* @param {Number} noteIndex - The index of the note for which the interaction should be disabled.
-*/
 export const onEventDisable = (vn: Vanillanote, type: string) => {
-    var interval
+    let interval
     if(type === "resize") {
         interval = vn.variables.resizeInterval;
     }
@@ -19,28 +13,18 @@ export const onEventDisable = (vn: Vanillanote, type: string) => {
         interval = vn.variables.inputInterval;
     }
     // Temporarily block user input
-    vn.variables.canEvents = false;
+    vn.variables.canEvent = false;
     
     // Allow user input again after 0.05 seconds
-    setTimeout(function() {
-        vn.variables.canEvents = true;
+    setTimeout(() => {
+        vn.variables.canEvent = true;
     }, interval);
 };
 
-/**
-* replaceDifferentBetweenElements
-* @description This function compares two given elements and replaces any differences between them. 
-*              If differences are found, it replaces the old element with the new one. 
-*              The function iterates recursively through all child elements. 
-*              Also, it resets the selection after the changes.
-* @param {Vanillanote} vn - vanillanote object
-* @param {Element} oldEl - The old HTML element.
-* @param {Element} newEl - The new HTML element.
-*/
 export const replaceDifferentBetweenElements = (vn: Vanillanote, oldEl: any, newEl: any) => {
-    var newStartNode: any;
-    var newEndNode: any;
-    var tempEl;
+    let newStartNode: any;
+    let newEndNode: any;
+    let tempEl;
     
     // Compares the two elements and modifies the different parts.
     const replaceElements = (vn: Vanillanote, el1: any, el2: any) => {
@@ -74,14 +58,14 @@ export const replaceDifferentBetweenElements = (vn: Vanillanote, oldEl: any, new
             newEndNode = tempEl;
         }
         else {
-            var children1 = Array.prototype.slice.call(el1.childNodes);
-            var children2 = Array.prototype.slice.call(el2.childNodes);
+            const children1 = Array.prototype.slice.call(el1.childNodes);
+            const children2 = Array.prototype.slice.call(el2.childNodes);
             
             // Iterates based on the element with more child elements among the two.
-            var maxChildrenLength = Math.max(children1.length, children2.length);
-            for(var i = 0; i < maxChildrenLength; i++) {
-                var child1 = children1[i];
-                var child2 = children2[i];
+            const maxChildrenLength = Math.max(children1.length, children2.length);
+            for(let i = 0; i < maxChildrenLength; i++) {
+                const child1 = children1[i];
+                const child2 = children2[i];
                 
                 if(!child1 && child2) { // Adds a child element that exists in el2 but not in el1.
                     tempEl = child2.cloneNode(true);
@@ -104,7 +88,7 @@ export const replaceDifferentBetweenElements = (vn: Vanillanote, oldEl: any, new
     // Sets the new selection range.
     if(!newStartNode) return
     if(!newEndNode) newEndNode = newStartNode;
-    var newEndOffset: any;
+    let newEndOffset: any;
     if(newEndNode instanceof Element) {
         newEndOffset = newEndNode.childNodes.length;
     }
@@ -123,53 +107,33 @@ export const replaceDifferentBetweenElements = (vn: Vanillanote, oldEl: any, new
             );
 };
 
-/**
-* compareAttributesBetweenEl
-* @description This function checks if the attributes of two HTML elements are the same.
-* @param {HTMLElement} el1 - The first HTML element to compare.
-* @param {HTMLElement} el2 - The second HTML element to compare.
-* @returns {Boolean} Returns true if the attributes of both elements are the same, false otherwise.
-*/
 export const compareAttributesBetweenEl = (el1: any, el2: any) => {
-    var attrs1 = getAttributesObjectFromElement(el1);
-    var attrs2 = getAttributesObjectFromElement(el2);
+    const attrs1 = getAttributesObjectFromElement(el1);
+    const attrs2 = getAttributesObjectFromElement(el2);
 
     return compareObject(attrs1, attrs2);
 };
 
-/**
-* compareStylesBetweenEl
-* @description This function checks if the styles of two HTML elements are the same.
-* @param {HTMLElement} el1 - The first HTML element to compare.
-* @param {HTMLElement} el2 - The second HTML element to compare.
-* @returns {Boolean} Returns true if the styles of both elements are the same, false otherwise.
-*/
 export const compareStylesBetweenEl = (el1: any, el2: any) => {
-    var style1 = (el1 as any).cssText;
-    var style2 = (el2 as any).cssText;
+    const style1 = (el1 as any).cssText;
+    const style2 = (el2 as any).cssText;
     
     return compareObject(getObjectFromCssText(style1), getObjectFromCssText(style2));
 };
 
-/**
-* getAttributesObjectFromElement
-* @description This function converts an element's attributes into an object.
-* @param {HTMLElement} element - The HTML element whose attributes are to be converted.
-* @returns {Object} Returns an object where each key-value pair represents an attribute of the element and its corresponding value.
-*/
 export const getAttributesObjectFromElement = (element: any) => {
-    var attriesObject = new Object();
+    const attriesObject = new Object();
     if(!element.attributes) return attriesObject;
     
-    for(var i = 0; i < element.attributes.length; i++) {
+    for(let i = 0; i < element.attributes.length; i++) {
         (attriesObject as any)[element.attributes[i].nodeName] = element.attributes[i].nodeValue
     }
     return attriesObject;
 };
 
 export const getSpecialTag = (el: any, note: VanillanoteElement) => {
-    var element = el;
-    var tagName = element.tagName;
+    let element = el;
+    let tagName = element.tagName;
     while(element && note._vn.consts.UNIT_TAG.indexOf(tagName) < 0) {
         if(note._vn.consts.SPECIAL_TAG.indexOf(tagName) >= 0) return tagName;
         element = element.parentNode;
@@ -179,8 +143,8 @@ export const getSpecialTag = (el: any, note: VanillanoteElement) => {
     return "SPAN";
 };
 
-export const getParentUnitTagElemnt = function(el: any, note: VanillanoteElement) {
-    var element = el;
+export const getParentUnitTagElemnt = (el: any, note: VanillanoteElement) => {
+    let element = el;
     while(element) {
         //p, h1, h2, h3, h4, h5, h6, li
         if(note._vn.consts.UNIT_TAG.indexOf(element.tagName) >= 0) {
@@ -200,7 +164,7 @@ export const getParentUnitTagElemnt = function(el: any, note: VanillanoteElement
 };
 
 export const getParentTagName = (el: any, note: VanillanoteElement) => {
-    var tagName = "span";
+    const tagName = "span";
     if(!el) return tagName;
     if(!el.parentNode) return tagName;
     if(!el.parentNode.tagName) return tagName;
@@ -210,13 +174,13 @@ export const getParentTagName = (el: any, note: VanillanoteElement) => {
 };
 
 export const getObjectEditElementAttributes = (el: any, note: VanillanoteElement) => {
-    var attributesObject: any = getAttributesObjectFromElement(el); 
+    const attributesObject: any = getAttributesObjectFromElement(el); 
     // Helper function to check and add attributes from the element.
-    var chkElementAttributes = function(element: any) {
+    const chkElementAttributes = (element: any) => {
         if(element.getAttribute) {
-            var cssTempObject: any = getAttributesObjectFromElement(element);
-            var cssTempObjectKeys = Object.keys(cssTempObject);
-            for(var i = 0; i < cssTempObjectKeys.length; i++) {
+            const cssTempObject: any = getAttributesObjectFromElement(element);
+            const cssTempObjectKeys = Object.keys(cssTempObject);
+            for(let i = 0; i < cssTempObjectKeys.length; i++) {
                 if(cssTempObject[cssTempObjectKeys[i]] && cssTempObjectKeys[i] !== "style" && !attributesObject[cssTempObjectKeys[i]]) { //Empty value property, style is not imported!, Existing inserted properties are not imported!
                     attributesObject[cssTempObjectKeys[i]] = cssTempObject[cssTempObjectKeys[i]];
                 }
@@ -237,13 +201,13 @@ export const getObjectEditElementAttributes = (el: any, note: VanillanoteElement
 };
 
 export const getObjectEditElementCss = (el: any, note: VanillanoteElement) => {
-    var cssObject: any = getObjectFromCssText(document.contains(el) && el.getAttribute ? el.getAttribute("style") : ""); 
+    const cssObject: any = getObjectFromCssText(document.contains(el) && el.getAttribute ? el.getAttribute("style") : ""); 
     
-    var chkElementStyle = function(element: any) {
+    const chkElementStyle = (element: any) => {
         if(element.getAttribute) {
-            var cssTempObject: any = getObjectFromCssText(element.getAttribute("style"));
-            var cssTempObjectKeys = Object.keys(cssTempObject);
-            for(var i = 0; i < cssTempObjectKeys.length; i++) {
+            const cssTempObject: any = getObjectFromCssText(element.getAttribute("style"));
+            const cssTempObjectKeys = Object.keys(cssTempObject);
+            for(let i = 0; i < cssTempObjectKeys.length; i++) {
                 if(!cssObject[cssTempObjectKeys[i]]) cssObject[cssTempObjectKeys[i]] = cssTempObject[cssTempObjectKeys[i]];
             }
         }
@@ -277,7 +241,7 @@ export const getObjectEditElementCss = (el: any, note: VanillanoteElement) => {
     return cssObject;
 };
 
-export const getEditElementTag = function(note: VanillanoteElement) {
+export const getEditElementTag = (note: VanillanoteElement) => {
     let rtnTagName = "";
     let tempTagName = "";
     for(let i = 0; i < note._selection.editDragUnitElement.length; i++) {
@@ -297,9 +261,9 @@ export const getEditElementTag = function(note: VanillanoteElement) {
 };
 
 export const getPreviousElementsUntilNotTag = (startEl: any, tag: string, consts: Consts) => {
-    var previouses = [];
-    var previous = startEl;
-    var attributes = getAttributesObjectFromElement(startEl);
+    const previouses = [];
+    let previous = startEl;
+    const attributes = getAttributesObjectFromElement(startEl);
     previouses.push(previous);
     
     while (previous) {
@@ -329,9 +293,9 @@ export const getPreviousElementsUntilNotTag = (startEl: any, tag: string, consts
 };
 
 export const getNextElementsUntilNotTag = (startEl: any, tag: string, consts: Consts) => {
-    var nexts = [];
-    var next = startEl;
-    var attributes = getAttributesObjectFromElement(startEl);
+    const nexts = [];
+    let next = startEl;
+    const attributes = getAttributesObjectFromElement(startEl);
     nexts.push(next);
     
     while (next) {
@@ -390,13 +354,7 @@ export const initToggleButtonVariables = (note: VanillanoteElement) => {
     button_onToggle(note._elements.olButton, note._status.olToggle);
 };
 
-/**
-* isInNote
-* @description Checks if the given element is a child of the note.
-* @param {Element} el - The element to check.
-* @returns {boolean} Returns true if the element is a child of the note, otherwise false.
-*/
-var isInNote = function(el: any) {
+const isInNote = (el: any) => {
     while(el) {
         if(el && el instanceof Element && el.hasAttribute("data-vanillanote")) return true;
         el = el.parentNode;
@@ -405,10 +363,10 @@ var isInNote = function(el: any) {
 };
 
 export const getElementReplaceTag = (element: any, tag: string) => {
-    var tempEl = document.createElement(tag);
-    var childNodes = element.childNodes;
-    var csses: any;
-    var newCssText;
+    let tempEl = document.createElement(tag);
+    const childNodes = element.childNodes;
+    let csses: any;
+    let newCssText;
     while(childNodes[0]) {
         if(childNodes[0].getAttribute) {
             csses = getObjectFromCssText(childNodes[0].getAttribute("style"));
@@ -431,12 +389,12 @@ export const getElementReplaceTag = (element: any, tag: string) => {
 
 export const removeDoubleTag = (note: VanillanoteElement, element: any) => {
     if(note._vn.consts.DOUBLE_TAG.indexOf(element.tagName) < 0) return;
-    var tempEl;
-    var childNodes = element.childNodes;
-    for(var i = 0; i < childNodes.length; i++) {
+    let tempEl;
+    const childNodes = element.childNodes;
+    for(let i = 0; i < childNodes.length; i++) {
         tempEl = getElementReplaceTag(childNodes[i], "P");
         element.insertAdjacentElement("beforebegin", tempEl);
-        for(var j = 0; j < note._selection.editDragUnitElement.length; j++) {
+        for(let j = 0; j < note._selection.editDragUnitElement.length; j++) {
             if(note._selection.editDragUnitElement[j] === childNodes[i]) {
                 note._selection.editDragUnitElement[j] = tempEl;
                 break;
@@ -451,7 +409,7 @@ export const getElement = (text: string, tagName: string, cssText: string, attri
     if(!tagName || note._vn.consts.UNIT_TAG.indexOf(tagName) >= 0 || note._vn.consts.AUTO_MODIFY_TAG.indexOf(tagName) >= 0) {
         tagName = "span"
     }
-    var tempEl = document.createElement(tagName);
+    let tempEl = document.createElement(tagName);
     tempEl.innerText = text;
     if(attributes) {
         tempEl = setAttributesObjectToElement(tempEl, attributes);
@@ -464,7 +422,7 @@ export const getElement = (text: string, tagName: string, cssText: string, attri
 };
 
 export const setEditNodeAndElement = (note: VanillanoteElement, setElement: any, compareElement: any) => {
-    var isChange = false;
+    let isChange = false;
     if(note._selection.editStartNode === compareElement) {
         note._selection.editStartNode = setElement;
         isChange = true;
@@ -493,27 +451,23 @@ export const setEditNodeAndElement = (note: VanillanoteElement, setElement: any,
 };
 
 export const removeEmptyElment = (el: any, note: VanillanoteElement) => {
-    var childrens = el.querySelectorAll("*");
-    for(var i = childrens.length - 1; i >= 0; i--) {
+    const childrens = el.querySelectorAll("*");
+    for(let i = childrens.length - 1; i >= 0; i--) {
         if(!(childrens[i].hasChildNodes()) && note._vn.consts.EMPTY_ABLE_TAG.indexOf(childrens[i].tagName) < 0) {
             childrens[i].remove();
         }
     }
 };
 
-/**
-* editUnitCheck
-* @description Checks and surrounds elements that are not already within unit tags with a new unit tag in the editor.
-* @param {Element} textarea - The textarea element representing the editor.
-*/
-var editUnitCheck = function(textarea: any) {
-    var childrens = textarea.childNodes;
-    var tempNewUnitElement = document.createElement("P");
-    var removeElements = [];
-    var isFirstToggle = true;
-    for(var i = 0; i < childrens.length; i++) {
+const editUnitCheck = (note: VanillanoteElement) => {
+    const textarea = note._elements.textarea;
+    const childrens: any = textarea.childNodes;
+    let tempNewUnitElement = document.createElement("P");
+    const removeElements = [];
+    let isFirstToggle = true;
+    for(let i = 0; i < childrens.length; i++) {
         // If the parent is not a unit tag or a double tag
-        if(vn.consts.UNIT_TAG.indexOf(childrens[i].tagName) < 0 && vn.consts.DOUBLE_TAG.indexOf(childrens[i].tagName) < 0) {
+        if(note._vn.consts.UNIT_TAG.indexOf(childrens[i].tagName) < 0 && note._vn.consts.DOUBLE_TAG.indexOf(childrens[i].tagName) < 0) {
             if(isFirstToggle) {
                 textarea.insertBefore(tempNewUnitElement, childrens[i]);
                 isFirstToggle = false;
@@ -528,47 +482,38 @@ var editUnitCheck = function(textarea: any) {
             isFirstToggle = true;
         }
     }
-    for(var i = 0; i < removeElements.length; i++) {
+    for(let i = 0; i < removeElements.length; i++) {
         removeElements[i].remove();
     }
 };
 
-/**
-* doEditUnitCheck
-* @description do editUnitCheck.
-* @param {Element} textarea - The textarea element representing the editor.
-*/
-var doEditUnitCheck = function(noteIndex: number) {
+export const doEditUnitCheck = (note: VanillanoteElement) => {
     //Disconnect the observer.
-    elementsEvent["note_observer"].disconnect();
+    note._vn.events.documentEvents.noteObserver!.disconnect();
     // In the editor, elements not surrounded by unit tags are recreated, wrapped with unit tags.
-    editUnitCheck(note._elements.textareas[noteIndex]);
+    editUnitCheck(note);
     // Reconnect the observer.
-    connectObserver();
+    connectObserver(note._vn);
 }
 
-/**
-* connectObserver
-* @description Connects the observer to all note textareas.
-*/
-var connectObserver = function() {
-    for(var i = 0; i < note._elements.textareas.length; i++) {
-        elementsEvent["note_observer"].observe(note._elements.textareas[i], vn.variables.observerOptions);
-    }
+export const connectObserver = (vn: Vanillanote) => {
+    Object.keys(vn.vanillanoteElements).forEach((id) => {
+        vn.events.documentEvents.noteObserver!.observe(vn.vanillanoteElements[id]._elements.textarea, vn.variables.observerOptions);
+    });
 };
 
 export const isElementInParentBounds = (parent: any, child: any) => {
     if(parent.offsetParent === null) return false;
-    var parentRect = parent.getBoundingClientRect();
+    const parentRect = parent.getBoundingClientRect();
     
     if(child.offsetParent === null) return false;
-    var childRect = child.getBoundingClientRect();
+    const childRect = child.getBoundingClientRect();
 
-    var childAbsoluteTop = childRect.top + window.pageYOffset;
-    var childAbsoluteBottom = childRect.bottom + window.pageYOffset;
+    const childAbsoluteTop = childRect.top + window.pageYOffset;
+    const childAbsoluteBottom = childRect.bottom + window.pageYOffset;
 
-    var parentAbsoluteTop = parentRect.top + window.pageYOffset;
-    var parentAbsoluteBottom = parentRect.bottom + window.pageYOffset;
+    const parentAbsoluteTop = parentRect.top + window.pageYOffset;
+    const parentAbsoluteBottom = parentRect.bottom + window.pageYOffset;
 
     return (
         childAbsoluteTop >= parentAbsoluteTop &&
@@ -580,38 +525,33 @@ export const validCheckAttLink = (note: VanillanoteElement) => {
     if(!(note._elements.attLinkText as any).value) {
         (note._elements.attLinkValidCheckbox as any).checked = false;
         note._elements.attLinkValidCheckText.style.color = getHexColorFromColorName(note._colors.color9);
-        note._elements.attLinkValidCheckText.textContent = note._vn.languageSet[note._attributes.language].attLinkInTextTooltip;	//COMMENT
+        note._elements.attLinkValidCheckText.textContent = note._vn.languageSet[note._attributes.language].attLinkInTextTooltip;
         return;
     }
     
     if(!(note._elements.attLinkHref as any).value) {
         (note._elements.attLinkValidCheckbox as any).checked = false;
         note._elements.attLinkValidCheckText.style.color = getHexColorFromColorName(note._colors.color9);
-        note._elements.attLinkValidCheckText.textContent = note._vn.languageSet[note._attributes.language].attLinkInLinkTooltip;	//COMMENT
+        note._elements.attLinkValidCheckText.textContent = note._vn.languageSet[note._attributes.language].attLinkInLinkTooltip;
         return;
     }
     
     (note._elements.attLinkValidCheckbox as any).checked = true;
     note._elements.attLinkValidCheckText.style.color = getHexColorFromColorName(note._colors.color8);
-    note._elements.attLinkValidCheckText.textContent = note._vn.languageSet[note._attributes.language].thanks;	//COMMENT
+    note._elements.attLinkValidCheckText.textContent = note._vn.languageSet[note._attributes.language].thanks;
 };
 
-/**
-* validCheckAttVideo
-* @description Validates the video attachment in the specified note.
-* @param {number} noteIndex - The index of the note where the video attachment needs to be validated.
-*/
-var validCheckAttVideo = function(noteIndex: number) {
-    if(!(note._elements.attVideoEmbedIds[noteIndex] as any).value) {
-        (note._elements.attVideoValidCheckboxes[noteIndex] as any).checked = false;
-        note._elements.attVideoValidCheckTexts[noteIndex].style.color = getHexColorFromColorName(vn.colors.color9[noteIndex]);
-        note._elements.attVideoValidCheckTexts[noteIndex].textContent = vn.languageSet[note._attributes.language].attVideoEmbedIdTooltip;	//COMMENT
+export const validCheckAttVideo = (note: VanillanoteElement) => {
+    if(!(note._elements.attVideoEmbedId as any).value) {
+        (note._elements.attVideoValidCheckbox as any).checked = false;
+        note._elements.attVideoValidCheckText.style.color = getHexColorFromColorName(note._colors.color9);
+        note._elements.attVideoValidCheckText.textContent = note._vn.languageSet[note._attributes.language].attVideoEmbedIdTooltip;
         return;
     }
     
-    (note._elements.attVideoValidCheckboxes[noteIndex] as any).checked = true;
-    note._elements.attVideoValidCheckTexts[noteIndex].style.color = getHexColorFromColorName(vn.colors.color8[noteIndex]);
-    note._elements.attVideoValidCheckTexts[noteIndex].textContent = vn.languageSet[note._attributes.language].thanks;	//COMMENT
+    (note._elements.attVideoValidCheckbox as any).checked = true;
+    note._elements.attVideoValidCheckText.style.color = getHexColorFromColorName(note._colors.color8);
+    note._elements.attVideoValidCheckText.textContent = note._vn.languageSet[note._attributes.language].thanks;
 };
 
 export const initAttLink = (note: VanillanoteElement) => {
@@ -620,7 +560,7 @@ export const initAttLink = (note: VanillanoteElement) => {
     note._elements.attLinkIsBlankCheckbox.checked = false;
 };
 
-export const initAttFile = function(note: VanillanoteElement) {
+export const initAttFile = (note: VanillanoteElement) => {
     delete note._attTempFiles;
     note._attTempFiles = {};
     note._elements.attFileUploadDiv.replaceChildren();
@@ -629,7 +569,7 @@ export const initAttFile = function(note: VanillanoteElement) {
     note._elements.attFileUpload.value = "";
 };
 
-export const initAttImage = function(note: VanillanoteElement) {
+export const initAttImage = (note: VanillanoteElement) => {
     delete note._attTempImages;
     note._attTempImages = {};
     note._elements.attImageUploadButtonAndView.replaceChildren();
@@ -639,8 +579,8 @@ export const initAttImage = function(note: VanillanoteElement) {
     note._elements.attImageURL.removeAttribute("readonly");
 };
 
-export const getObjectNoteCss = function(note: VanillanoteElement) {
-    var cssObject: any = new Object();
+export const getObjectNoteCss = (note: VanillanoteElement) => {
+    const cssObject: any = new Object();
     
     if(note._status.boldToggle) {
         cssObject["font-weight"] = "bold";
@@ -657,8 +597,8 @@ export const getObjectNoteCss = function(note: VanillanoteElement) {
     if(note._status.letterSpacing && checkRealNumber(note._status.letterSpacing)){
         cssObject["letter-spacing"] = note._status.letterSpacing + "px";
     }
-    if(note._status.fontFamilie){
-        cssObject["font-family"] = note._status.fontFamilie;
+    if(note._status.fontFamily){
+        cssObject["font-family"] = note._status.fontFamily;
     }
     // Add text color to the style object if it's different from the default color and opacity
     if(getHexColorFromColorName(note._colors.color12) !== note._status.colorTextRGB
@@ -672,4 +612,9 @@ export const getObjectNoteCss = function(note: VanillanoteElement) {
     }
     
     return cssObject;
+};
+
+export const showAlert = (message: string, beforeAlert: ((message: string) => boolean)) => {
+    if(!beforeAlert(message)) return;
+    alert(message);
 };
