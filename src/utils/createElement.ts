@@ -1,108 +1,99 @@
-import { VanillanoteElement } from "../types/vanillanote";
-import { getObjectNoteCss } from "./handleActive";
+import type { VanillanoteElement } from "../types/vanillanote";
+import { getElement, getObjectNoteCss, showAlert } from "./handleActive";
 import { fontFamilySelectList_onClick, selectToggle } from "./handleElement";
 import { modifySelectedSingleElement, setOriginEditSelection } from "./handleSelection";
-import { getClassName, getClickCssEventElementClassName, getEventChildrenClassName, getHexColorFromColorName, getId, getOnOverCssEventElementClassName, getParentNote } from "./util";
+import { getClassName, getClickCssEventElementClassName, getEventChildrenClassName, getHexColorFromColorName, getId, getOnOverCssEventElementClassName } from "./util";
 
-export const setAttTempFileValid = (noteIndex: number) => {
-    var newAttTempFiles: any = new Object;
-    var keys = Object.keys(vn.variables.attTempFiles[noteIndex]);
-    for(var i = 0; i < keys.length; i++) {
-        if(vn.variables.attFileAcceptTypes[noteIndex].length > 0) {
-            if(vn.variables.attFileAcceptTypes[noteIndex].includes(vn.variables.attTempFiles[noteIndex][keys[i]].type)) {
-                newAttTempFiles[keys[i]] = vn.variables.attTempFiles[noteIndex][keys[i]];
+export const setAttTempFileValid = (note: VanillanoteElement) => {
+    const newAttTempFiles: any = new Object;
+    const keys = Object.keys(note._attTempFiles!);
+    for(let i = 0; i < keys.length; i++) {
+        if(note._attributes.attFileAcceptTypes.length > 0) {
+            if(note._attributes.attFileAcceptTypes.includes(note._attTempFiles![keys[i]].type)) {
+                newAttTempFiles[keys[i]] = note._attTempFiles![keys[i]];
             }
         }
         else {
-            newAttTempFiles[keys[i]] = vn.variables.attTempFiles[noteIndex][keys[i]];
+            newAttTempFiles[keys[i]] = note._attTempFiles![keys[i]];
         }
         
         if(!newAttTempFiles[keys[i]]) continue;
         
-        if(vn.variables.attFilePreventTypes[noteIndex].includes(newAttTempFiles[keys[i]].type)) {
-            showAlert("[" + newAttTempFiles[keys[i]].name + "] " + vn.languageSet[vn.variables.languages[noteIndex]].attPreventType);
+        if(note._attributes.attFilePreventTypes.includes(newAttTempFiles[keys[i]].type)) {
+            showAlert("[" + newAttTempFiles[keys[i]].name + "] " + note._vn.languageSet[note._attributes.language].attPreventType, note._vn.beforeAlert);
             delete newAttTempFiles[keys[i]];
         }
-        else if(newAttTempFiles[keys[i]].size >= vn.variables.attFileMaxSizes[noteIndex]) {
-            showAlert("[" + newAttTempFiles[keys[i]].name + "] " + vn.languageSet[vn.variables.languages[noteIndex]].attOverSize);
+        else if(newAttTempFiles[keys[i]].size >= note._attributes.attFileMaxSize) {
+            showAlert("[" + newAttTempFiles[keys[i]].name + "] " + note._vn.languageSet[note._attributes.language].attOverSize, note._vn.beforeAlert);
             delete newAttTempFiles[keys[i]];
         }
     }
-    vn.variables.attTempFiles[noteIndex] = newAttTempFiles;
+    note._attTempFiles = newAttTempFiles;
 };
 
-export const setAttFileUploadDiv = (noteIndex: number) => {
-    if((vn.variables.attTempFiles[noteIndex] as any).length <= 0) {
-        vn.elements.attFileUploadDivs[noteIndex].style.removeProperty("line-height");
-        vn.elements.attFileUploadDivs[noteIndex].textContent = vn.languageSet[vn.variables.languages[noteIndex]].attFileUploadDiv;
+export const setAttFileUploadDiv = (note: VanillanoteElement) => {
+    if((note._attTempFiles as any).length <= 0) {
+        note._elements.attFileUploadDiv.style.removeProperty("line-height");
+        note._elements.attFileUploadDiv.textContent = note._vn.languageSet[note._attributes.language].attFileUploadDiv;
         return;
     } else {
-        vn.elements.attFileUploadDivs[noteIndex].style.lineHeight = "unset";
+        note._elements.attFileUploadDiv.style.lineHeight = "unset";
     }
-    vn.elements.attFileUploadDivs[noteIndex].replaceChildren();
+    note._elements.attFileUploadDiv.replaceChildren();
     
-    var keys = Object.keys(vn.variables.attTempFiles[noteIndex]);
-    var tempEl;
-    for(var i = 0; i < keys.length; i++) {
+    const keys = Object.keys(note._attTempFiles!);
+    let tempEl;
+    for(let i = 0; i < keys.length; i++) {
         tempEl = getElement(
-            vn.variables.attTempFiles[noteIndex][keys[i]].name,
+            note._attTempFiles![keys[i]].name,
             "P",
             "display:block;padding:0.5em 0;",
             {
-                "title":vn.languageSet[vn.variables.languages[noteIndex]].attFileListTooltip,
+                "title":note._vn.languageSet[note._attributes.language].attFileListTooltip,
                 "uuid":keys[i]
-            }
+            },
+            note
         );
-        vn.elements.attFileUploadDivs[noteIndex].appendChild(tempEl);
+        note._elements.attFileUploadDiv.appendChild(tempEl);
     }
 };
 
-/**
-* setAttTempImageValid
-* @description Filters the attTempImages to keep only valid image files.
-* @param {number} noteIndex - The index of the note for which the attTempImages need to be filtered.
-*/
-var setAttTempImageValid = function(noteIndex: number) {
-    var newAttTempImages: any = new Object;
-    var keys = Object.keys(vn.variables.attTempImages[noteIndex]);
-    for(var i = 0; i < keys.length; i++) {
-        if(vn.variables.attImageAcceptTypes[noteIndex].length > 0) {
-            if(vn.variables.attImageAcceptTypes[noteIndex].includes(vn.variables.attTempImages[noteIndex][keys[i]].type)) {
-                newAttTempImages[keys[i]] = vn.variables.attTempImages[noteIndex][keys[i]];
+export const setAttTempImageValid = (note: VanillanoteElement) => {
+    const newAttTempImages: any = new Object;
+    const keys = Object.keys(note._attTempImages!);
+    for(let i = 0; i < keys.length; i++) {
+        if(note._attributes.attImageAcceptTypes.length > 0) {
+            if(note._attributes.attImageAcceptTypes.includes(note._attTempImages![keys[i]].type)) {
+                newAttTempImages[keys[i]] = note._attTempImages![keys[i]];
             }
         }
         else {
-            newAttTempImages[keys[i]] = vn.variables.attTempImages[noteIndex][keys[i]];
+            newAttTempImages[keys[i]] = note._attTempImages![keys[i]];
         }
         
         if(!newAttTempImages[keys[i]]) continue;
         
-        if(vn.variables.attImagePreventTypes[noteIndex].includes(newAttTempImages[keys[i]].type)) {
-            showAlert("[" + newAttTempImages[keys[i]].name + "] " + vn.languageSet[vn.variables.languages[noteIndex]].attPreventType);
+        if(note._attributes.attImagePreventTypes.includes(newAttTempImages[keys[i]].type)) {
+            showAlert("[" + newAttTempImages[keys[i]].name + "] " + note._vn.languageSet[note._attributes.language].attPreventType, note._vn.beforeAlert);
             delete newAttTempImages[keys[i]];
         }
-        else if(newAttTempImages[keys[i]].size >= vn.variables.attImageMaxSizes[noteIndex]) {
-            showAlert("[" + newAttTempImages[keys[i]].name + "] " + vn.languageSet[vn.variables.languages[noteIndex]].attOverSize);
+        else if(newAttTempImages[keys[i]].size >= note._attributes.attImageMaxSize) {
+            showAlert("[" + newAttTempImages[keys[i]].name + "] " + note._vn.languageSet[note._attributes.language].attOverSize, note._vn.beforeAlert);
             delete newAttTempImages[keys[i]];
         }
     }
-    vn.variables.attTempImages[noteIndex] = newAttTempImages;
+    note._attTempImages = newAttTempImages;
 };
 
-/**
-* setAttImageUploadAndView
-* @description Sets up the attImageUploadAndView for the specified note.
-* @param {number} noteIndex - The index of the note for which the attImageUploadAndView needs to be set up.
-*/
-var setAttImageUploadAndView = function(noteIndex: number) {
-    var keys = Object.keys(vn.variables.attTempImages[noteIndex]);
+export const setAttImageUploadAndView = (note: VanillanoteElement) => {
+    const keys = Object.keys(note._attTempImages!);
     if(keys.length <= 0) return;
-    var file;
-    var tempEl;
+    let file;
+    let tempEl;
     
-    vn.elements.attImageUploadButtonAndViews[noteIndex].replaceChildren();
-    for(var i = 0; i < keys.length; i++) {
-        file = vn.variables.attTempImages[noteIndex][keys[i]];
+    note._elements.attImageUploadButtonAndView.replaceChildren();
+    for(let i = 0; i < keys.length; i++) {
+        file = note._attTempImages![keys[i]];
         tempEl = document.createElement("img");
         tempEl.src = URL.createObjectURL(file);
         tempEl.style.width = "auto";
@@ -110,14 +101,14 @@ var setAttImageUploadAndView = function(noteIndex: number) {
         tempEl.style.display = "inline-block";
         tempEl.style.margin = "0 5px"
         
-        vn.elements.attImageUploadButtonAndViews[noteIndex].appendChild(tempEl);
+        note._elements.attImageUploadButtonAndView.appendChild(tempEl);
     }
     
-    (vn.elements.attImageURLs[noteIndex] as any).value = "";
-    vn.elements.attImageURLs[noteIndex].setAttribute("readonly","true");
+    (note._elements.attImageURL as any).value = "";
+    note._elements.attImageURL.setAttribute("readonly","true");
 };
 
-export const createElement = function(elementTag: string, note: VanillanoteElement, id: string, className: string, appendNodeSetObject?: any) {
+export const createElement = (elementTag: string, note: VanillanoteElement, id: string, className: string, appendNodeSetObject?: any) => {
     const element: any = document.createElement(elementTag);
     if(id !== "") {
         element.setAttribute("id", getId(note._noteName, note._id, id));
@@ -125,9 +116,9 @@ export const createElement = function(elementTag: string, note: VanillanoteEleme
     element.setAttribute("data-note-id",note._id);
     element.setAttribute("class", getClassName(note._noteName, note._id, className));
     if(appendNodeSetObject && typeof appendNodeSetObject === "object" && Object.keys(appendNodeSetObject).length !== 0) {
-        var textNode;
+        let textNode;
         if(appendNodeSetObject["isIcon"]) {	//google icon
-            var iconNode = document.createElement("span");
+            const iconNode = document.createElement("span");
             iconNode.setAttribute("class","material-symbols-rounded " + getEventChildrenClassName(note._noteName) + " " + getClickCssEventElementClassName(note._noteName) + " " + getOnOverCssEventElementClassName(note._noteName) + " " + getId(note._noteName, note._id, "icon"));
             textNode = document.createTextNode(appendNodeSetObject["text"]);
             iconNode.appendChild(textNode);
@@ -145,12 +136,13 @@ export const createElement = function(elementTag: string, note: VanillanoteEleme
     return element;
 };
 
-export const createElementBasic = function(
+export const createElementBasic = (
     elementTag: string,
     note: VanillanoteElement,
     id: string,
     className: string,
-    appendNodeSetObject?: any) {
+    appendNodeSetObject?: any
+) => {
     const element = createElement(elementTag, note, id, className, appendNodeSetObject);
     addClickEvent(element, id, note);
     return element;
@@ -203,16 +195,16 @@ export const createElementInput = (
     element.setAttribute("autocapitalize", "none");
     element.setAttribute("placeholder","");
     
-    element.addEventListener("input", function(event: any) {
+    element.addEventListener("input", (event: any) => {
         if(!(note._elementEvents as any)[id+"_onBeforeInput"](event)) return;
-        (elementsEvent as any)[id+"_onInput"](event);
+        (note._elementEvents as any)[id+"_onInput"](event);
         (note._elementEvents as any)[id+"_onAfterInput"](event);
         
         event.stopImmediatePropagation();
     });
-    element.addEventListener("blur", function(event: any) {
+    element.addEventListener("blur", (event: any) => {
         if(!(note._elementEvents as any)[id+"_onBeforeBlur"](event)) return;
-        (elementsEvent as any)[id+"_onBlur"](event);
+        (note._elementEvents as any)[id+"_onBlur"](event);
         (note._elementEvents as any)[id+"_onAfterBlur"](event);
         
         event.stopImmediatePropagation();
@@ -258,8 +250,8 @@ export const createElementFontFamiliySelect = (
 ) => {
     const element = createElement(elementTag, note, id, className, appendNodeSetObject);
     // The font event is dynamically generated
-    (note._elementEvents as any)[id+"_onBeforeClick"] = function(event: any) {return true;};
-    (elementsEvent as any)[id+"_onClick"] = function(event: any) {
+    (note._elementEvents as any)[id+"_onBeforeClick"] = (event: any) => {return true;};
+    (note._elementEvents as any)[id+"_onClick"] = (event: any) => {
         fontFamilySelectList_onClick(event, note);
         selectToggle(event.target, note);
         // If the selection is a single point
@@ -272,7 +264,7 @@ export const createElementFontFamiliySelect = (
             modifySelectedSingleElement(note, getObjectNoteCss(note));
         }
     };
-    (note._elementEvents as any)[id+"_onAfterClick"] = function(event: any) {};
+    (note._elementEvents as any)[id+"_onAfterClick"] = (event: any) => {};
     element.classList.add(getClickCssEventElementClassName(note._noteName));
     element.classList.add(getOnOverCssEventElementClassName(note._noteName));
     addClickEvent(element, id, note);
@@ -289,14 +281,14 @@ export const addClickEvent = (
     id: string,
     note: VanillanoteElement,
 ) => {
-    element.addEventListener("click", function(event: any) {
+    element.addEventListener("click", (event: any) => {
         if(note._cssEvents.target_onBeforeClick(event) && event.target.classList.contains(getClickCssEventElementClassName(note._noteName))) {
-            target_onClick(event, note._noteName, note._id);
+            note._vn.events.cssEvents.target_onClick!(event);
             note._cssEvents.target_onAfterClick(event);
         }
         
         if(!(note._elementEvents as any)[id+"_onBeforeClick"](event)) return;
-        (elementsEvent as any)[id+"_onClick"](event);
+        (note._elementEvents as any)[id+"_onClick"](event);
         (note._elementEvents as any)[id+"_onAfterClick"](event);
         
         event.stopImmediatePropagation();
@@ -304,11 +296,11 @@ export const addClickEvent = (
 }
 
 export const  addMouseoverEvent = (element: any, note: VanillanoteElement) => {
-    element.addEventListener("mouseover", function(event: any) {
+    element.addEventListener("mouseover", (event: any) => {
         if(!note._cssEvents.target_onBeforeMouseover(event)) return;
         if(!event.target.classList.contains(getOnOverCssEventElementClassName(note._noteName))) return;
         
-        target_onMouseover(event, note._noteName, note._id);
+        note._vn.events.cssEvents.target_onMouseover!(event);
         
         note._cssEvents.target_onAfterMouseover(event);
         
@@ -317,11 +309,11 @@ export const  addMouseoverEvent = (element: any, note: VanillanoteElement) => {
 }
 
 export const  addMouseoutEvent = (element: any, note: VanillanoteElement) => {
-    element.addEventListener("mouseout", function(event: any) {
+    element.addEventListener("mouseout", (event: any) => {
         if(!note._cssEvents.target_onBeforeMouseout(event)) return;
         if(!event.target.classList.contains(getOnOverCssEventElementClassName(note._noteName))) return;
         
-        target_onMouseout(event, note._noteName, note._id);
+        note._vn.events.cssEvents.target_onMouseout!(event);
         
         note._cssEvents.target_onAfterMouseout(event);
         
@@ -330,11 +322,11 @@ export const  addMouseoutEvent = (element: any, note: VanillanoteElement) => {
 }
 
 export const  addTouchstartEvent = (element: any, note: VanillanoteElement) => {
-    element.addEventListener("touchstart", function(event: any) {
+    element.addEventListener("touchstart", (event: any) => {
         if(!note._cssEvents.target_onBeforeTouchstart(event)) return;
         if(!event.target.classList.contains(getOnOverCssEventElementClassName(note._noteName))) return;
         
-        target_onTouchstart(event, note._noteName, note._id);
+        note._vn.events.cssEvents.target_onTouchstart!(event);
         
         note._cssEvents.target_onAfterTouchstart(event);
         
@@ -343,11 +335,11 @@ export const  addTouchstartEvent = (element: any, note: VanillanoteElement) => {
 }
 
 export const  addTouchendEvent = (element: any, note: VanillanoteElement) => {
-    element.addEventListener("touchend", function(event: any) {
+    element.addEventListener("touchend", (event: any) => {
         if(!note._cssEvents.target_onBeforeTouchend(event)) return;
         if(!event.target.classList.contains(getOnOverCssEventElementClassName(note._noteName))) return;
         
-        target_onTouchend(event, note._noteName, note._id);
+        note._vn.events.cssEvents.target_onTouchend!(event);
         
         note._cssEvents.target_onAfterTouchend(event);
         
