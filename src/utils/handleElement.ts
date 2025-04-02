@@ -1,19 +1,14 @@
 import { ToolPosition } from "../types/enums";
-import { Vanillanote, VanillanoteConfig, VanillanoteElement } from "../types/vanillanote";
-import { getEditElementTag, getObjectEditElementCss, initAttFile, initAttImage, initAttLink, initToggleButtonVariables, isElementInParentBounds, setTagToggle, validCheckAttLink } from "./handleActive";
-import { isValidSelection } from "./handleSelection";
-import { checkNumber, compareObject, extractNumber, extractUnit, getEventChildrenClassName, getHexColorFromColorName, getHexFromRGBA, getId, getObjectFromCssText, getOpacityFromRGBA, getParentNote, getRGBAFromHex, isCloserToRight } from "./util";
+import { Vanillanote, VanillanoteElement } from "../types/vanillanote";
+import { getAttributesObjectFromElement, getEditElementTag, getObjectEditElementCss, initAttFile, initAttImage, initAttLink, initToggleButtonVariables, isElementInParentBounds, setTagToggle, validCheckAttLink } from "./handleActive";
+import { isValidSelection, setNewSelection } from "./handleSelection";
+import { checkNumber, compareObject, extractNumber, extractUnit, getEventChildrenClassName, getHexColorFromColorName, getHexFromRGBA, getId, getNoteId, getObjectFromCssText, getOpacityFromRGBA, getParentNote, getRGBAFromHex, isCloserToRight } from "./util";
 
-/**
-* closeAllTooltip
-* @description Closes all the tooltips associated with the specified note.
-* @param {number} noteIndex - The index of the note for which to close all tooltips.
-*/
-export const closeAllTooltip = (noteIndex: number) => {
-    vn.elements.attLinkTooltips[noteIndex].style.opacity = "0";
-    vn.elements.attLinkTooltips[noteIndex].style.height  = "0";
-    vn.elements.attImageAndVideoTooltips[noteIndex].style.opacity = "0";
-    vn.elements.attImageAndVideoTooltips[noteIndex].style.height  = "0";
+export const closeAllTooltip = (note: VanillanoteElement) => {
+    note._elements.attLinkTooltip.style.opacity = "0";
+    note._elements.attLinkTooltip.style.height  = "0";
+    note._elements.attImageAndVideoTooltip.style.opacity = "0";
+    note._elements.attImageAndVideoTooltip.style.height  = "0";
 };
 
 export const setVariableButtonTogle = (note: VanillanoteElement, cssObject: Record<string, string>) => {
@@ -91,7 +86,7 @@ export const setVariableButtonTogle = (note: VanillanoteElement, cssObject: Reco
     }
 };
 
-export const button_onToggle = function(target: any, toggle: boolean) {
+export const button_onToggle = (target: any, toggle: boolean) => {
     const note = getParentNote(target);
     if(!note) return;
     // If a child element is selected, event is controlled
@@ -105,12 +100,7 @@ export const button_onToggle = function(target: any, toggle: boolean) {
     }
 };
 
-/**
-* allButtonToggle
-* @description Toggles all buttons of a specific note.
-* @param {number} noteIndex - The index of the note whose buttons need to be toggled.
-*/
-var allButtonToggle = function(note: VanillanoteElement) {
+export const allButtonToggle = (note: VanillanoteElement) => {
     //format
     button_onToggle(note._elements.boldButton, note._status.boldToggle);
     button_onToggle(note._elements.underlineButton, note._status.underlineToggle);
@@ -130,16 +120,16 @@ export const selectToggle = (target: any, _note?: VanillanoteElement) => {
     if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
         target = target.parentNode!;
     }
-    var select = target;
-    var isClickBox = false;
+    let select = target;
+    let isClickBox = false;
     // If select box is selected
     while(select && select.getAttribute("type") !== "select") {
         isClickBox = true;
         select = select.parentNode;
     }
     if(!select.getAttribute("data-note-id")) return;
-    var selectId = select.getAttribute("id");
-    var selectBox: any;
+    const selectId = select.getAttribute("id");
+    let selectBox: any;
     
     if(selectId.includes("paragraphStyleSelect")) {
         selectBox = note._elements.paragraphStyleSelectBox;
@@ -159,9 +149,9 @@ export const selectToggle = (target: any, _note?: VanillanoteElement) => {
         selectBox = note._elements.colorBackSelectBox;
     }
     
-    var displayBlock = getId(note._noteName, note._id, "on_display_block");
-    var displayNone = getId(note._noteName, note._id, "on_display_none");
-    var isOpened = selectBox.classList.contains(displayBlock);
+    const displayBlock = getId(note._noteName, note._id, "on_display_block");
+    const displayNone = getId(note._noteName, note._id, "on_display_none");
+    const isOpened = selectBox.classList.contains(displayBlock);
     
     closeAllSelectBoxes(note);	//Close all other select boxes
     
@@ -181,11 +171,11 @@ export const selectToggle = (target: any, _note?: VanillanoteElement) => {
         selectBox.style.right = "0%";
         
         if(selectBox.offsetParent === null) return;
-        var selectBoxRect = selectBox.getBoundingClientRect();
+        const selectBoxRect = selectBox.getBoundingClientRect();
         if(selectBoxRect.top === 0) return
         
         if(note._elements.tool.offsetParent === null) return;
-        var toolRect = note._elements.tool.getBoundingClientRect();
+        const toolRect = note._elements.tool.getBoundingClientRect();
         
         if(toolRect.left > selectBoxRect.left) {
             selectBox.style.right = selectBoxRect.left - 1 + "px";
@@ -197,11 +187,11 @@ export const selectToggle = (target: any, _note?: VanillanoteElement) => {
         selectBox.style.left = "0%";
         
         if(selectBox.offsetParent === null) return;
-        var selectBoxRect = selectBox.getBoundingClientRect();
+        const selectBoxRect = selectBox.getBoundingClientRect();
         if(selectBoxRect.top === 0) return
         
         if(note._elements.tool.offsetParent === null) return;
-        var toolRect = note._elements.tool.getBoundingClientRect();
+        const toolRect = note._elements.tool.getBoundingClientRect();
         
         if(toolRect.right < selectBoxRect.right) {
             selectBox.style.left = toolRect.right - (selectBoxRect.right + 1) + "px";
@@ -210,8 +200,8 @@ export const selectToggle = (target: any, _note?: VanillanoteElement) => {
 };
 
 export const closeAllSelectBoxes = (note: VanillanoteElement) => {
-    var displayBlock = getId(note._noteName, note._id, "on_display_block");
-    var displayNone = getId(note._noteName, note._id, "on_display_none");
+    const displayBlock = getId(note._noteName, note._id, "on_display_block");
+    const displayNone = getId(note._noteName, note._id, "on_display_none");
     
     note._elements.paragraphStyleSelectBox.classList.remove(displayBlock);
     note._elements.paragraphStyleSelectBox.classList.add(displayNone);
@@ -230,10 +220,10 @@ export const fontFamilySelectList_onClick = (e: any, _note?: VanillanoteElement)
     const selectLsit = e.target;
     const note = _note ? _note : getParentNote(e.target);
     const fontFamily = selectLsit.getAttribute("data-font-family");
-    var oldStyleObject: any = getObjectFromCssText(note._elements.fontFamilySelect.getAttribute("style")!);
+    const oldStyleObject: any = getObjectFromCssText(note._elements.fontFamilySelect.getAttribute("style")!);
     oldStyleObject["font-family"] = fontFamily;
     // Change the font family in the variables and the displayed select list option.
-    note._status.fontFamilies = fontFamily;
+    note._status.fontFamily = fontFamily;
     (note._elements.fontFamilySelect as any).firstChild.textContent = fontFamily.length > 12 ? fontFamily.substr(0,12) + "..." : fontFamily;
     (note._elements.fontFamilySelect as any).style.fontFamily = fontFamily;
 };
@@ -243,8 +233,8 @@ export const setEditStyleTag = (note: VanillanoteElement) => {
         note._selection.setEditStyleTagToggle--;
         return;
     }
-    var tempEl: any = note._selection.editStartUnitElement;
-    var textarea = tempEl;
+    let tempEl: any = note._selection.editStartUnitElement;
+    let textarea = tempEl;
     while(tempEl) {
         if(tempEl.tagName === (note._noteName+"-textarea").toUpperCase()) {
             textarea = tempEl;
@@ -260,15 +250,15 @@ export const setEditStyleTag = (note: VanillanoteElement) => {
     }
     
     // Get styles of the selected element
-    var cssObjectEl = getObjectEditElementCss(note._selection.editStartElement, note);
+    let cssObjectEl = getObjectEditElementCss(note._selection.editStartElement, note);
     // If multiple elements are selected, check if all tags have the same styles
     // If not, clear the cssObjectEl
     if(note._selection.editStartNode !== note._selection.editEndNode) {
-        var tempCssObjectEl = cssObjectEl;
-        var isCheck = false;
-        var isEnd = false;
-        var getCheckAllStyle = function(element: any) {
-            for(var i = 0; i < element.childNodes.length; i++) {
+        let tempCssObjectEl = cssObjectEl;
+        let isCheck = false;
+        let isEnd = false;
+        const getCheckAllStyle = (element: any) => {
+            for(let i = 0; i < element.childNodes.length; i++) {
                 if(isEnd) break;
                 if(note._selection.editStartNode === element.childNodes[i]) {
                     isCheck = true;
@@ -302,19 +292,19 @@ export const setEditStyleTag = (note: VanillanoteElement) => {
     allButtonToggle(note);
 };
 
-export const setElementScroll = (parentElement: any, childElement: any) => {
+export const setElementScroll = (parentElement: any, childElement: any, mobileKeyboardExceptHeight: number) => {
     if(!parentElement || !childElement) return;
     if(childElement.nodeType === 3) childElement = childElement.parentNode;
-    var start: any = null;
-    var target = childElement.offsetTop - Math.round(vn.variables.mobileKeyboardExceptHeight! / 2) + Math.round(childElement.offsetHeight / 2);
-    var firstPosition = parentElement.scrollTop;
-    var difference = target - firstPosition;
-    var duration = 500; // Animation duration in milliseconds
+    let start: any = null;
+    const target = childElement.offsetTop - Math.round(mobileKeyboardExceptHeight / 2) + Math.round(childElement.offsetHeight / 2);
+    const firstPosition = parentElement.scrollTop;
+    const difference = target - firstPosition;
+    const duration = 500; // Animation duration in milliseconds
     
     function step(timestamp: any) {
         if (!start) start = timestamp;
-        var progress = timestamp - start;
-        var percent = Math.min(progress / duration, 1);
+        const progress = timestamp - start;
+        const percent = Math.min(progress / duration, 1);
         parentElement.scrollTop = firstPosition + difference * percent;
 
         // Continue the animation as long as it's not finished
@@ -327,7 +317,7 @@ export const setElementScroll = (parentElement: any, childElement: any) => {
 };
 
 export const getCheckSelectBoxesOpened = (note: VanillanoteElement) => {
-    var displayBlock = getId(note._noteName, note._id, "on_display_block");
+    const displayBlock = getId(note._noteName, note._id, "on_display_block");
     
     if(note._elements.paragraphStyleSelectBox.classList.contains(displayBlock)) return true;
     if(note._elements.textAlignSelectBox.classList.contains(displayBlock)) return true;
@@ -339,8 +329,8 @@ export const getCheckSelectBoxesOpened = (note: VanillanoteElement) => {
 };
 
 export const closeAllModal = (note: VanillanoteElement) => {
-    var displayBlock = getId(note._noteName, note._id, "on_display_block");
-    var displayNone = getId(note._noteName, note._id, "on_display_none");
+    const displayBlock = getId(note._noteName, note._id, "on_display_block");
+    const displayNone = getId(note._noteName, note._id, "on_display_none");
     
     note._elements.modalBack.classList.remove(displayBlock);
     note._elements.modalBack.classList.add(displayNone);
@@ -374,8 +364,8 @@ export const openAttLinkModal = (note: VanillanoteElement) => {
     // Adjust modal size
     setAllModalSize(note);
     // Open modal background
-    var displayBlock = getId(note._noteName, note._id, "on_display_block");
-    var displayNone = getId(note._noteName, note._id, "on_display_none");
+    const displayBlock = getId(note._noteName, note._id, "on_display_block");
+    const displayNone = getId(note._noteName, note._id, "on_display_none");
     note._elements.modalBack.classList.remove(displayNone);
     note._elements.modalBack.classList.add(displayBlock);
     note._elements.attLinkModal.classList.remove(displayNone);
@@ -386,8 +376,8 @@ export const openAttLinkModal = (note: VanillanoteElement) => {
         return;	
     }
     
-    var attLinkText: any = note._elements.attLinkText;
-    var attLinkHref: any = note._elements.attLinkHref;
+    const attLinkText: any = note._elements.attLinkText;
+    const attLinkHref: any = note._elements.attLinkHref;
     attLinkText.value = note._selection.editRange!.toString();
     attLinkHref.value = "";
     
@@ -403,7 +393,7 @@ export const openAttLinkModal = (note: VanillanoteElement) => {
     validCheckAttLink(note);
 };
 
-var openPlaceholder = function(note: VanillanoteElement) {
+export const openPlaceholder = (note: VanillanoteElement) => {
     if(note._attributes.placeholderIsVisible
         && note._elements.textarea.innerText.length <= 1
         && note._elements.textarea.textContent!.length < 1
@@ -428,7 +418,7 @@ export const closePlaceholder = (note: VanillanoteElement) => {
 export const setAllModalSize = (note: VanillanoteElement) => {
     if(note._elements.template.offsetParent === null) return
     // Use setTimeout to adjust size according to the dynamic change in textarea's size.
-    setTimeout(function() {
+    setTimeout(() => {
         note._elements.modalBack.style.width = note._elements.template.clientWidth + "px";
         note._elements.modalBack.style.height = note._elements.template.clientHeight + "px";
         note._elements.attLinkModal.style.width = note._elements.textarea.clientWidth*0.8 + "px"
@@ -446,7 +436,7 @@ export const setAllModalSize = (note: VanillanoteElement) => {
 
 export const setPlaceholderSize = (note: VanillanoteElement) => {
     // Use setTimeout to adjust size according to the dynamic change in textarea's size.
-    setTimeout(function() {
+    setTimeout(() => {
         if(!note._attributes.placeholderIsVisible) return;
         closePlaceholder(note);
         if(note._elements.textarea.offsetParent === null) return
@@ -464,114 +454,99 @@ export const setAllToolTipPosition = (note: VanillanoteElement) => {
     }
 };
 
-/**
-* appearAttLinkToolTip
-* @description Displays the tooltip for the selected <a> tag in the editor.
-* @param {number} noteIndex - The index of the note in which the tooltip should appear.
-*/
-var appearAttLinkToolTip = function(noteIndex: number) {
-    var a: any = vn.variables.editStartNodes[noteIndex]!.parentElement;
+export const appearAttLinkToolTip = (note: VanillanoteElement) => {
+    const a: any = note._selection.editStartNode!.parentElement;
 
-    var href = a.getAttribute("href");
-    var download = a.getAttribute("download");
+    const href = a.getAttribute("href");
+    const download = a.getAttribute("download");
 
-    var displayInlineBlock = getId(noteIndex, "on_display_inline_block");
-    var displayNone = getId(noteIndex, "on_display_none");
+    const displayInlineBlock = getId(note._noteName, note._id, "on_display_inline_block");
+    const displayNone = getId(note._noteName, note._id, "on_display_none");
 
-    vn.elements.attLinkTooltipEditButtons[noteIndex].classList.remove(displayNone);
-    vn.elements.attLinkTooltipUnlinkButtons[noteIndex].classList.remove(displayNone);
-    vn.elements.attLinkTooltipEditButtons[noteIndex].classList.add(displayInlineBlock);
-    vn.elements.attLinkTooltipUnlinkButtons[noteIndex].classList.add(displayInlineBlock);
+    note._elements.attLinkTooltipEditButton.classList.remove(displayNone);
+    note._elements.attLinkTooltipUnlinkButton.classList.remove(displayNone);
+    note._elements.attLinkTooltipEditButton.classList.add(displayInlineBlock);
+    note._elements.attLinkTooltipUnlinkButton.classList.add(displayInlineBlock);
 
     if(href) {
-        vn.elements.attLinkTooltipHrefs[noteIndex].setAttribute("href",href);
-        vn.elements.attLinkTooltipHrefs[noteIndex].textContent = href.length > 25 ? href.substr(0,25) + "..." : href;
+        note._elements.attLinkTooltipHref.setAttribute("href",href);
+        note._elements.attLinkTooltipHref.textContent = href.length > 25 ? href.substr(0,25) + "..." : href;
     }
     if(download) {
-        vn.elements.attLinkTooltipHrefs[noteIndex].setAttribute("download",download);
-        vn.elements.attLinkTooltipHrefs[noteIndex].textContent = "download : " + download;
+        note._elements.attLinkTooltipHref.setAttribute("download",download);
+        note._elements.attLinkTooltipHref.textContent = "download : " + download;
 
-        vn.elements.attLinkTooltipEditButtons[noteIndex].classList.remove(displayInlineBlock);
-        vn.elements.attLinkTooltipUnlinkButtons[noteIndex].classList.remove(displayInlineBlock);
-        vn.elements.attLinkTooltipEditButtons[noteIndex].classList.add(displayNone);
-        vn.elements.attLinkTooltipUnlinkButtons[noteIndex].classList.add(displayNone);
+        note._elements.attLinkTooltipEditButton.classList.remove(displayInlineBlock);
+        note._elements.attLinkTooltipUnlinkButton.classList.remove(displayInlineBlock);
+        note._elements.attLinkTooltipEditButton.classList.add(displayNone);
+        note._elements.attLinkTooltipUnlinkButton.classList.add(displayNone);
     }
 
-    vn.elements.attLinkTooltips[noteIndex].style.opacity = "0.95";
-    vn.elements.attLinkTooltips[noteIndex].style.height  = vn.variables.sizeRates[noteIndex] * 54 * 0.8 + "px";
-    vn.elements.attLinkTooltips[noteIndex].style.lineHeight  = vn.variables.sizeRates[noteIndex] * 54 * 0.8 + "px";
+    note._elements.attLinkTooltip.style.opacity = "0.95";
+    note._elements.attLinkTooltip.style.height  = note._attributes.sizeRate * 54 * 0.8 + "px";
+    note._elements.attLinkTooltip.style.lineHeight  = note._attributes.sizeRate * 54 * 0.8 + "px";
 };
 
-/**
-* appearAttImageAndVideoTooltip
-* @description Displays the tooltip for the selected <img> or <iframe> tag in the editor.
-* @param {number} noteIndex - The index of the note in which the tooltip should appear.
-*/
-var appearAttImageAndVideoTooltip = function(noteIndex: number) {
-    var img = vn.variables.editStartNodes[noteIndex];
-    var cssObj: any = getObjectFromCssText((getAttributesObjectFromElement(img) as any)["style"]);
+export const appearAttImageAndVideoTooltip = (note: VanillanoteElement) => {
+    const img = note._selection.editStartNode;
+    const cssObj: any = getObjectFromCssText((getAttributesObjectFromElement(img) as any)["style"]);
     //width
     if(cssObj["width"]) {
-        (vn.elements.attImageAndVideoTooltipWidthInputs[noteIndex] as any).value = extractNumber(cssObj["width"]);
+        (note._elements.attImageAndVideoTooltipWidthInput as any).value = extractNumber(cssObj["width"]);
     }
     //float
     switch(cssObj["float"]) {
     case "left":
-        (vn.elements.attImageAndVideoTooltipFloatRadioLefts[noteIndex] as any).checked = true;
+        (note._elements.attImageAndVideoTooltipFloatRadioLeft as any).checked = true;
         break;
     case "right":
-        (vn.elements.attImageAndVideoTooltipFloatRadioRights[noteIndex] as any).checked = true;
+        (note._elements.attImageAndVideoTooltipFloatRadioRight as any).checked = true;
         break;
     default :
-        (vn.elements.attImageAndVideoTooltipFloatRadioNones[noteIndex] as any).checked = true;
+        (note._elements.attImageAndVideoTooltipFloatRadioNone as any).checked = true;
         break;
     }
     //shape
-    (vn.elements.attImageAndVideoTooltipShapeRadioSquares[noteIndex] as any).checked = true;
+    (note._elements.attImageAndVideoTooltipShapeRadioSquare as any).checked = true;
     if(cssObj["border-radius"]) {
-        var borderRadius: any = extractNumber(cssObj["border-radius"]);
+        const borderRadius: any = extractNumber(cssObj["border-radius"]);
         if(borderRadius > 0) {
-            (vn.elements.attImageAndVideoTooltipShapeRadioRadiuses[noteIndex] as any).checked = true;
+            (note._elements.attImageAndVideoTooltipShapeRadioRadius as any).checked = true;
         }
         else if(borderRadius >= 50) {
-            (vn.elements.attImageAndVideoTooltipShapeRadioCircles[noteIndex] as any).checked = true;
+            (note._elements.attImageAndVideoTooltipShapeRadioCircle as any).checked = true;
         }
     }
     
-    vn.elements.attImageAndVideoTooltips[noteIndex].style.opacity = "0.9";
-    vn.elements.attImageAndVideoTooltips[noteIndex].style.height  = vn.variables.sizeRates[noteIndex] * 54 * 0.8 * 2 + "px";
-    vn.elements.attImageAndVideoTooltips[noteIndex].style.lineHeight  = vn.variables.sizeRates[noteIndex] * 54 * 0.7 + "px";
+    note._elements.attImageAndVideoTooltip.style.opacity = "0.9";
+    note._elements.attImageAndVideoTooltip.style.height  = note._attributes.sizeRate * 54 * 0.8 * 2 + "px";
+    note._elements.attImageAndVideoTooltip.style.lineHeight  = note._attributes.sizeRate * 54 * 0.7 + "px";
 };
 
-/**
-* setImageAndVideoWidth
-* @description Sets the width of an image or video (iframe) element based on the percentage value provided in the input element.
-* @param {HTMLInputElement} el - The input element containing the width percentage value.
-*/
-var setImageAndVideoWidth = function(el: any) {
+export const setImageAndVideoWidth = (el: any) => {
     if(!el.value) el.value = 100;
-    var widthPer = el.value;
-    var noteId = getNoteId(el);
-    if(!noteIndex) return;
-    var imgNode: any = vn.variables.editStartNodes[noteIndex];
+    let widthPer = el.value;
+    const note = getParentNote(el);
+    if(!note) return;
+    const imgNode: any = note._selection.editStartNode;
     if(imgNode.tagName !== "IMG" && imgNode.tagName !== "IFRAME") return;
     
     if(widthPer < 10) widthPer = 10;
     if(widthPer > 100) widthPer = 100;
     el.value = widthPer;
     imgNode.style.width = widthPer + "%";
-    (vn.variables.editStartNodes[noteIndex] as any).parentNode.replaceChild(imgNode, (vn.variables.editStartNodes[noteIndex] as any));
-    vn.variables.editStartNodes[noteIndex] = imgNode;
+    (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
+    note._selection.editStartNode = imgNode;
 };
 
 export const setAllToolSize = (note: VanillanoteElement) => {
-    var toolButtons: any =  note._elements.tool.childNodes;
+    const toolButtons: any =  note._elements.tool.childNodes;
     
-    var displayInlineBlock = getId(note._noteName, note.id, "on_display_inline_block");
-    var displayNone = getId(note._noteName, note.id, "on_display_none");
+    const displayInlineBlock = getId(note._noteName, note.id, "on_display_inline_block");
+    const displayNone = getId(note._noteName, note.id, "on_display_none");
     
     // Display all buttons (reset their display style)
-    for(var i = toolButtons.length - 1; i >= 0; i--) {
+    for(let i = toolButtons.length - 1; i >= 0; i--) {
         toolButtons[i].classList.add(displayInlineBlock);
         toolButtons[i].classList.remove(displayNone);
     }
@@ -580,12 +555,12 @@ export const setAllToolSize = (note: VanillanoteElement) => {
     
     // Control toolbar size based on toggle state
     if(!note._status.toolToggle) {	// Toggle false state: Resize the toolbar based on the last visible button.
-        var toolAbsoluteTop;
-        var lastButton;
-        var lastButtonAbsoluteTop;
-        var differ;
+        let toolAbsoluteTop;
+        let lastButton;
+        let lastButtonAbsoluteTop;
+        let differ;
         
-        for(var i = toolButtons.length - 1; i >= 0; i--) {
+        for(let i = toolButtons.length - 1; i >= 0; i--) {
             if(toolButtons[i].offsetParent !== null) {	// Find the last visible button on the screen.
                 lastButton = toolButtons[i];
                 break;
@@ -602,7 +577,7 @@ export const setAllToolSize = (note: VanillanoteElement) => {
     else {// Toggle true state: Keep the size to default lines and hide overflowing buttons.
         note._elements.tool.style.height = (note._attributes.toolDefaultLine * (note._attributes.sizeRate * 52)) + "px";
         // Hide buttons that are not within the bounds of the toolbar.
-        for(var i = toolButtons.length - 1; i >= 0; i--) {
+        for(let i = toolButtons.length - 1; i >= 0; i--) {
             if(!isElementInParentBounds(note._elements.tool,toolButtons[i])) {
                 toolButtons[i].classList.remove(displayInlineBlock);
                 toolButtons[i].classList.add(displayNone);
@@ -618,7 +593,7 @@ export const doDecreaseTextareaHeight = (note: VanillanoteElement) => {
         behavior: 'smooth',
         block: 'start',
     });
-    setTimeout(function() {
+    setTimeout(() => {
         if(extractUnit(note._attributes.textareaOriginHeight) !== 'px') return;
         if(note._vn.variables.mobileKeyboardExceptHeight! < extractNumber(note._attributes.textareaOriginHeight)!
             && note._vn.variables.mobileKeyboardExceptHeight! < note._elements.textarea.offsetHeight) {
@@ -630,14 +605,14 @@ export const doDecreaseTextareaHeight = (note: VanillanoteElement) => {
 export const doIncreaseTextareaHeight = (vn: Vanillanote) => {
     const noteIds = Object.keys(vn.vanillanoteElements);
     // Restore the note size.
-    for(var i = 0; i < noteIds.length; i++) {
+    for(let i = 0; i < noteIds.length; i++) {
         const note = vn.vanillanoteElements[noteIds[i]]
         if(!note._attributes.isNoteByMobile) continue;
         note._elements.textarea.style.height = note._attributes.textareaOriginHeight;
     }
 };
 
-export const modifyTextareaScroll = function(textarea: any, note: VanillanoteElement) {
+export const modifyTextareaScroll = (textarea: any, note: VanillanoteElement) => {
     // Stop if not in auto-scroll mode.
     if(!note._attributes.isNoteByMobile) return;
     
@@ -648,7 +623,7 @@ export const modifyTextareaScroll = function(textarea: any, note: VanillanoteEle
     if(note._vn.variables.isSelectionProgress) return;
     note._vn.variables.isSelectionProgress = true;
     // 0.05 seconds time out.
-    setTimeout(function() {
+    setTimeout(() => {
         note._vn.variables.isSelectionProgress = false;
         
         //If there is unvalid selection, return.
@@ -666,10 +641,10 @@ export const modifyTextareaScroll = function(textarea: any, note: VanillanoteEle
         // If any select box is open, do not scroll.
         if(getCheckSelectBoxesOpened(note)) return;
         if((note._selection.editRange as any).collapsed) {
-            setElementScroll(textarea, note._selection.editStartElement);
+            setElementScroll(textarea, note._selection.editStartElement, note._vn.variables.mobileKeyboardExceptHeight!);
         }
         else {
-            setElementScroll(textarea, note._selection.editDragUnitElement[indexMiddleUnit]);
+            setElementScroll(textarea, note._selection.editDragUnitElement[indexMiddleUnit], note._vn.variables.mobileKeyboardExceptHeight!);
         }
                 
     }, 50);
@@ -680,8 +655,8 @@ export const initTextarea = (textarea: HTMLTextAreaElement) =>  {
     while(textarea.firstChild) {
         textarea.removeChild(textarea.firstChild);
     }
-    var tempEl1 = document.createElement("P");
-    var tempEl2 = document.createElement("BR");
+    const tempEl1 = document.createElement("P");
+    const tempEl2 = document.createElement("BR");
     tempEl1.appendChild(tempEl2);
     textarea.appendChild(tempEl1);
     // Sets the new selection range.
