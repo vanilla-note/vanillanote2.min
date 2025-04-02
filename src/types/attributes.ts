@@ -7,7 +7,7 @@ import { NoteModeByDevice, ToolPosition } from "./enums";
  *
  * @example
  * if (isMobileDevice) {
- *   vn.variables.attFileMaxSizes[0] = 50 * 1024 * 1024; // Increase max upload size on mobile
+ *   vn.variables.attFileMaxSize[0] = 50 * 1024 * 1024; // Increase max upload size on mobile
  * }
  */
 export interface Attributes {
@@ -75,10 +75,10 @@ export interface Attributes {
      * - Maximum size allowed for file attachment. Default is 20MB.
      * 
      * ```typescript
-     * vn.variables.attFileMaxSizes[0] = 50 * 1024 * 1024;
+     * vn.variables.attFileMaxSize[0] = 50 * 1024 * 1024;
      * ```
      */
-    attFileMaxSizes: number;
+    attFileMaxSize: number;
     /**
      * - Variables controlling image file attachments.
      * - Data obtained from note.getNoteData() does not include files deleted by the user from the screen, but .attImages[idx] contains all image files attached by the user.
@@ -97,10 +97,10 @@ export interface Attributes {
      * - Maximum size allowed for image attachment. Default is 20MB.
      * 
      * ```typescript
-     * vn.variables.attImageMaxSizes[0] = 50 * 1024 * 1024;
+     * vn.variables.attImageMaxSize[0] = 50 * 1024 * 1024;
      * ```
      */
-    attImageMaxSizes: number;
+    attImageMaxSize: number;
 
     /**
      * default textarea font-size
