@@ -136,10 +136,12 @@ export interface Vanillanote extends VanillanoteConfig{
 	 * - If a number is provided, it will return the editor at that index from `document.querySelectorAll('[data-vanillanote]')`.
 	 * - Ensure that the DOM contains an editor with the matching index or ID; otherwise, `undefined` may be returned.
 	 */
-	get(noteId: string): VanillanoteElement | null;
+	getNote(noteId: string): VanillanoteElement | null;
 
-	create(element: HTMLElement):void;
-	destroy(element: HTMLElement):void;
+	init():void;
+	mountNote(element?: HTMLElement): void;
+	destroy(): void;
+	unmountNote(element?: HTMLElement): void;
 }
 
 /**

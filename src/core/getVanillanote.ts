@@ -5,8 +5,10 @@ import type { Vanillanote, VanillanoteConfig } from "../types/vanillanote";
 import type { Variables } from "../types/variables";
 import type { Attributes } from "../types/attributes";
 import { NoteModeByDevice } from "../types/enums";
-import { createVanillanote } from "./createVanillanote";
+import { mountVanillanote } from "./mountVanillanote";
 import { destroyVanillanote } from "./destroyVanillanote";
+import { initVanillanote } from "./initVanillanote";
+import { unmountVanillanote } from "./unmountVanillanote";
 
 let singletonVanillanote: Vanillanote | null = null;
 export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
@@ -356,14 +358,24 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
             }
         },
         vanillanoteElements : {},
-        get(noteId: string) {return null},
+        getNote(noteId: string) {return null},
         beforeAlert(message: string) {return true},
-        create(element?: HTMLElement) {
-            createVanillanote(singletonVanillanote!, element);
-        },
-        destroy(element?: HTMLElement) {
-            destroyVanillanote(singletonVanillanote!, element);
-        },
+        init() {},
+        mountNote(element?: HTMLElement) {},
+        destroy() {},
+        unmountNote(element?: HTMLElement) {},
+    };
+    singletonVanillanote.init = () => {
+        initVanillanote(singletonVanillanote as Vanillanote);
+    };
+    singletonVanillanote.mountNote = (element?: HTMLElement) => {
+        mountVanillanote(singletonVanillanote as Vanillanote, element);
+    };
+    singletonVanillanote.destroy = () => {
+        destroyVanillanote(singletonVanillanote as Vanillanote);
+    };
+    singletonVanillanote.unmountNote = (element?: HTMLElement) => {
+        unmountVanillanote(singletonVanillanote as Vanillanote, element);
     };
 
     return singletonVanillanote;
