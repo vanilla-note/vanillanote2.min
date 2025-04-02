@@ -1,15 +1,16 @@
-import { Vanillanote } from "../types/vanillanote";
-import { getNextElementsUntilNotTag, getObjectNoteCss, getPreviousElementsUntilNotTag, validCheckAttLink } from "../utils/handleActive";
-import { button_onToggle, closeAllModal, closeAllSelectBoxes, doIncreaseTextareaHeight, openAttLinkModal, selectToggle, setAllModalSize, setAllToolSize, setAllToolTipPosition } from "../utils/handleElement";
-import { isValidSelection, modifySelectedSingleElement, modifySelectedUnitElementStyle, modifySelectedUnitElementTag, setEditSelection, setNewSelection, setOriginEditSelection } from "../utils/handleSelection";
-import { getClassName, getCssTextFromObject, getEventChildrenClassName, getId, getParentNote, getUUID, isMobileDevice } from "../utils/util";
+import type { Vanillanote } from "../types/vanillanote";
+import { setAttFileUploadDiv, setAttImageUploadAndView, setAttTempFileValid, setAttTempImageValid } from "../utils/createElement";
+import { connectObserver, doEditUnitCheck, getElement, getNextElementsUntilNotTag, getObjectNoteCss, getPreviousElementsUntilNotTag, initToggleButtonVariables, removeEmptyElment, replaceDifferentBetweenElements, validCheckAttLink, validCheckAttVideo } from "../utils/handleActive";
+import { button_onToggle, closeAllModal, closeAllSelectBoxes, closePlaceholder, doIncreaseTextareaHeight, initTextarea, openAttLinkModal, openPlaceholder, selectToggle, setAllModalSize, setAllToolSize, setAllToolTipPosition, setImageAndVideoWidth } from "../utils/handleElement";
+import { isValidSelection, modifySelectedSingleElement, modifySelectedUnitElementStyle, modifySelectedUnitElementTag, setEditSelection, setNewSelection, setOriginEditSelection, textarea_onBeforeinputSpelling, textarea_onKeydownEnter } from "../utils/handleSelection";
+import { checkHex, checkNumber, checkRealNumber, getClassName, getCssTextFromObject, getEventChildrenClassName, getHexColorFromColorName, getId, getParentNote, getRGBAFromHex, getUUID, isMobileDevice } from "../utils/util";
 
 export const setElementEvents = (vn: Vanillanote) => {
     //toolToggleButton event
-    vn.events.elementEvents.toolToggleButton_onClick = function(e: any) {
+    vn.events.elementEvents.toolToggleButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var icon: any = note._elements.toolToggleButton.firstChild;
+        const icon: any = note._elements.toolToggleButton.firstChild;
         //toggle
         note._status.toolToggle = !note._status.toolToggle;
         if(!note._status.toolToggle) { //in case of open
@@ -35,7 +36,7 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //paragraphStyleSelect event
-    vn.events.elementEvents.paragraphStyleSelect_onClick = function(e: any) {
+    vn.events.elementEvents.paragraphStyleSelect_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         selectToggle(e.target, note);
@@ -47,10 +48,10 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //styleNomal event
-    vn.events.elementEvents.styleNomal_onClick = function(e: any) {
+    vn.events.elementEvents.styleNomal_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -61,10 +62,10 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //styleHeader1 event
-    vn.events.elementEvents.styleHeader1_onClick = function(e: any) {
+    vn.events.elementEvents.styleHeader1_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -74,10 +75,10 @@ export const setElementEvents = (vn: Vanillanote) => {
     };
     //==================================================================================
     //styleHeader2 event
-    vn.events.elementEvents.styleHeader2_onClick = function(e: any) {
+    vn.events.elementEvents.styleHeader2_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -87,10 +88,10 @@ export const setElementEvents = (vn: Vanillanote) => {
     };
     //==================================================================================
     //styleHeader3 event
-    vn.events.elementEvents.styleHeader3_onClick = function(e: any) {
+    vn.events.elementEvents.styleHeader3_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -100,10 +101,10 @@ export const setElementEvents = (vn: Vanillanote) => {
     };
     //==================================================================================
     //styleHeader4 event
-    vn.events.elementEvents.styleHeader4_onClick = function(e: any) {
+    vn.events.elementEvents.styleHeader4_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -113,10 +114,10 @@ export const setElementEvents = (vn: Vanillanote) => {
     };
     //==================================================================================
     //styleHeader5 event
-    vn.events.elementEvents.styleHeader5_onClick = function(e: any) {
+    vn.events.elementEvents.styleHeader5_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -126,10 +127,10 @@ export const setElementEvents = (vn: Vanillanote) => {
     };
     //==================================================================================
     //styleHeader6 event
-    vn.events.elementEvents.styleHeader6_onClick = function(e: any) {
+    vn.events.elementEvents.styleHeader6_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -140,7 +141,7 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //boldButton event
-    vn.events.elementEvents.boldButton_onClick = function(e: any) {
+    vn.events.elementEvents.boldButton_onClick = (e: any) => {
         // Toggle the button
         const note = getParentNote(e.target);
         if(!note) return;
@@ -162,7 +163,7 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //underlineButton event
-    vn.events.elementEvents.underlineButton_onClick = function(e: any) {
+    vn.events.elementEvents.underlineButton_onClick = (e: any) => {
         // Toggle the button
         const note = getParentNote(e.target);
         if(!note) return;
@@ -184,7 +185,7 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //italic
-    vn.events.elementEvents.italicButton_onClick = function(e: any) {
+    vn.events.elementEvents.italicButton_onClick = (e: any) => {
         // Toggle the button
         const note = getParentNote(e.target);
         if(!note) return;
@@ -206,10 +207,10 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //ul
-    vn.events.elementEvents.ulButton_onClick = function(e: any) {
+    vn.events.elementEvents.ulButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -220,10 +221,10 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //ol
-    vn.events.elementEvents.olButton_onClick = function(e: any) {
+    vn.events.elementEvents.olButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -233,7 +234,7 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //text-align
-    vn.events.elementEvents.textAlignSelect_onClick = function(e: any) {
+    vn.events.elementEvents.textAlignSelect_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         selectToggle(e.target);
@@ -245,10 +246,10 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //text-align-left
-    vn.events.elementEvents.textAlignLeft_onClick = function(e: any) {
+    vn.events.elementEvents.textAlignLeft_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -259,10 +260,10 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //text-align-center
-    vn.events.elementEvents.textAlignCenter_onClick = function(e: any) {
+    vn.events.elementEvents.textAlignCenter_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -273,10 +274,10 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //text-align-right
-    vn.events.elementEvents.textAlignRight_onClick = function(e: any) {
+    vn.events.elementEvents.textAlignRight_onClick = (e: any) => {
         const note = getParentNote(e.target);
         // If a child element is selected, event is controlled
-        var target = e.target;
+        let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
             target = target.parentNode;
         }
@@ -287,7 +288,7 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //att link
-    vn.events.elementEvents.attLinkButton_onClick = function(e: any) {
+    vn.events.elementEvents.attLinkButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         //att madal open
@@ -296,32 +297,32 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //modal att link
-    vn.events.elementEvents.attLinkModal_onClick = function(e: any) {
+    vn.events.elementEvents.attLinkModal_onClick = (e: any) => {
     };
     //modal att link text
-    vn.events.elementEvents.attLinkText_onInput = function(e: any) {
+    vn.events.elementEvents.attLinkText_onInput = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         validCheckAttLink(note);
     };
-    vn.events.elementEvents.attLinkText_onBlur = function(e: any) {
+    vn.events.elementEvents.attLinkText_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         validCheckAttLink(note);
     };
     //modal att link href
-    vn.events.elementEvents.attLinkHref_onInput = function(e: any) {
+    vn.events.elementEvents.attLinkHref_onInput = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         validCheckAttLink(note);
     };
-    vn.events.elementEvents.attLinkHref_onBlur = function(e: any) {
+    vn.events.elementEvents.attLinkHref_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         validCheckAttLink(note);
     };
     //modal att link insert
-    vn.events.elementEvents.attLinkInsertButton_onClick = function(e: any) {
+    vn.events.elementEvents.attLinkInsertButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         if(!isValidSelection(note)) {
@@ -367,16 +368,16 @@ export const setElementEvents = (vn: Vanillanote) => {
     //==================================================================================
     //att link tooltip
     //edit button
-    vn.events.elementEvents.attLinkTooltipEditButton_onClick = function(e: any) {
+    vn.events.elementEvents.attLinkTooltipEditButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var previousElements = getPreviousElementsUntilNotTag(note._selection.editStartElement, "A", note._vn.consts);
-        var nextElements = getNextElementsUntilNotTag(note._selection.editStartElement, "A", note._vn.consts);
-        var startEl = previousElements[previousElements.length - 1];
-        var endEl = nextElements[nextElements.length - 1];
+        const previousElements = getPreviousElementsUntilNotTag(note._selection.editStartElement, "A", vn.consts);
+        const nextElements = getNextElementsUntilNotTag(note._selection.editStartElement, "A", vn.consts);
+        const startEl = previousElements[previousElements.length - 1];
+        const endEl = nextElements[nextElements.length - 1];
         
         // Sets the new selection range.
-        var newSelection = setNewSelection(
+        const newSelection = setNewSelection(
                 startEl.firstChild,
                 0,
                 endEl.firstChild,
@@ -389,16 +390,16 @@ export const setElementEvents = (vn: Vanillanote) => {
     };
 
     //unlink button
-    vn.events.elementEvents.attLinkTooltipUnlinkButton_onClick = function(e: any) {
+    vn.events.elementEvents.attLinkTooltipUnlinkButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var previousElements = getPreviousElementsUntilNotTag(note._selection.editStartElement, "A", note._vn.consts);
-        var nextElements = getNextElementsUntilNotTag(note._selection.editStartElement, "A", note._vn.consts);
-        var startEl = previousElements[previousElements.length - 1];
-        var endEl = nextElements[nextElements.length - 1];
+        const previousElements = getPreviousElementsUntilNotTag(note._selection.editStartElement, "A", vn.consts);
+        const nextElements = getNextElementsUntilNotTag(note._selection.editStartElement, "A", vn.consts);
+        const startEl = previousElements[previousElements.length - 1];
+        const endEl = nextElements[nextElements.length - 1];
         
         // Sets the new selection range.
-        var newSelection = setNewSelection(
+        const newSelection = setNewSelection(
                 startEl.firstChild,
                 0,
                 endEl.firstChild,
@@ -412,12 +413,12 @@ export const setElementEvents = (vn: Vanillanote) => {
 
     //==================================================================================
     //att file
-    vn.events.elementEvents.attFileButton_onClick = function(e: any) {
+    vn.events.elementEvents.attFileButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         
         // Restore the note size.
-        doIncreaseTextareaHeight(note._vn);
+        doIncreaseTextareaHeight(vn);
         // Close all modals
         closeAllModal(note);
         // Close all selects
@@ -425,8 +426,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         // Adjust modal size
         setAllModalSize(note);
         // Open modal background
-        var displayBlock = getId(note._noteName, note._id, "on_display_block");
-        var displayNone = getId(note._noteName, note._id, "on_display_none");
+        const displayBlock = getId(note._noteName, note._id, "on_display_block");
+        const displayNone = getId(note._noteName, note._id, "on_display_none");
         note._elements.modalBack.classList.remove(displayNone);
         note._elements.modalBack.classList.add(displayBlock);
         note._elements.attFileModal.classList.remove(displayNone);
@@ -434,26 +435,26 @@ export const setElementEvents = (vn: Vanillanote) => {
     };
     //==================================================================================
     //modal att file
-    vn.events.elementEvents.attFileModal_onClick = function(e: any) {
+    vn.events.elementEvents.attFileModal_onClick = (e: any) => {
     };
     //modal att file upload button
-    vn.events.elementEvents.attFileUploadButton_onClick = function(e: any) {
+    vn.events.elementEvents.attFileUploadButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         note._elements.attFileUpload.click();
     };
     //modal att file upload div
-    vn.events.elementEvents.attFileUploadDiv_onDragover = function(e: any) {
+    vn.events.elementEvents.attFileUploadDiv_onDragover = (e: any) => {
         e.stopPropagation();
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
     };
-    vn.events.elementEvents.attFileUploadDiv_onDrop = function(e: any) {
+    vn.events.elementEvents.attFileUploadDiv_onDrop = (e: any) => {
         e.preventDefault();
         const note = getParentNote(e.target);
         if(!note) return;
-        var files = Array.from(e.dataTransfer.files);
-        files.sort(function(a: any, b: any) {
+        const files = Array.from(e.dataTransfer.files);
+        files.sort((a: any, b: any) => {
             if (a.name < b.name) {
                 return -1;
             }
@@ -462,33 +463,33 @@ export const setElementEvents = (vn: Vanillanote) => {
             }
             return 0;
         });
-        for(var i = 0; i < files.length; i++){
+        for(let i = 0; i < files.length; i++){
             (note._attTempFiles as any)[getUUID()] = files[i];
         }
         // Leave attTempFiles with only valid files.
-        setAttTempFileValid(noteIndex);
+        setAttTempFileValid(note);
         // Set attFileUploadDiv.
-        setAttFileUploadDiv(noteIndex);
+        setAttFileUploadDiv(note);
     };
-    vn.events.elementEvents.attFileUploadDiv_onClick = function(e: any) {
-        var uuid = e.target.getAttribute("uuid");
+    vn.events.elementEvents.attFileUploadDiv_onClick = (e: any) => {
+        const uuid = e.target.getAttribute("uuid");
         if(!uuid) return;
         const note = getParentNote(e.target);
         if(!note) return;
-        delete vn.variables.attTempFiles[uuid]
+        delete note._attTempFiles![uuid]
         e.target.remove();
         
-        if(note._elements.attFileUploadDivs.childNodes.length <= 0) {
-            note._elements.attFileUploadDivs.textContent = vn.languageSet[vn.variables.languages].attFileUploadDiv;
-            note._elements.attFileUploadDivs.style.lineHeight = vn.variables.sizeRates * 130 + "px";
+        if(note._elements.attFileUploadDiv.childNodes.length <= 0) {
+            note._elements.attFileUploadDiv.textContent = vn.languageSet[note._attributes.language].attFileUploadDiv;
+            note._elements.attFileUploadDiv.style.lineHeight = note._attributes.sizeRate * 130 + "px";
         }
     };
     //modal att file upload
-    vn.events.elementEvents.attFileUpload_onInput = function(e: any) {
+    vn.events.elementEvents.attFileUpload_onInput = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var files = Array.from(e.target.files);
-        files.sort(function(a: any, b: any) {
+        const files = Array.from(e.target.files);
+        files.sort((a: any, b: any) => {
             if (a.name < b.name) {
                 return -1;
             }
@@ -497,20 +498,20 @@ export const setElementEvents = (vn: Vanillanote) => {
             }
             return 0;
         });
-        for(var i = 0; i < files.length; i++){
-            (vn.variables.attTempFiles as any)[getUUID()] = files[i];
+        for(let i = 0; i < files.length; i++){
+            (note._attTempFiles! as any)[getUUID()] = files[i];
         }
         // Leave attTempFiles with only valid files.
-        setAttTempFileValid(noteIndex);
+        setAttTempFileValid(note);
         // Set attFileUploadDiv.
-        setAttFileUploadDiv(noteIndex);
+        setAttFileUploadDiv(note);
     };
-    vn.events.elementEvents.attFileUpload_onBlur = function(e: any) {
+    vn.events.elementEvents.attFileUpload_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
     };
     //modal att file insert
-    vn.events.elementEvents.attFileInsertButton_onClick = function(e: any) {
+    vn.events.elementEvents.attFileInsertButton_onClick = (e: any) => {
         /*
         If there's a range
             Insert <p><input file></p> at startElement
@@ -520,25 +521,28 @@ export const setElementEvents = (vn: Vanillanote) => {
         */
         const note = getParentNote(e.target);
         if(!note) return;
-        if(!isValidSelection(noteIndex)) {
+        if(!isValidSelection(note)) {
             closeAllModal(note);
             return;
-note }
-        if(!vn.variables.editStartUnitElements) {
+            note
+        }
+        if(!note._selection.editStartUnitElement) {
             closeAllModal(note);
             return;
-note }
-        var keys = Object.keys(vn.variables.attTempFiles);
+            note
+        }
+        const keys = Object.keys(note._attTempFiles!);
         if(keys.length <= 0) {
             closeAllModal(note);
             return;
-note }
-        var editStartUnitElements: any = vn.variables.editStartUnitElements;
-        var tempEl1;
-        var tempEl2;
-        var selectEl;
+            note
+        }
+        const editStartUnitElements: any = note._selection.editStartUnitElement;
+        let tempEl1;
+        let tempEl2;
+        let selectEl;
         
-        for(var i = keys.length - 1; i >= 0; i--) {
+        for(let i = keys.length - 1; i >= 0; i--) {
             tempEl1 = document.createElement(editStartUnitElements.tagName);
             tempEl2 = getElement(
                     "",
@@ -547,23 +551,24 @@ note }
                     {
                         "class" : getClassName(note._noteName, note._id, "downloader"),
                         "uuid" : keys[i],
-                        "data-note-id" : noteIndex,
-                        "href" : URL.createObjectURL(vn.variables.attTempFiles[keys[i]]),
-                        "download" : vn.variables.attTempFiles[keys[i]].name,
-                        "style" : getCssTextFromObject(getObjectNoteCss(noteIndex)),
-                    }
+                        "data-note-id" : note._id,
+                        "href" : URL.createObjectURL(note._attTempFiles![keys[i]]),
+                        "download" : note._attTempFiles![keys[i]].name,
+                        "style" : getCssTextFromObject(getObjectNoteCss(note)),
+                    },
+                    note
                 );
-            tempEl2.innerText = "download : "+vn.variables.attTempFiles[keys[i]].name;
+            tempEl2.innerText = "download : "+note._attTempFiles![keys[i]].name;
             tempEl1.appendChild(tempEl2)
             editStartUnitElements.parentNode.insertBefore(tempEl1, editStartUnitElements.nextSibling);
             
             // Save attach file object
-            vn.variables.attFiles[keys[i]] = vn.variables.attTempFiles[keys[i]];
+            note._attFiles[keys[i]] = note._attTempFiles![keys[i]];
             if(i === keys.length - 1) selectEl = tempEl1;
         }
         closeAllModal(note);
         // Sets the new selection range.
-        noten(
+        setNewSelection(
             selectEl,
             1,
             selectEl,
@@ -572,12 +577,12 @@ note }
     };
     //==================================================================================
     //att image
-    vn.events.elementEvents.attImageButton_onClick = function(e: any) {
+    vn.events.elementEvents.attImageButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         
         // Restore the note size.
-        doIncreaseTextareaHeight(note._vn);
+        doIncreaseTextareaHeight(vn);
         // Close all modals
         closeAllModal(note);
         // Close all selects
@@ -585,143 +590,143 @@ note }
         // Adjust modal size
         setAllModalSize(note);
         // Open modal background
-        var displayBlock = getId(note._noteName, note._id, "on_display_block");
-        var displayNone = getId(note._noteName, note._id, "on_display_none");
-        note._elements.modalBacks.classList.remove(displayNone);
-        note._elements.modalBacks.classList.add(displayBlock);
-        note._elements.attImageModals.classList.remove(displayNone);
-        note._elements.attImageModals.classList.add(displayBlock);
+        const displayBlock = getId(note._noteName, note._id, "on_display_block");
+        const displayNone = getId(note._noteName, note._id, "on_display_none");
+        note._elements.modalBack.classList.remove(displayNone);
+        note._elements.modalBack.classList.add(displayBlock);
+        note._elements.attImageModal.classList.remove(displayNone);
+        note._elements.attImageModal.classList.add(displayBlock);
     };
     //==================================================================================
     //modal att image
-    vn.events.elementEvents.attImageModal_onClick = function(e: any) {
+    vn.events.elementEvents.attImageModal_onClick = (e: any) => {
     };
     //modalatt image uplaod button and view
-    vn.events.elementEvents.attImageUploadButtonAndView_onDragover = function(e: any) {
+    vn.events.elementEvents.attImageUploadButtonAndView_onDragover = (e: any) => {
         e.stopPropagation();
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
     };
-    vn.events.elementEvents.attImageUploadButtonAndView_onDrop = function(e: any) {
+    vn.events.elementEvents.attImageUploadButtonAndView_onDrop = (e: any) => {
         e.preventDefault();
         const note = getParentNote(e.target);
         if(!note) return;
-        var files = Array.from(e.dataTransfer.files);
-        for(var i = 0; i < files.length; i++){
-            (vn.variables.attTempImages as any)[getUUID()] = files[i];
+        const files = Array.from(e.dataTransfer.files);
+        for(let i = 0; i < files.length; i++){
+            (note._attTempImages as any)[getUUID()] = files[i];
         }
         // Leave attTempImages with only valid files.
-        setAttTempImageValid(noteIndex);
+        setAttTempImageValid(note);
         // Set attImageUploadAndView.
-        setAttImageUploadAndView(noteIndex);
+        setAttImageUploadAndView(note);
     };
-    vn.events.elementEvents.attImageUploadButtonAndView_onClick = function(e: any) {
+    vn.events.elementEvents.attImageUploadButtonAndView_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        note._elements.attImageUploads.click();
+        note._elements.attImageUpload.click();
     };
     //modal att image view pre button
-    vn.events.elementEvents.attImageViewPreButtion_onClick = function(e: any) {
+    vn.events.elementEvents.attImageViewPreButtion_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var scrollAmount = note._elements.attImageUploadButtonAndViews.offsetWidth / 1.5 + 10;
-        note._elements.attImageUploadButtonAndViews.scrollLeft -= scrollAmount;
+        const scrollAmount = note._elements.attImageUploadButtonAndView.offsetWidth / 1.5 + 10;
+        note._elements.attImageUploadButtonAndView.scrollLeft -= scrollAmount;
     };
     //modal att image view next button
-    vn.events.elementEvents.attImageViewNextButtion_onClick = function(e: any) {
+    vn.events.elementEvents.attImageViewNextButtion_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var scrollAmount = note._elements.attImageUploadButtonAndViews.offsetWidth / 1.5 + 10;
-        note._elements.attImageUploadButtonAndViews.scrollLeft += scrollAmount;
+        const scrollAmount = note._elements.attImageUploadButtonAndView.offsetWidth / 1.5 + 10;
+        note._elements.attImageUploadButtonAndView.scrollLeft += scrollAmount;
     };
     //modal att image upload
-    vn.events.elementEvents.attImageUpload_onInput = function(e: any) {
+    vn.events.elementEvents.attImageUpload_onInput = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var files = Array.from(e.target.files);
-        for(var i = 0; i < files.length; i++){
-            (vn.variables.attTempImages as any)[getUUID()] = files[i];
+        const files = Array.from(e.target.files);
+        for(let i = 0; i < files.length; i++){
+            (note._attTempImages as any)[getUUID()] = files[i];
         }
         // Leave attTempImages with only valid files.
-        setAttTempImageValid(noteIndex);
+        setAttTempImageValid(note);
         // Set attImageUploadAndView.
-        setAttImageUploadAndView(noteIndex);
+        setAttImageUploadAndView(note);
     };
-    vn.events.elementEvents.attImageUpload_onBlur = function(e: any) {
+    vn.events.elementEvents.attImageUpload_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
     };
     //modal att image url
-    vn.events.elementEvents.attImageURL_onInput = function(e: any) {
+    vn.events.elementEvents.attImageURL_onInput = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var url = e.target.value;
+        const url = e.target.value;
         if(url) {
-            note._elements.attImageUploadButtonAndViews.replaceChildren();
+            note._elements.attImageUploadButtonAndView.replaceChildren();
             const tempEl = document.createElement("img");
             tempEl.src = url;
             tempEl.style.width = "auto";
             tempEl.style.height = "100%";
             tempEl.style.display = "inline-block";
             tempEl.style.margin = "0 5px"
-            note._elements.attImageUploadButtonAndViews.appendChild(tempEl);
+            note._elements.attImageUploadButtonAndView.appendChild(tempEl);
         }
         else {
-            note._elements.attImageUploadButtonAndViews.textContent = vn.languageSet[vn.variables.languages].attImageUploadButtonAndView;
+            note._elements.attImageUploadButtonAndView.textContent = vn.languageSet[note._attributes.language].attImageUploadButtonAndView;
         }
     };
-    vn.events.elementEvents.attImageURL_onBlur = function(e: any) {
+    vn.events.elementEvents.attImageURL_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
     };
     //modal att image insert
-    vn.events.elementEvents.attImageInsertButton_onClick = function(e: any) {
+    vn.events.elementEvents.attImageInsertButton_onClick = (e: any) => {
         /*
         In case of having a range:
             Sequentially insert <img url/> into startElement
             Reset attTempImages, attImageUploadButtonAndView, attImageURL and close modal
             If it's uload method:
-                Store files in vn.variables.attImages
+                Store files in note._attImages
         If there is no range:
             Reset attTempImages, attImageUploadButtonAndView, attImageURL and close modal
         */
         const note = getParentNote(e.target);
         if(!note) return;
-        if(!isValidSelection(noteIndex)) {
+        if(!isValidSelection(note)) {
             closeAllModal(note);
             return;
-note }
-        if(!vn.variables.editStartUnitElements) {
+            note
+        }
+        if(!note._selection.editStartUnitElement) {
             closeAllModal(note);
             return;
-note }
+            note
+        }
+        if((note._elements.attImageURL as any).value) {
+            const url = (note._elements.attImageURL as any).value;
+            const editStartUnitElements: any = note._selection.editStartUnitElement;
+            const viewerStyle = "width: 100%; overflow:hidden;"
         
-        if((note._elements.attImageURLs as any).value) {
-            var url = (note._elements.attImageURLs as any).value;
-            var editStartUnitElements: any = vn.variables.editStartUnitElements;
-            var tempEl1;
-            var tempEl2;
-            var viewerStyle = "width: 100%; overflow:hidden;"
-        
-            tempEl1 = document.createElement(editStartUnitElements.tagName);
-            tempEl2 = getElement(
+            const tempEl1 = document.createElement(editStartUnitElements.tagName);
+            const tempEl2 = getElement(
                     "",
                     "img",
                     "",
                     {
                         "class" : getClassName(note._noteName, note._id, "image_viewer"),
-                        "data-note-id" : noteIndex,
+                        "data-note-id" : note._id,
                         "src" : url,
                         "style" : viewerStyle,
                         "title" : "",
-                    }
+                    },
+                    note
                 );
             tempEl1.appendChild(tempEl2)
             editStartUnitElements.parentNode.insertBefore(tempEl1, editStartUnitElements.nextSibling);
             
             closeAllModal(note);
             // Sets the new selection range.
-            noten(
+            setNewSelection(
                 tempEl1,
                 0,
                 tempEl1,
@@ -730,18 +735,17 @@ note }
             return;
         }
         
-        var keys = Object.keys(vn.variables.attTempImages);
+        const keys = Object.keys(note._attTempImages!);
         if(keys.length > 0) {
-            var editStartUnitElements: any = vn.variables.editStartUnitElements;
-            var tempEl1;
-            var tempEl2;
-            var tempFile;
-            var viewerStyle = "width: 100%; overflow:hidden;"
-            var selectEl;
+            const editStartUnitElements: any = note._selection.editStartUnitElement;
+            let tempEl1;
+            let tempEl2;
+            const viewerStyle = "width: 100%; overflow:hidden;"
+            let selectEl;
             
-            for(var i = keys.length - 1; i >= 0; i--) {
+            for(let i = keys.length - 1; i >= 0; i--) {
                 // Save image file object
-                vn.variables.attImages[keys[i]] = vn.variables.attTempImages[keys[i]];
+                note._attImages[keys[i]] = note._attTempImages![keys[i]];
                 
                 tempEl1 = document.createElement(editStartUnitElements.tagName);
                 tempEl2 = getElement(
@@ -751,11 +755,12 @@ note }
                         {
                             "class" : getClassName(note._noteName, note._id, "image_viewer"),
                             "uuid" : keys[i],
-                            "data-note-id" : noteIndex,
-                            "src" : URL.createObjectURL(vn.variables.attImages[keys[i]]),
+                            "data-note-id" : note._id,
+                            "src" : URL.createObjectURL(note._attImages[keys[i]]),
                             "style" : viewerStyle,
                             "title" : "",
-                        }
+                        },
+                        note
                     );
                 tempEl1.appendChild(tempEl2)
                 editStartUnitElements.parentNode.insertBefore(tempEl1, editStartUnitElements.nextSibling);
@@ -765,7 +770,7 @@ note }
                 
             closeAllModal(note);
             // Sets the new selection range.
-            noten(
+            setNewSelection(
                 selectEl,
                 0,
                 selectEl,
@@ -776,106 +781,108 @@ note }
         
         closeAllModal(note);
         return;
-note};
+    };
 
     //==================================================================================
     //att video
-    vn.events.elementEvents.attVideoButton_onClick = function(e: any) {
+    vn.events.elementEvents.attVideoButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         
         // Restore the note size.
-        doIncreaseTextareaHeight(note._vn);
+        doIncreaseTextareaHeight(vn);
         
         closeAllModal(note);
         
-        var displayBlock = getId(note._noteName, note._id, "on_display_blocknote);
-        var displayNone = getId(note._noteName, note._id, "on_display_none");
-        note._elements.modalBacks.classList.remove(displayNone);
-        note._elements.modalBacks.classList.add(displayBlock);
-        note._elements.attVideoModals.classList.remove(displayNone);
-        note._elements.attVideoModals.classList.add(displayBlock);
+        const displayBlock = getId(note._noteName, note._id, "on_display_blocknote");
+        const displayNone = getId(note._noteName, note._id, "on_display_none");
+        note._elements.modalBack.classList.remove(displayNone);
+        note._elements.modalBack.classList.add(displayBlock);
+        note._elements.attVideoModal.classList.remove(displayNone);
+        note._elements.attVideoModal.classList.add(displayBlock);
 
         //modal setting
-        (note._elements.attVideoEmbedIds as any).value = "";
-        (note._elements.attVideoWidthes as any).value = 100;
-        (note._elements.attVideoHeights as any).value = 500;
+        (note._elements.attVideoEmbedId as any).value = "";
+        (note._elements.attVideoWidth as any).value = 100;
+        (note._elements.attVideoHeight as any).value = 500;
 
-        validCheckAttVideo(noteIndex);
+        validCheckAttVideo(note);
     };
     //==================================================================================
     //modal att video
-    vn.events.elementEvents.attVideoModal_onClick = function(e: any) {
+    vn.events.elementEvents.attVideoModal_onClick = (e: any) => {
     };
     //modal att video embed id
-    vn.events.elementEvents.attVideoEmbedId_onInput = function(e: any) {
+    vn.events.elementEvents.attVideoEmbedId_onInput = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        validCheckAttVideo(noteIndex);
+        validCheckAttVideo(note);
     };
-    vn.events.elementEvents.attVideoEmbedId_onBlur = function(e: any) {
+    vn.events.elementEvents.attVideoEmbedId_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        validCheckAttVideo(noteIndex);
+        validCheckAttVideo(note);
     };
     //modal att video width
-    vn.events.elementEvents.attVideoWidth_onInput = function(e: any) {
+    vn.events.elementEvents.attVideoWidth_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        const inputValue = e.target.value;
         if(!checkNumber(inputValue)) {
             e.target.value = "";
             return;
         }
     };
-    vn.events.elementEvents.attVideoWidth_onBlur = function(e: any) {
+    vn.events.elementEvents.attVideoWidth_onBlur = (e: any) => {
         if(!e.target.value) e.target.value = 100;
-        var widthPer = e.target.value;
+        let widthPer = e.target.value;
         if(widthPer < 10) widthPer = 10;
         if(widthPer > 100) widthPer = 100;
         e.target.value = widthPer;
     };
     //modal att video height
-    vn.events.elementEvents.attVideoHeight_onInput = function(e: any) {
+    vn.events.elementEvents.attVideoHeight_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        const inputValue = e.target.value;
         if(!checkNumber(inputValue)) {
             e.target.value = "";
             return;
         }
     };
-    vn.events.elementEvents.attVideoHeight_onBlur = function(e: any) {
+    vn.events.elementEvents.attVideoHeight_onBlur = (e: any) => {
         if(!e.target.value) e.target.value = 500;
-        var height = e.target.value;
+        let height = e.target.value;
         if(height < 50) height = 50;
         if(height > 1000) height = 1000;
         e.target.value = height;
     };
     //modal att video insert
-    vn.events.elementEvents.attVideoInsertButton_onClick = function(e: any) {
+    vn.events.elementEvents.attVideoInsertButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        if(!isValidSelection(noteIndex)) {
+        if(!isValidSelection(note)) {
             closeAllModal(note);
             return;
-note }
-        var attVideoValidCheckbox: any = note._elements.attVideoValidCheckboxes;
+            note
+        }
+        const attVideoValidCheckbox: any = note._elements.attVideoValidCheckbox;
         if(!attVideoValidCheckbox.checked) {
             return;
         }
 
-        if(!vn.variables.editStartUnitElements) {
+        if(!note._selection.editStartUnitElement) {
             closeAllModal(note);
             return;
-note }
+            note
+        }
 
-        if((note._elements.attVideoEmbedIds as any).value) {
-            var src = "https://www.youtube.com/embed/" + (note._elements.attVideoEmbedIds as any).value;
-            var editStartUnitElements: any = vn.variables.editStartUnitElements;
-            var tempEl1;
-            var tempEl2;
-            var viewerStyle = "overflow:hidden;"
-                                + "width:" + (note._elements.attVideoWidthes as any).value + "%;"
-                                + "height:" + (note._elements.attVideoHeights as any).value + "px;";
+        if((note._elements.attVideoEmbedId as any).value) {
+            const src = "https://www.youtube.com/embed/" + (note._elements.attVideoEmbedId as any).value;
+            const editStartUnitElements: any = note._selection.editStartUnitElement;
+            let tempEl1;
+            let tempEl2;
+            const viewerStyle = "overflow:hidden;"
+                                + "width:" + (note._elements.attVideoWidth as any).value + "%;"
+                                + "height:" + (note._elements.attVideoHeight as any).value + "px;";
         
             tempEl1 = document.createElement(editStartUnitElements.tagName);
             tempEl2 = getElement(
@@ -884,21 +891,22 @@ note }
                     "",
                     {
                         "class" : getClassName(note._noteName, note._id, "video_viewer"),
-                        "data-note-id" : noteIndex,
+                        "data-note-id" : note._id,
                         "src" : src,
                         "title" : "YouTube video player",
                         "frameborder" : "0",
                         "allow" : "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
                         "allowfullscreen" : "",
                         "style" : viewerStyle,
-                    }
+                    },
+                    note
                 );
             tempEl1.appendChild(tempEl2)
             editStartUnitElements.parentNode.insertBefore(tempEl1, editStartUnitElements.nextSibling);
             
             closeAllModal(note);
             // Sets the new selection range.
-            noten(
+            setNewSelection(
                 tempEl1,
                 0,
                 tempEl1,
@@ -908,90 +916,90 @@ note }
         }
 
         closeAllModal(note);
-    note
+    };
 
     //==================================================================================
     //att image tooltip width input event
-    vn.events.elementEvents.attImageAndVideoTooltipWidthInput_onInput = function(e: any) {
+    vn.events.elementEvents.attImageAndVideoTooltipWidthInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        const inputValue = e.target.value;
         if(!checkNumber(inputValue)) {
             e.target.value = "";
             return;
         }
     };
-    vn.events.elementEvents.attImageAndVideoTooltipWidthInput_onBlur = function(e: any) {
+    vn.events.elementEvents.attImageAndVideoTooltipWidthInput_onBlur = (e: any) => {
         setImageAndVideoWidth(e.target);
     };
-    vn.events.elementEvents.attImageAndVideoTooltipWidthInput_onKeyup = function(e: any) {
+    vn.events.elementEvents.attImageAndVideoTooltipWidthInput_onKeyup = (e: any) => {
         if(e.key === "Enter") {
             setImageAndVideoWidth(e.target);
         }
     };
     //att image tooltip float radio none input event
-    vn.events.elementEvents.attImageAndVideoTooltipFloatRadioNone_onClick = function(e: any) {
+    vn.events.elementEvents.attImageAndVideoTooltipFloatRadioNone_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var imgNode: any = (vn.variables.editStartNodes as any).cloneNode(true);
+        const imgNode: any = (note._selection.editStartNode as any).cloneNode(true);
         if(imgNode.tagName !== "IMG" && imgNode.tagName !== "IFRAME") return;
         imgNode.style.float = "none";
-        (vn.variables.editStartNodes as any).parentNode.replaceChild(imgNode, (vn.variables.editStartNodes as any));
-        vn.variables.editStartNodes = imgNode;
+        (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
+        note._selection.editStartNode = imgNode;
     };
     //att image tooltip float radio left input event
-    vn.events.elementEvents.attImageAndVideoTooltipFloatRadioLeft_onClick = function(e: any) {
+    vn.events.elementEvents.attImageAndVideoTooltipFloatRadioLeft_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var imgNode: any = (vn.variables.editStartNodes as any).cloneNode(true);
+        const imgNode: any = (note._selection.editStartNode as any).cloneNode(true);
         if(imgNode.tagName !== "IMG" && imgNode.tagName !== "IFRAME") return;
         imgNode.style.float = "left";
-        (vn.variables.editStartNodes as any).parentNode.replaceChild(imgNode, (vn.variables.editStartNodes as any));
-        vn.variables.editStartNodes = imgNode;
+        (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
+        note._selection.editStartNode = imgNode;
     };
     //att image tooltip float radio right input event
-    vn.events.elementEvents.attImageAndVideoTooltipFloatRadioRight_onClick = function(e: any) {
+    vn.events.elementEvents.attImageAndVideoTooltipFloatRadioRight_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var imgNode: any = (vn.variables.editStartNodes as any).cloneNode(true);
+        const imgNode: any = (note._selection.editStartNode as any).cloneNode(true);
         if(imgNode.tagName !== "IMG" && imgNode.tagName !== "IFRAME") return;
         imgNode.style.float = "right";
-        (vn.variables.editStartNodes as any).parentNode.replaceChild(imgNode, (vn.variables.editStartNodes as any));
-        vn.variables.editStartNodes = imgNode;
+        (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
+        note._selection.editStartNode = imgNode;
     };
     //att image tooltip shape square radio input event
-    vn.events.elementEvents.attImageAndVideoTooltipShapeRadioSquare_onClick = function(e: any) {
+    vn.events.elementEvents.attImageAndVideoTooltipShapeRadioSquare_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var imgNode: any = vn.variables.editStartNodes;
+        const imgNode: any = note._selection.editStartNode;
         if(imgNode.tagName !== "IMG" && imgNode.tagName !== "IFRAME") return;
         imgNode.style.removeProperty("border-radius");
-        (vn.variables.editStartNodes as any).parentNode.replaceChild(imgNode, (vn.variables.editStartNodes as any));
-        vn.variables.editStartNodes = imgNode;
+        (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
+        note._selection.editStartNode = imgNode;
     };
     //att image tooltip shape radius radio input event
-    vn.events.elementEvents.attImageAndVideoTooltipShapeRadioRadius_onClick = function(e: any) {
+    vn.events.elementEvents.attImageAndVideoTooltipShapeRadioRadius_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var imgNode: any = vn.variables.editStartNodes;
+        const imgNode: any = note._selection.editStartNode;
         if(imgNode.tagName !== "IMG" && imgNode.tagName !== "IFRAME") return;
         imgNode.style.borderRadius = "5%";
-        (vn.variables.editStartNodes as any).parentNode.replaceChild(imgNode, (vn.variables.editStartNodes as any));
-        vn.variables.editStartNodes = imgNode;
+        (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
+        note._selection.editStartNode = imgNode;
     };
     //att image tooltip shape circle radio input event
-    vn.events.elementEvents.attImageAndVideoTooltipShapeRadioCircle_onClick = function(e: any) {
+    vn.events.elementEvents.attImageAndVideoTooltipShapeRadioCircle_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        var imgNode: any = vn.variables.editStartNodes;
+        const imgNode: any = note._selection.editStartNode;
         if(imgNode.tagName !== "IMG" && imgNode.tagName !== "IFRAME") return;
         imgNode.style.borderRadius = "50%";
-        (vn.variables.editStartNodes as any).parentNode.replaceChild(imgNode, (vn.variables.editStartNodes as any));
-        vn.variables.editStartNodes = imgNode;
+        (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
+        note._selection.editStartNode = imgNode;
     };
 
     //==================================================================================
     //fontSizeInputBox event
-    vn.events.elementEvents.fontSizeInputBox_onClick = function(e: any) {
+    vn.events.elementEvents.fontSizeInputBox_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         // If the selection is a single point
@@ -1005,42 +1013,42 @@ note }
         }
     };
     //fontSizeInput event
-    vn.events.elementEvents.fontSizeInput_onClick = function(e: any) {
+    vn.events.elementEvents.fontSizeInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.fontSizeInput_onInput = function(e: any) {
+    vn.events.elementEvents.fontSizeInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        const inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkNumber(inputValue)) {
             e.target.value = "";
             return;
         }
-        vn.variables.fontSizes = inputValue;
+        note._status.fontSize = inputValue;
     };
-    vn.events.elementEvents.fontSizeInput_onBlur = function(e: any) {
+    vn.events.elementEvents.fontSizeInput_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         if(!e.target.value) {
-            e.target.value = vn.variables.fontSizes;
+            e.target.value = note._status.fontSize;
         }
-        var inputValueNum = Number(e.target.value);
+        const inputValueNum = Number(e.target.value);
         if(inputValueNum > 120) {
             e.target.value = "120";
-            vn.variables.fontSizes = e.target.value;
+            note._status.fontSize = e.target.value;
             return;
         }
         if(inputValueNum < 6) {
             e.target.value = "6";
-            vn.variables.fontSizes = e.target.value;
+            note._status.fontSize = e.target.value;
             return;
         }
-        vn.variables.fontSizes = e.target.value;
+        note._status.fontSize = e.target.value;
     };
 
     //==================================================================================
     //letterSpacingInputBox event
-    vn.events.elementEvents.letterSpacingInputBox_onClick = function(e: any) {
+    vn.events.elementEvents.letterSpacingInputBox_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         // If the selection is a single point
@@ -1054,46 +1062,46 @@ note }
         }
     };
     //letterSpacingInput event
-    vn.events.elementEvents.letterSpacingInput_onClick = function(e: any) {
+    vn.events.elementEvents.letterSpacingInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.letterSpacingInput_onInput = function(e: any) {
+    vn.events.elementEvents.letterSpacingInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        const inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkRealNumber(inputValue)) {
             e.target.value = "";
             return;
         }
-        vn.variables.letterSpacings = inputValue;
+        note._status.letterSpacing = inputValue;
     };
-    vn.events.elementEvents.letterSpacingInput_onBlur = function(e: any) {
+    vn.events.elementEvents.letterSpacingInput_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         if(!e.target.value) {
             e.target.value = "0";
-            vn.variables.letterSpacings = e.target.value;
+            note._status.letterSpacing = e.target.value;
             return;
         }
-        var inputValueNum = Number(e.target.value);
+        const inputValueNum = Number(e.target.value);
         if(inputValueNum > 30) {
             e.target.value = "30";
-            vn.variables.letterSpacings = e.target.value;
+            note._status.letterSpacing = e.target.value;
             return;
         }
         if(inputValueNum < -5) {
             e.target.value = "-5";
-            vn.variables.letterSpacings = e.target.value;
+            note._status.letterSpacing = e.target.value;
             return;
         }
-        vn.variables.letterSpacings = e.target.value;
+        note._status.letterSpacing = e.target.value;
     };
 
     //==================================================================================
     //lineHeightInputBox event
-    vn.events.elementEvents.lineHeightInputBox_onClick = function(e: any) {
+    vn.events.elementEvents.lineHeightInputBox_onClick = (e: any) => {
     };
-    vn.events.elementEvents.lineHeightInputBox_onInput = function(e: any) {
+    vn.events.elementEvents.lineHeightInputBox_onInput = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         // If the selection is a single point
@@ -1107,42 +1115,42 @@ note }
         }
     };
     //lineHeightInput event
-    vn.events.elementEvents.lineHeightInput_onClick = function(e: any) {
+    vn.events.elementEvents.lineHeightInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.lineHeightInput_onInput = function(e: any) {
+    vn.events.elementEvents.lineHeightInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        const inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkNumber(inputValue)) {
             e.target.value = "";
             return;
         }
-        vn.variables.lineHeights = e.target.value;
+        note._status.lineHeight = e.target.value;
     };
-    vn.events.elementEvents.lineHeightInput_onBlur = function(e: any) {
+    vn.events.elementEvents.lineHeightInput_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         if(!e.target.value) {
-            e.target.value = vn.variables.lineHeights;
+            e.target.value = note._status.lineHeight;
         }
-        var inputValueNum = Number(e.target.value);
+        const inputValueNum = Number(e.target.value);
         if(inputValueNum > 150) {
             e.target.value = "150";
-            vn.variables.lineHeights = e.target.value;
+            note._status.lineHeight = e.target.value;
             return;
         }
         if(inputValueNum < 6) {
             e.target.value = "6";
-            vn.variables.lineHeights = e.target.value;
+            note._status.lineHeight = e.target.value;
             return;
         }
-        vn.variables.lineHeights = e.target.value;
+        note._status.lineHeight = e.target.value;
     };
 
     //==================================================================================
     //fontFamilySelect event
-    vn.events.elementEvents.fontFamilySelect_onClick = function(e: any) {
+    vn.events.elementEvents.fontFamilySelect_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         selectToggle(e.target);
@@ -1153,7 +1161,7 @@ note }
     };
     //==================================================================================
     //color text select
-    vn.events.elementEvents.colorTextSelect_onClick = function(e: any) {
+    vn.events.elementEvents.colorTextSelect_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         selectToggle(e.target);
@@ -1163,108 +1171,108 @@ note }
         }
     };
     //color text select box
-    vn.events.elementEvents.colorTextSelectBox_onClick = function(e: any) {
+    vn.events.elementEvents.colorTextSelectBox_onClick = (e: any) => {
     };
     //colorText R Input event
-    vn.events.elementEvents.colorTextRInput_onClick = function(e: any) {
+    vn.events.elementEvents.colorTextRInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorTextRInput_onInput = function(e: any) {
+    vn.events.elementEvents.colorTextRInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        let inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(inputValue)) {
-            inputValue = vn.variables.colorTextRs;
+            inputValue = note._status.colorTextR;
             e.target.value = inputValue;
             return;
         }
         if(inputValue.length !== 2) return;
-        vn.variables.colorTextRs = inputValue;
-        note._elements.colorText0s.style.backgroundColor = "#" + vn.variables.colorTextRs +  vn.variables.colorTextGs +  vn.variables.colorTextBs;
+        note._status.colorTextR = inputValue;
+        note._elements.colorText0.style.backgroundColor = "#" + note._status.colorTextR +  note._status.colorTextG +  note._status.colorTextB;
     };
-    vn.events.elementEvents.colorTextRInput_onBlur = function(e: any) {
-        var value = e.target.value;
+    vn.events.elementEvents.colorTextRInput_onBlur = (e: any) => {
+        const value = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(value)) {
-            e.target.value = vn.variables.colorTextRs;
+            e.target.value = note._status.colorTextR;
             return;
         }
         if(value.length !== 2) {
-            e.target.value = vn.variables.colorTextRs;
+            e.target.value = note._status.colorTextR;
         }
     };
     //colorText G Input event
-    vn.events.elementEvents.colorTextGInput_onClick = function(e: any) {
+    vn.events.elementEvents.colorTextGInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorTextGInput_onInput = function(e: any) {
+    vn.events.elementEvents.colorTextGInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        let inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(inputValue)) {
-            inputValue = vn.variables.colorTextGs;
+            inputValue = note._status.colorTextG;
             e.target.value = inputValue;
             return;
         }
         if(inputValue.length !== 2) return;
-        vn.variables.colorTextGs = inputValue;
-        note._elements.colorText0s.style.backgroundColor = "#" + vn.variables.colorTextRs +  vn.variables.colorTextGs +  vn.variables.colorTextBs;
+        note._status.colorTextG = inputValue;
+        note._elements.colorText0.style.backgroundColor = "#" + note._status.colorTextR +  note._status.colorTextG +  note._status.colorTextB;
     };
-    vn.events.elementEvents.colorTextGInput_onBlur = function(e: any) {
-        var value = e.target.value;
+    vn.events.elementEvents.colorTextGInput_onBlur = (e: any) => {
+        const value = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(value)) {
-            e.target.value = vn.variables.colorTextGs;
+            e.target.value = note._status.colorTextG;
             return;
         }
         if(value.length !== 2) {
-            e.target.value = vn.variables.colorTextGs;
+            e.target.value = note._status.colorTextG;
         }
     };
     //colorText B Input event
-    vn.events.elementEvents.colorTextBInput_onClick = function(e: any) {
+    vn.events.elementEvents.colorTextBInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorTextBInput_onInput = function(e: any) {
+    vn.events.elementEvents.colorTextBInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        let inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(inputValue)) {
-            inputValue = vn.variables.colorTextBs;
+            inputValue = note._status.colorTextB;
             e.target.value = inputValue;
             return;
         }
         if(inputValue.length !== 2) return;
-        vn.variables.colorTextBs = inputValue;
-        note._elements.colorText0s.style.backgroundColor = "#" + vn.variables.colorTextRs +  vn.variables.colorTextGs +  vn.variables.colorTextBs;
+        note._status.colorTextB = inputValue;
+        note._elements.colorText0.style.backgroundColor = "#" + note._status.colorTextR +  note._status.colorTextG +  note._status.colorTextB;
     };
-    vn.events.elementEvents.colorTextBInput_onBlur = function(e: any) {
-        var value = e.target.value;
+    vn.events.elementEvents.colorTextBInput_onBlur = (e: any) => {
+        const value = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(value)) {
-            e.target.value = vn.variables.colorTextBs;
+            e.target.value = note._status.colorTextB;
             return;
         }
         if(value.length !== 2) {
-            e.target.value = vn.variables.colorTextBs;
+            e.target.value = note._status.colorTextB;
         }
     };
     //colorText Opacity Input event
-    vn.events.elementEvents.colorTextOpacityInput_onClick = function(e: any) {
+    vn.events.elementEvents.colorTextOpacityInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorTextOpacityInput_onInput = function(e: any) {
+    vn.events.elementEvents.colorTextOpacityInput_onInput = (e: any) => {
         if(e.target.value === "01" || e.target.value === "10") {
             e.target.value = e.data;
         } 
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        let inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkRealNumber(inputValue)) {
-            inputValue = vn.variables.colorTextOs;
+            inputValue = note._status.colorTextO;
             e.target.value = inputValue;
             return;
         }
@@ -1279,26 +1287,26 @@ note }
             e.target.value = Math.round(inputValue * 10) / 10;
         }
         
-        vn.variables.colorTextOs = inputValue;
-        note._elements.colorText0s.style.opacity = vn.variables.colorTextOs;
+        note._status.colorTextO = inputValue;
+        note._elements.colorText0.style.opacity = note._status.colorTextO;
     };
-    vn.events.elementEvents.colorTextOpacityInput_onBlur = function(e: any) {
-        var value = e.target.value;
+    vn.events.elementEvents.colorTextOpacityInput_onBlur = (e: any) => {
+        const value = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkRealNumber(value)) {
-            e.target.value = vn.variables.colorTextOs;
+            e.target.value = note._status.colorTextO;
         }
     };
     //colorText0 event
-    vn.events.elementEvents.colorText0_onClick = function(e: any) {
+    vn.events.elementEvents.colorText0_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorTextRGBs = "#" + vn.variables.colorTextRs +  vn.variables.colorTextGs +  vn.variables.colorTextBs;
-        vn.variables.colorTextOpacitys = vn.variables.colorTextOs;
+        note._status.colorTextRGB = "#" + note._status.colorTextR +  note._status.colorTextG +  note._status.colorTextB;
+        note._status.colorTextOpacity = note._status.colorTextO;
         if(!isMobileDevice()) {
-            (note._elements.colorTextSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorTextRGBs, vn.variables.colorTextOpacitys === "0" ? 1 : vn.variables.colorTextOpacitys);
+            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity === "0" ? 1 : note._status.colorTextOpacity);
         }
         
         // If the selection is a single point
@@ -1312,14 +1320,14 @@ note }
         }
     };
     //colorText1 event
-    vn.events.elementEvents.colorText1_onClick = function(e: any) {
+    vn.events.elementEvents.colorText1_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorTextRGBs = getHexColorFromColorName(vn.colors.color14);
-        vn.variables.colorTextOpacitys = "1";
+        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color14);
+        note._status.colorTextOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorTextSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorTextRGBs, vn.variables.colorTextOpacitys);
+            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
         }
         
         // If the selection is a single point
@@ -1333,14 +1341,14 @@ note }
         }
     };
     //colorText2 event
-    vn.events.elementEvents.colorText2_onClick = function(e: any) {
+    vn.events.elementEvents.colorText2_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorTextRGBs = getHexColorFromColorName(vn.colors.color15);
-        vn.variables.colorTextOpacitys = "1";
+        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color15);
+        note._status.colorTextOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorTextSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorTextRGBs, vn.variables.colorTextOpacitys);
+            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
         }
         
         // If the selection is a single point
@@ -1354,14 +1362,14 @@ note }
         }
     };
     //colorText3 event
-    vn.events.elementEvents.colorText3_onClick = function(e: any) {
+    vn.events.elementEvents.colorText3_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorTextRGBs = getHexColorFromColorName(vn.colors.color16);
-        vn.variables.colorTextOpacitys = "1";
+        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color16);
+        note._status.colorTextOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorTextSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorTextRGBs, vn.variables.colorTextOpacitys);
+            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
         }
         
         // If the selection is a single point
@@ -1375,14 +1383,14 @@ note }
         }
     };
     //colorText4 event
-    vn.events.elementEvents.colorText4_onClick = function(e: any) {
+    vn.events.elementEvents.colorText4_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorTextRGBs = getHexColorFromColorName(vn.colors.color17);
-        vn.variables.colorTextOpacitys = "1";
+        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color17);
+        note._status.colorTextOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorTextSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorTextRGBs, vn.variables.colorTextOpacitys);
+            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
         }
         
         // If the selection is a single point
@@ -1396,14 +1404,14 @@ note }
         }
     };
     //colorText5 event
-    vn.events.elementEvents.colorText5_onClick = function(e: any) {
+    vn.events.elementEvents.colorText5_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorTextRGBs = getHexColorFromColorName(vn.colors.color18);
-        vn.variables.colorTextOpacitys = "1";
+        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color18);
+        note._status.colorTextOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorTextSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorTextRGBs, vn.variables.colorTextOpacitys);
+            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
         }
         
         // If the selection is a single point
@@ -1417,14 +1425,14 @@ note }
         }
     };
     //colorText6 event
-    vn.events.elementEvents.colorText6_onClick = function(e: any) {
+    vn.events.elementEvents.colorText6_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorTextRGBs = getHexColorFromColorName(vn.colors.color19);
-        vn.variables.colorTextOpacitys = "1";
+        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color19);
+        note._status.colorTextOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorTextSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorTextRGBs, vn.variables.colorTextOpacitys);
+            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
         }
         
         // If the selection is a single point
@@ -1438,14 +1446,14 @@ note }
         }
     };
     //colorText7 event
-    vn.events.elementEvents.colorText7_onClick = function(e: any) {
+    vn.events.elementEvents.colorText7_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorTextRGBs = getHexColorFromColorName(vn.colors.color20);
-        vn.variables.colorTextOpacitys = "1";
+        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color20);
+        note._status.colorTextOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorTextSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorTextRGBs, vn.variables.colorTextOpacitys);
+            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
         }
         
         // If the selection is a single point
@@ -1461,7 +1469,7 @@ note }
 
     //==================================================================================
     //color background select
-    vn.events.elementEvents.colorBackSelect_onClick = function(e: any) {
+    vn.events.elementEvents.colorBackSelect_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         selectToggle(e.target);
@@ -1471,108 +1479,108 @@ note }
         }
     };
     //color background select box
-    vn.events.elementEvents.colorBackSelectBox_onClick = function(e: any) {
+    vn.events.elementEvents.colorBackSelectBox_onClick = (e: any) => {
     };
     //colorBack R Input event
-    vn.events.elementEvents.colorBackRInput_onClick = function(e: any) {
+    vn.events.elementEvents.colorBackRInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorBackRInput_onInput = function(e: any) {
+    vn.events.elementEvents.colorBackRInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        let inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(inputValue)) {
-            inputValue = vn.variables.colorBackRs;
+            inputValue = note._status.colorBackR;
             e.target.value = inputValue;
             return;
         }
         if(inputValue.length !== 2) return;
-        vn.variables.colorBackRs = inputValue;
-        note._elements.colorBack0s.style.backgroundColor = "#" + vn.variables.colorBackRs +  vn.variables.colorBackGs +  vn.variables.colorBackBs;
+        note._status.colorBackR = inputValue;
+        note._elements.colorBack0.style.backgroundColor = "#" + note._status.colorBackR +  note._status.colorBackG +  note._status.colorBackB;
     };
-    vn.events.elementEvents.colorBackRInput_onBlur = function(e: any) {
-        var value = e.target.value;
+    vn.events.elementEvents.colorBackRInput_onBlur = (e: any) => {
+        const value = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(value)) {
-            e.target.value = vn.variables.colorBackRs;
+            e.target.value = note._status.colorBackR;
             return;
         }
         if(value.length !== 2) {
-            e.target.value = vn.variables.colorBackRs;
+            e.target.value = note._status.colorBackR;
         }
     };
     //colorBack G Input event
-    vn.events.elementEvents.colorBackGInput_onClick = function(e: any) {
+    vn.events.elementEvents.colorBackGInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorBackGInput_onInput = function(e: any) {
+    vn.events.elementEvents.colorBackGInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        let inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(inputValue)) {
-            inputValue = vn.variables.colorBackGs;
+            inputValue = note._status.colorBackG;
             e.target.value = inputValue;
             return;
         }
         if(inputValue.length !== 2) return;
-        vn.variables.colorBackGs = inputValue;
-        note._elements.colorBack0s.style.backgroundColor = "#" + vn.variables.colorBackRs +  vn.variables.colorBackGs +  vn.variables.colorBackBs;
+        note._status.colorBackG = inputValue;
+        note._elements.colorBack0.style.backgroundColor = "#" + note._status.colorBackR +  note._status.colorBackG +  note._status.colorBackB;
     };
-    vn.events.elementEvents.colorBackGInput_onBlur = function(e: any) {
-        var value = e.target.value;
+    vn.events.elementEvents.colorBackGInput_onBlur = (e: any) => {
+        const value = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(value)) {
-            e.target.value = vn.variables.colorBackGs;
+            e.target.value = note._status.colorBackG;
             return;
         }
         if(value.length !== 2) {
-            e.target.value = vn.variables.colorBackGs;
+            e.target.value = note._status.colorBackG;
         }
     };
     //colorBack B Input event
-    vn.events.elementEvents.colorBackBInput_onClick = function(e: any) {
+    vn.events.elementEvents.colorBackBInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorBackBInput_onInput = function(e: any) {
+    vn.events.elementEvents.colorBackBInput_onInput = (e: any) => {
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        let inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(inputValue)) {
-            inputValue = vn.variables.colorBackBs;
+            inputValue = note._status.colorBackB;
             e.target.value = inputValue;
             return;
         }
         if(inputValue.length !== 2) return;
-        vn.variables.colorBackBs = inputValue;
-        note._elements.colorBack0s.style.backgroundColor = "#" + vn.variables.colorBackRs +  vn.variables.colorBackGs +  vn.variables.colorBackBs;
+        note._status.colorBackB = inputValue;
+        note._elements.colorBack0.style.backgroundColor = "#" + note._status.colorBackR +  note._status.colorBackG +  note._status.colorBackB;
     };
-    vn.events.elementEvents.colorBackBInput_onBlur = function(e: any) {
-        var value = e.target.value;
+    vn.events.elementEvents.colorBackBInput_onBlur = (e: any) => {
+        const value = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkHex(value)) {
-            e.target.value = vn.variables.colorBackBs;
+            e.target.value = note._status.colorBackB;
             return;
         }
         if(value.length !== 2) {
-            e.target.value = vn.variables.colorBackBs;
+            e.target.value = note._status.colorBackB;
         }
     };
     //colorBack Opacity Input event
-    vn.events.elementEvents.colorBackOpacityInput_onClick = function(e: any) {
+    vn.events.elementEvents.colorBackOpacityInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorBackOpacityInput_onInput = function(e: any) {
+    vn.events.elementEvents.colorBackOpacityInput_onInput = (e: any) => {
         if(e.target.value === "01" || e.target.value === "10") {
             e.target.value = e.data;
         } 
         if(!e.target.value) return;
-        var inputValue = e.target.value;
+        let inputValue = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkRealNumber(inputValue)) {
-            inputValue = vn.variables.colorBackOs;
+            inputValue = note._status.colorBackO;
             e.target.value = inputValue;
             return;
         }
@@ -1587,26 +1595,26 @@ note }
             e.target.value = Math.round(inputValue * 10) / 10;
         }
         
-        vn.variables.colorBackOs = inputValue;
-        note._elements.colorBack0s.style.opacity = vn.variables.colorBackOs;
+        note._status.colorBackO = inputValue;
+        note._elements.colorBack0.style.opacity = note._status.colorBackO;
     };
-    vn.events.elementEvents.colorBackOpacityInput_onBlur = function(e: any) {
-        var value = e.target.value;
+    vn.events.elementEvents.colorBackOpacityInput_onBlur = (e: any) => {
+        const value = e.target.value;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!checkRealNumber(value)) {
-            e.target.value = vn.variables.colorBackOs;
+            e.target.value = note._status.colorBackO;
         }
     };
     //colorBack0 event
-    vn.events.elementEvents.colorBack0_onClick = function(e: any) {
+    vn.events.elementEvents.colorBack0_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorBackRGBs = "#" + vn.variables.colorBackRs +  vn.variables.colorBackGs +  vn.variables.colorBackBs;
-        vn.variables.colorBackOpacitys = vn.variables.colorBackOs;
+        note._status.colorBackRGB = "#" + note._status.colorBackR +  note._status.colorBackG +  note._status.colorBackB;
+        note._status.colorBackOpacity = note._status.colorBackO;
         if(!isMobileDevice()) {
-            (note._elements.colorBackSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorBackRGBs, vn.variables.colorBackOpacitys === "0" ? 1 : vn.variables.colorBackOpacitys);
+            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity === "0" ? 1 : note._status.colorBackOpacity);
         }
         
         // If the selection is a single point
@@ -1620,14 +1628,14 @@ note }
         }
     };
     //colorBack1 event
-    vn.events.elementEvents.colorBack1_onClick = function(e: any) {
+    vn.events.elementEvents.colorBack1_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorBackRGBs = getHexColorFromColorName(vn.colors.color14);
-        vn.variables.colorBackOpacitys = "1";
+        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color14);
+        note._status.colorBackOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorBackSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorBackRGBs, vn.variables.colorBackOpacitys);
+            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
         }
         
         // If the selection is a single point
@@ -1641,14 +1649,14 @@ note }
         }
     };
     //colorBack2 event
-    vn.events.elementEvents.colorBack2_onClick = function(e: any) {
+    vn.events.elementEvents.colorBack2_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorBackRGBs = getHexColorFromColorName(vn.colors.color15);
-        vn.variables.colorBackOpacitys = "1";
+        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color15);
+        note._status.colorBackOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorBackSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorBackRGBs, vn.variables.colorBackOpacitys);
+            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
         }
         
         // If the selection is a single point
@@ -1662,14 +1670,14 @@ note }
         }
     };
     //colorBack3 event
-    vn.events.elementEvents.colorBack3_onClick = function(e: any) {
+    vn.events.elementEvents.colorBack3_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorBackRGBs = getHexColorFromColorName(vn.colors.color16);
-        vn.variables.colorBackOpacitys = "1";
+        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color16);
+        note._status.colorBackOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorBackSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorBackRGBs, vn.variables.colorBackOpacitys);
+            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
         }
         
         // If the selection is a single point
@@ -1683,14 +1691,14 @@ note }
         }
     };
     //colorBack4 event
-    vn.events.elementEvents.colorBack4_onClick = function(e: any) {
+    vn.events.elementEvents.colorBack4_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorBackRGBs = getHexColorFromColorName(vn.colors.color17);
-        vn.variables.colorBackOpacitys = "1";
+        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color17);
+        note._status.colorBackOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorBackSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorBackRGBs, vn.variables.colorBackOpacitys);
+            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
         }
         
         // If the selection is a single point
@@ -1704,14 +1712,14 @@ note }
         }
     };
     //colorBack5 event
-    vn.events.elementEvents.colorBack5_onClick = function(e: any) {
+    vn.events.elementEvents.colorBack5_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorBackRGBs = getHexColorFromColorName(vn.colors.color18);
-        vn.variables.colorBackOpacitys = "1";
+        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color18);
+        note._status.colorBackOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorBackSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorBackRGBs, vn.variables.colorBackOpacitys);
+            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
         }
         
         // If the selection is a single point
@@ -1725,14 +1733,14 @@ note }
         }
     };
     //colorBack6 event
-    vn.events.elementEvents.colorBack6_onClick = function(e: any) {
+    vn.events.elementEvents.colorBack6_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorBackRGBs = getHexColorFromColorName(vn.colors.color19);
-        vn.variables.colorBackOpacitys = "1";
+        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color19);
+        note._status.colorBackOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorBackSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorBackRGBs, vn.variables.colorBackOpacitys);
+            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
         }
         
         // If the selection is a single point
@@ -1746,14 +1754,14 @@ note }
         }
     };
     //colorBack7 event
-    vn.events.elementEvents.colorBack7_onClick = function(e: any) {
+    vn.events.elementEvents.colorBack7_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        vn.variables.colorBackRGBs = getHexColorFromColorName(vn.colors.color20);
-        vn.variables.colorBackOpacitys = "1";
+        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color20);
+        note._status.colorBackOpacity = "1";
         if(!isMobileDevice()) {
-            (note._elements.colorBackSelects as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(vn.variables.colorBackRGBs, vn.variables.colorBackOpacitys);
+            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
         }
         
         // If the selection is a single point
@@ -1769,59 +1777,65 @@ note }
 
     //==================================================================================
     //formatClearButton
-    vn.events.elementEvents.formatClearButton_onClick = function(e: any) {
+    vn.events.elementEvents.formatClearButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         // If the selection is a single point
         if (note._selection.editRange && (note._selection.editRange as any).collapsed) {
             // Reset all styles and reposition to the original selection point.
-            initToggleButtonVariables(noteIndex);
+            initToggleButtonVariables(note);
             setOriginEditSelection(note);
         }
         else {	// Dragging
             // Specify style for dragged characters
-            modifySelectedSingleElement(noteIndex, vn.variables.defaultStyles);
+            modifySelectedSingleElement(note, {
+                "font-size" : note._attributes.defaultTextareaFontSize + "px",
+                "line-height" : note._attributes.defaultTextareaLineHeight + "px",
+                "font-family" : note._attributes.defaultTextareaFontFamily,
+            });
         }
     };
 
     //==================================================================================
     //undo
-    vn.events.elementEvents.undoButton_onClick = function(e: any) {
-        const note = getParentNote(e.target);
-        if(!noteIndex) noteIndex = vn.variables.lastActiveNote;
+    vn.events.elementEvents.undoButton_onClick = (e: any) => {
+        let note = getParentNote(e.target);
+        if(!note && vn) note = vn.vanillanoteElements[vn.variables.lastActiveNoteId];
+        if(!note) return;
         // Disconnect the observer.
-        elementsEvent["note_observer"].disconnect();
-        if(vn.variables.recodeContings <= 0) return;
-        vn.variables.recodeContings = vn.variables.recodeContings - 1;
-        replaceDifferentBetweenElements(note._elements.textareas, vn.variables.recodeNotes[vn.variables.recodeContings]);
+        vn.events.documentEvents.noteObserver!.disconnect();
+        if(note._recodes.recodeConting <= 0) return;
+        note._recodes.recodeConting = note._recodes.recodeConting - 1;
+        replaceDifferentBetweenElements(vn, note._elements.textarea, note._recodes.recodeNotes[note._recodes.recodeConting]);
         
         // Reconnect the observer.
-        connectObserver();
+        connectObserver(vn);
     };
 
     //==================================================================================
     //redo
-    vn.events.elementEvents.redoButton_onClick = function(e: any) {
-        const note = getParentNote(e.target);
-        if(!noteIndex) noteIndex = vn.variables.lastActiveNote;
+    vn.events.elementEvents.redoButton_onClick = (e: any) => {
+        let note = getParentNote(e.target);
+        if(!note && vn) note = vn.vanillanoteElements[vn.variables.lastActiveNoteId];
+        if(!note) return;
         // Disconnect the observer.
-        elementsEvent["note_observer"].disconnect();
-        if(vn.variables.recodeContings >= vn.variables.recodeNotes.length - 1) return;
-        vn.variables.recodeContings = vn.variables.recodeContings + 1;
-        replaceDifferentBetweenElements(note._elements.textareas, vn.variables.recodeNotes[vn.variables.recodeContings]);
+        vn.events.documentEvents.noteObserver!.disconnect();
+        if(note._recodes.recodeConting >= note._recodes.recodeNotes.length - 1) return;
+        note._recodes.recodeConting = note._recodes.recodeConting + 1;
+        replaceDifferentBetweenElements(vn, note._elements.textarea, note._recodes.recodeNotes[note._recodes.recodeConting]);
         
         // Reconnect the observer.
-        connectObserver();
+        connectObserver(vn);
     };
 
     //==================================================================================
     //help
-    vn.events.elementEvents.helpButton_onClick = function(e: any) {
+    vn.events.elementEvents.helpButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         
         // Restore the note size.
-        doIncreaseTextareaHeight(note._vn);
+        doIncreaseTextareaHeight(vn);
         
         // Close all modals
         closeAllModal(note);
@@ -1830,61 +1844,61 @@ note }
         // Adjust modal size
         setAllModalSize(note);
         // Open modal background
-        var displayBlock = getId(note._noteName, note._id, "on_display_block");
-        var displayNone = getId(note._noteName, note._id, "on_display_none");
-        note._elements.modalBacks.classList.remove(displayNone);
-        note._elements.modalBacks.classList.add(displayBlock);
-        note._elements.helpModals.classList.remove(displayNone);
-        note._elements.helpModals.classList.add(displayBlock);
+        const displayBlock = getId(note._noteName, note._id, "on_display_block");
+        const displayNone = getId(note._noteName, note._id, "on_display_none");
+        note._elements.modalBack.classList.remove(displayNone);
+        note._elements.modalBack.classList.add(displayBlock);
+        note._elements.helpModal.classList.remove(displayNone);
+        note._elements.helpModal.classList.add(displayBlock);
     };
-    vn.events.elementEvents.helpModal_onClick = function(e: any) {};
+    vn.events.elementEvents.helpModal_onClick = (e: any) => {};
 
     //==================================================================================
     //modal back
-    vn.events.elementEvents.modalBack_onClick = function(e: any) {
+    vn.events.elementEvents.modalBack_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         closeAllModal(note);
-    note
+    }
 
     //==================================================================================
     //placeholder
-    vn.events.elementEvents.placeholder_onClick = function(e: any) {
+    vn.events.elementEvents.placeholder_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
-        closePlaceholder(noteIndex);
-        note._elements.textareas.focus();
+        closePlaceholder(note);
+        note._elements.textarea.focus();
     };
 
     //==================================================================================
     //textarea
     //==================================================================================
-    vn.events.elementEvents.textarea_onClick = function(e: any) {
+    vn.events.elementEvents.textarea_onClick = (e: any) => {
         const note = getParentNote(e.target);
-        closeAllSelectBoxes(noteIndex);
+        closeAllSelectBoxes(note);
     };
-    vn.events.elementEvents.textarea_onFocus = function(e: any) {
+    vn.events.elementEvents.textarea_onFocus = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         // Close placeholder.
-        closePlaceholder(noteIndex);
+        closePlaceholder(note);
         // In the editor, elements not surrounded by unit tags are recreated, wrapped with unit tags.
-        doEditUnitCheck(noteIndex)
+        doEditUnitCheck(note);
     };
-    vn.events.elementEvents.textarea_onBlur = function(e: any) {
+    vn.events.elementEvents.textarea_onBlur = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         // Open placeholder.
-        openPlaceholder(noteIndex);
+        openPlaceholder(note);
         // Disconnect the observer.
-        elementsEvent["note_observer"].disconnect();
+        vn.events.documentEvents.noteObserver!.disconnect();
         // Clean up the target element.
-        removeEmptyElment(e.target);
+        removeEmptyElment(e.target, note);
         // Reconnect the observer.
-        connectObserver();
+        connectObserver(vn);
     };
-    vn.events.elementEvents.textarea_onKeydown = function(e: any) {
-        var textarea = e.target;
+    vn.events.elementEvents.textarea_onKeydown = (e: any) => {
+        const textarea = e.target;
         if(e.key === "Enter") {
             if(!e.shiftKey) {
                 textarea_onKeydownEnter(textarea);
@@ -1892,20 +1906,20 @@ note }
         }
         if((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) {
             e.preventDefault();
-            elementsEvent["undoButton_onClick"](e)
+            vn.events.elementEvents.undoButton_onClick!(e)
         }
         if((e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Y")) {
             e.preventDefault();
-            elementsEvent["redoButton_onClick"](e)
+            vn.events.elementEvents.redoButton_onClick!(e)
         }
     };
-    vn.events.elementEvents.textarea_onKeyup = function(e: any) {
-        var textarea = e.target;
-        var noteIndex = getNoteIndex(textarea);
+    vn.events.elementEvents.textarea_onKeyup = (e: any) => {
+        const textarea = e.target;
+        const note = getParentNote(textarea);
         // Open placeholder.
-        closePlaceholder(noteIndex);
+        closePlaceholder(note);
         // Disconnect the observer.
-        elementsEvent["note_observer"].disconnect();
+        vn.events.documentEvents.noteObserver!.disconnect();
         // If all rows are deleted, insert one p tag and br tag.
         if(!textarea.firstChild) {
             initTextarea(textarea);
@@ -1915,19 +1929,19 @@ note }
         if((e.ctrlKey || e.metaKey) && (e.key === "v" || e.key === "V")) {
             e.preventDefault();
             // In the editor, elements not surrounded by unit tags are recreated, wrapped with unit tags.
-            doEditUnitCheck(noteIndex)
+            doEditUnitCheck(note)
         }
         // Reconnect the observer.
-        connectObserver();
+        connectObserver(vn);
     };
-    vn.events.elementEvents.textarea_onBeforeinput = function(e: any) {
+    vn.events.elementEvents.textarea_onBeforeinput = (e: any) => {
         // Only proceeds for non-mobile devices && when inputting possible characters
         if (!isMobileDevice() && e.data) {
             // Disconnect the observer.
-            elementsEvent["note_observer"].disconnect();
+            vn.events.documentEvents.noteObserver!.disconnect();
             textarea_onBeforeinputSpelling(e);
             // Reconnect the observer.
-            connectObserver();
+            connectObserver(vn);
         }
     };
 }
