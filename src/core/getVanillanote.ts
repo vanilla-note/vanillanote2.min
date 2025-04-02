@@ -383,7 +383,7 @@ export const getVanillanoteConfig =(): VanillanoteConfig => {
         placeholderWidth : "",
         attFilePreventTypes : [],
         attFileAcceptTypes : [],
-        attFileMaxSizes : 50 * 1024 * 1024,
+        attFileMaxSize : 50 * 1024 * 1024,
         attImagePreventTypes : [],
         attImageAcceptTypes : [
             "image/png", "image/jpeg", "image/bmp", "image/gif", "image/svg+xml",
@@ -392,7 +392,7 @@ export const getVanillanoteConfig =(): VanillanoteConfig => {
             "video/ogg", "video/avi", "video/mpeg", "video/quicktime", "video/x-ms-wmv",
             "video/x-flv", "video/3gpp", "video/3gpp2", "video/x-matroska"
         ],
-        attImageMaxSizes : 50 * 1024 * 1024,
+        attImageMaxSize : 50 * 1024 * 1024,
         defaultTextareaFontSize: 16,
         defaultTextareaLineHeight: 16,
         defaultTextareaFontFamily: "Georgia",
@@ -440,7 +440,7 @@ export const getVanillanoteConfig =(): VanillanoteConfig => {
         resizeInterval : 50,
         inputInterval : 50,
         loadInterval : 100,
-        canEvents : true,
+        canEvent : true,
     };
     const colors: Colors = {
         color1 : "#333333", //filled
