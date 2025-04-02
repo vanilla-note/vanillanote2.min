@@ -57,7 +57,7 @@ export interface VanillanoteConfig {
      * @returns `false` to suppress the default alert; `true` or undefined to allow it.
      *
      * @example
-     * vn._beforeAlert = function(message) {
+     * vn.beforeAlert = (message) => {
      *   // Custom alert logic here
      *   showCustomPopup(message);
      *   return false; // Prevent default alert
@@ -176,15 +176,17 @@ export interface VanillanoteElement extends HTMLDivElement {
 		toolToggleUsing: boolean;
 		toolDefaultLine: number;
 		textareaOriginHeight: string;
+		defaultTextareaFontSize: number;
+		defaultTextareaLineHeight: number;
 		defaultTextareaFontFamily: string;
 		defaultFontFamilies: string[];
 
 		attFilePreventTypes: string[];
 		attFileAcceptTypes: string[];
-		attFileMaxSizes: number;
+		attFileMaxSize: number;
 		attImagePreventTypes: string[];
 		attImageAcceptTypes: string[];
-		attImageMaxSizes: number;
+		attImageMaxSize: number;
 
 		placeholderIsVisible: boolean,
 		placeholderWidth: string;
@@ -221,7 +223,7 @@ export interface VanillanoteElement extends HTMLDivElement {
 	_attFiles: Record<string, File>;
 	_attTempImages?: Record<string, File>;
 	_attImages: Record<string, File>;
-	_records: {
+	_recodes: {
         recodeNotes: Node[],
         recodeConting: number,
         recodeLimit: number,
