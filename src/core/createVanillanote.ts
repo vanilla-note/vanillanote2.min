@@ -3,31 +3,16 @@ import type { NoteAttributes } from "../types/attributes";
 import type { Colors, Csses } from "../types/csses";
 import { NoteModeByDevice, ToolPosition } from "../types/enums";
 import { addClickEvent, createElement, createElementBasic, createElementButton, createElementFontFamiliySelect, createElementInput, createElementInputCheckbox, createElementInputRadio, createElementRadioLabel, createElementSelect } from "../utils/createElement";
-import {
-    checkAlphabetAndNumber,
-    checkNumber,
-    checkRealNumber,
-    getClassName,
-    getColors,
-    getCommaStrFromArr,
-    getCssClassText,
-    getExtractColorValue,
-    getHexColorFromColorName,
-    getId,
-    getInvertColor,
-    getIsIOS,
-    getRGBAFromHex,
-    isMobileDevice,
-} from "../utils/util";
+import { checkAlphabetAndNumber, checkNumber, checkRealNumber, getClassName, getColors, getCommaStrFromArr, getCssClassText, getExtractColorValue, getHexColorFromColorName, getId, getInvertColor, getIsIOS, getRGBAFromHex, isMobileDevice, } from "../utils/util";
 import { initTextarea } from "../utils/handleElement";
 import { setDocumentEvents } from "../events/setDocumentEvent";
-import { ElementEvents } from "../types/events";
 import { setCssEvents } from "../events/setCssEvent";
+import { setElementEvents } from "../events/setElementEvent";
 
 export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     //The logic for using document, window and navigator to use getVanillanote in an SSR environment is declared below.
     vn.variables.lastScreenHeight =  typeof window !== 'undefined' && window.visualViewport ? window.visualViewport.height : null;
-    vn.get = function(noteId: string): VanillanoteElement | null {
+    vn.get = (noteId: string): VanillanoteElement | null => {
         return vn.vanillanoteElements[noteId] ? vn.vanillanoteElements[noteId] : null;
     };
     const targetElement = element ? element : document;
@@ -102,35 +87,36 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     //event 등록
     setDocumentEvents(vn);
     setCssEvents(vn);
+    setElementEvents(vn);
 
     //vanillanote element methods
-    var getNoteData = function() {
+    const getNoteData = () => {
         /*
-        var noteIndex = getNoteIndex(this);
-        var textarea = vn.elements.textareas[noteIndex];
+        const noteIndex = getNoteIndex(this);
+        const textarea = vn.elements.textareas[noteIndex];
         
-        var fileEls = textarea.querySelectorAll("[uuid]");
+        const fileEls = textarea.querySelectorAll("[uuid]");
         
-        var attFiles: any = {};
-        for (var key in vn.variables.attFiles[noteIndex]) {
+        const attFiles: any = {};
+        for (const key in vn.variables.attFiles[noteIndex]) {
             if (vn.variables.attFiles[noteIndex].hasOwnProperty(key)) {
                 attFiles[key] = vn.variables.attFiles[noteIndex][key];
             }
         }
-        for (var key in vn.variables.attImages[noteIndex]) {
+        for (const key in vn.variables.attImages[noteIndex]) {
             if (vn.variables.attImages[noteIndex].hasOwnProperty(key)) {
                 attFiles[key] = vn.variables.attImages[noteIndex][key];
             }
         }
-        var attFileKeys = Object.keys(attFiles);
-        var attFileKeysLength = attFileKeys.length;
-        var returnAttFiles: any = {};
-        var chkCnt;
+        const attFileKeys = Object.keys(attFiles);
+        const attFileKeysLength = attFileKeys.length;
+        const returnAttFiles: any = {};
+        const chkCnt;
         
         //Add only the files in the current note
-        for(var i = 0; i < attFileKeysLength; i++) {
+        for(let i = 0; i < attFileKeysLength; i++) {
             chkCnt = 0;
-            for(var j = 0; j < fileEls.length; j++) {
+            for(let j = 0; j < fileEls.length; j++) {
                 if(attFileKeys[i] === fileEls[j].getAttribute("uuid")) chkCnt++;
             }
             if(chkCnt > 0) {
@@ -139,7 +125,7 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
         }
         //Add only the images in the current note
         
-        var noteData = {
+        const noteData = {
                 "noteIndex" : noteIndex,
                 "textarea" : textarea,
                 "files" : returnAttFiles,
@@ -152,7 +138,7 @@ export const createVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     const setNoteData = () => {};
 
     // To prevent the Google icon from initially displaying as text, it is shown after a delay of 0.1 seconds.
-    setTimeout(function() {
+    setTimeout(() => {
         Object.keys(vn.vanillanoteElements).forEach((id) => {
             vn.vanillanoteElements[id]._elements.template.removeAttribute("style");
         });
@@ -205,14 +191,16 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteEleme
 		toolToggleUsing: noteAttributes.toolToggleUsing,
         toolDefaultLine : noteAttributes.toolDefaultLine,
         textareaOriginHeight : noteAttributes.textareaOriginHeight,
+		defaultTextareaFontSize: noteAttributes.defaultTextareaFontSize,
+		defaultTextareaLineHeight: noteAttributes.defaultTextareaLineHeight,
 		defaultTextareaFontFamily: noteAttributes.defaultTextareaFontFamily,
 		defaultFontFamilies: noteAttributes.defaultFontFamilies,
 		attFilePreventTypes: noteAttributes.attFilePreventTypes,
 		attFileAcceptTypes: noteAttributes.attFileAcceptTypes,
-		attFileMaxSizes: noteAttributes.attFileMaxSizes,
+		attFileMaxSize: noteAttributes.attFileMaxSize,
 		attImagePreventTypes: noteAttributes.attImagePreventTypes,
 		attImageAcceptTypes: noteAttributes.attImageAcceptTypes,
-		attImageMaxSizes: noteAttributes.attImageMaxSizes,
+		attImageMaxSize: noteAttributes.attImageMaxSize,
         placeholderIsVisible : noteAttributes.placeholderIsVisible,
 		placeholderWidth: noteAttributes.placeholderWidth,
 		placeholderAddTop: noteAttributes.placeholderAddTop,
@@ -244,7 +232,7 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteEleme
         colorBackRGB : note._colors.color13,
         colorBackOpacity : "0",
     };
-    note._records = {
+    note._recodes = {
         recodeNotes : [],
         recodeConting : -1,
         recodeLimit : noteAttributes.recodeLimit,
@@ -296,27 +284,27 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     textarea.setAttribute("autocorrect",true);
     textarea.setAttribute("name",getId(note._noteName, note._id, vn.consts.CLASS_NAMES.textarea.id));
     textarea.setAttribute("title", vn.languageSet[note._attributes.language].textareaTooltip);
-    textarea.addEventListener("focus", function(event: any) {
+    textarea.addEventListener("focus", (event: any) => {
         if(!note._elementEvents.textarea_onBeforeFocus(event)) return;
         (vn.events.elementEvents as any)["textarea_onFocus"](event);
         note._elementEvents.textarea_onAfterFocus(event);
         event.stopImmediatePropagation();
     });
-    textarea.addEventListener(getIsIOS() ? "mouseout" : "blur", function(event: any) {
+    textarea.addEventListener(getIsIOS() ? "mouseout" : "blur", (event: any) => {
         if(!note._elementEvents.textarea_onBeforeBlur(event)) return;
         (vn.events.elementEvents as any)["textarea_onBlur"](event);
         note._elementEvents.textarea_onAfterBlur(event);
         event.stopImmediatePropagation();
     });
-    textarea.addEventListener("keydown", function(event: any) {
+    textarea.addEventListener("keydown", (event: any) => {
         (vn.events.elementEvents as any)["textarea_onKeydown"](event);
         event.stopImmediatePropagation();
     });
-    textarea.addEventListener("keyup", function(event: any) {
+    textarea.addEventListener("keyup", (event: any) => {
         (vn.events.elementEvents as any)["textarea_onKeyup"](event);
         event.stopImmediatePropagation();
     });
-    textarea.addEventListener("beforeinput", function(event: any) {
+    textarea.addEventListener("beforeinput", (event: any) => {
         (vn.events.elementEvents as any)["textarea_onBeforeinput"](event);
         event.stopImmediatePropagation();
     });
@@ -628,7 +616,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.fontFamilySelectBox.className,
     );
     fontFamilySelect.appendChild(fontFamilySelectBox);
-    for(var fontIdx = 0; fontIdx < note._attributes.defaultFontFamilies.length; fontIdx++) {
+    for(let fontIdx = 0; fontIdx < note._attributes.defaultFontFamilies.length; fontIdx++) {
         const tempElement = createElementFontFamiliySelect(
             "div",
             note,
@@ -1034,13 +1022,13 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attFileUploadDiv.className,
         {"isIcon":false, "text":vn.languageSet[note._attributes.language].attFileUploadDiv}
     );
-    attFileUploadDiv.addEventListener("dragover", function(event: any) {
+    attFileUploadDiv.addEventListener("dragover", (event: any) => {
         if(!note._elementEvents.attFileUploadDiv_onBeforeDragover(event)) return;
         (vn.events.elementEvents as any)["attFileUploadDiv_onDragover"](event);
         note._elementEvents.attFileUploadDiv_onAfterDragover(event);
         event.stopImmediatePropagation();
     });
-    attFileUploadDiv.addEventListener("drop", function(event: any) {
+    attFileUploadDiv.addEventListener("drop", (event: any) => {
         if(!note._elementEvents.attFileUploadDiv_onBeforeDrop(event)) return;
         (vn.events.elementEvents as any)["attFileUploadDiv_onDrop"](event);
         note._elementEvents.attFileUploadDiv_onAfterDrop(event);
@@ -1128,13 +1116,13 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attImageUploadButtonAndView.className,
         {"isIcon":false, "text":vn.languageSet[note._attributes.language].attImageUploadButtonAndView}
     );
-    attImageUploadButtonAndView.addEventListener("dragover", function(event: any) {
+    attImageUploadButtonAndView.addEventListener("dragover", (event: any) => {
         if(!note._elementEvents.attImageUploadButtonAndView_onBeforeDragover(event)) return;
         (vn.events.elementEvents as any)["attImageUploadButtonAndView_onDragover"](event);
         note._elementEvents.attImageUploadButtonAndView_onAfterDragover(event);
         event.stopImmediatePropagation();
     });
-    attImageUploadButtonAndView.addEventListener("drop", function(event: any) {
+    attImageUploadButtonAndView.addEventListener("drop", (event: any) => {
         if(!note._elementEvents.attImageUploadButtonAndView_onBeforeDrop(event)) return;
         (vn.events.elementEvents as any)["attImageUploadButtonAndView_onDrop"](event);
         note._elementEvents.attImageUploadButtonAndView_onAfterDrop(event);
@@ -1370,7 +1358,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipWidthInput.id,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipWidthInput.className
     );
-    attImageAndVideoTooltipWidthInput.addEventListener("keyup", function(event: any) {
+    attImageAndVideoTooltipWidthInput.addEventListener("keyup", (event: any) => {
         if(!note._elementEvents.attImageAndVideoTooltipWidthInput_onBeforeKeyup(event)) return;
         (vn.events.elementEvents as any)["attImageAndVideoTooltipWidthInput_onKeyup"](event);
         note._elementEvents.attImageAndVideoTooltipWidthInput_onAfterKeyup(event);
@@ -1819,17 +1807,17 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
     //attFile
     let attFilePreventTypes = note.getAttribute("att-file-prevent-types") ? note.getAttribute("att-file-prevent-types")!.split(",") : vn.attributes.attFilePreventTypes;
     let attFileAcceptTypes = note.getAttribute("att-file-accept-types") ? note.getAttribute("att-file-accept-types")!.split(",") : vn.attributes.attFileAcceptTypes;
-    let attFileMaxSizes = checkNumber(note.getAttribute("att-file-max-size")) ? Number(note.getAttribute("att-file-max-size")) : vn.attributes.attFileMaxSizes;
+    let attFileMaxSize = checkNumber(note.getAttribute("att-file-max-size")) ? Number(note.getAttribute("att-file-max-size")) : vn.attributes.attFileMaxSize;
     let attImagePreventTypes = note.getAttribute("att-image-prevent-types") ? note.getAttribute("att-image-prevent-types")!.split(",") : vn.attributes.attImagePreventTypes;
     let attImageAcceptTypes = note.getAttribute("att-image-accept-types") ? note.getAttribute("att-image-accept-types")!.split(",") :  vn.attributes.attImageAcceptTypes;
-    let attImageMaxSizes = checkNumber(note.getAttribute("att-image-max-size")) ? Number(note.getAttribute("att-image-max-size")) : vn.attributes.attImageMaxSizes;
+    let attImageMaxSize = checkNumber(note.getAttribute("att-image-max-size")) ? Number(note.getAttribute("att-image-max-size")) : vn.attributes.attImageMaxSize;
 
     //font style(font family)
     let defaultFontFamilies = vn.attributes.defaultFontFamilies;
     let addFontFamilies = note.getAttribute("add-font-family") ? note.getAttribute("add-font-family")!.split(",") : [];
     let removeFontFamilies = note.getAttribute("remove-font-family") ? note.getAttribute("remove-font-family")!.split(",") : [];
     //add font
-    for(var addFontIdx = 0; addFontIdx < addFontFamilies.length; addFontIdx++) {
+    for(let addFontIdx = 0; addFontIdx < addFontFamilies.length; addFontIdx++) {
         const tempFontFamiliy = addFontFamilies[addFontIdx];
         if(!addFontFamilies[addFontIdx]) continue;
         
@@ -1844,9 +1832,9 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
         }
     }
     //remove font
-    for(var removeFontIdx = 0; removeFontIdx < removeFontFamilies.length; removeFontIdx++) {
+    for(let removeFontIdx = 0; removeFontIdx < removeFontFamilies.length; removeFontIdx++) {
         if(!removeFontFamilies[removeFontIdx]) continue;
-        defaultFontFamilies = defaultFontFamilies.filter(function(fontFamily: string) {
+        defaultFontFamilies = defaultFontFamilies.filter((fontFamily: string) => {
             return fontFamily !== removeFontFamilies[removeFontIdx];
         })
     }
@@ -1959,10 +1947,10 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
 
         attFilePreventTypes : attFilePreventTypes,
         attFileAcceptTypes : attFileAcceptTypes,
-        attFileMaxSizes : attFileMaxSizes,
+        attFileMaxSize : attFileMaxSize,
         attImagePreventTypes : attImagePreventTypes,
         attImageAcceptTypes : attImageAcceptTypes,
-        attImageMaxSizes : attImageMaxSizes,
+        attImageMaxSize : attImageMaxSize,
 
         defaultFontFamilies : defaultFontFamilies,
         defaultTextareaFontFamily : defaultTextareaFontFamily,
@@ -2718,446 +2706,446 @@ const getCsses =(noteName: string, noteAttributes: NoteAttributes, noteColors: C
 
 const setNoteEvent = (note: VanillanoteElement): void => {
     note._cssEvents = {
-        target_onBeforeClick : function(e: any) {return true;},
-        target_onAfterClick : function(e: any) {},
-        target_onBeforeMouseover : function(e: any) {return true;},
-        target_onAfterMouseover : function(e: any) {},
-        target_onBeforeMouseout : function(e: any) {return true;},
-        target_onAfterMouseout : function(e: any) {},
-        target_onBeforeTouchstart : function(e: any) {return true;},
-        target_onAfterTouchstart : function(e: any) {},
-        target_onBeforeTouchend : function(e: any) {return true;},
-        target_onAfterTouchend : function(e: any) {},
+        target_onBeforeClick : (e: any) => {return true;},
+        target_onAfterClick : (e: any) => {},
+        target_onBeforeMouseover : (e: any) => {return true;},
+        target_onAfterMouseover : (e: any) => {},
+        target_onBeforeMouseout : (e: any) => {return true;},
+        target_onAfterMouseout : (e: any) => {},
+        target_onBeforeTouchstart : (e: any) => {return true;},
+        target_onAfterTouchstart : (e: any) => {},
+        target_onBeforeTouchend : (e: any) => {return true;},
+        target_onAfterTouchend : (e: any) => {},
     }
     note._elementEvents = {
         //textarea event
-        textarea_onBeforeClick : function(e: any) {return true;},
-        textarea_onAfterClick : function(e: any) {},
-        textarea_onBeforeFocus : function(e: any) {return true;},
-        textarea_onAfterFocus : function(e: any) {},
-        textarea_onBeforeBlur : function(e: any) {return true;},
-        textarea_onAfterBlur : function(e: any) {},
+        textarea_onBeforeClick : (e: any) => {return true;},
+        textarea_onAfterClick : (e: any) => {},
+        textarea_onBeforeFocus : (e: any) => {return true;},
+        textarea_onAfterFocus : (e: any) => {},
+        textarea_onBeforeBlur : (e: any) => {return true;},
+        textarea_onAfterBlur : (e: any) => {},
         
         //paragraphStyleSelect event
-        paragraphStyleSelect_onBeforeClick : function(e: any) {return true;},
-        paragraphStyleSelect_onAfterClick : function(e: any) {},
+        paragraphStyleSelect_onBeforeClick : (e: any) => {return true;},
+        paragraphStyleSelect_onAfterClick : (e: any) => {},
         
         //toolToggleButton event
-        toolToggleButton_onBeforeClick : function(e: any) {return true;},
-        toolToggleButton_onAfterClick : function(e: any) {},
+        toolToggleButton_onBeforeClick : (e: any) => {return true;},
+        toolToggleButton_onAfterClick : (e: any) => {},
         
         //styleNomal event
-        styleNomal_onBeforeClick : function(e: any) {return true;},
-        styleNomal_onAfterClick : function(e: any) {},
+        styleNomal_onBeforeClick : (e: any) => {return true;},
+        styleNomal_onAfterClick : (e: any) => {},
         
         //styleHeader1 event
-        styleHeader1_onBeforeClick : function(e: any) {return true;},
-        styleHeader1_onAfterClick : function(e: any) {},
+        styleHeader1_onBeforeClick : (e: any) => {return true;},
+        styleHeader1_onAfterClick : (e: any) => {},
         
         //styleHeader2 event
-        styleHeader2_onBeforeClick : function(e: any) {return true;},
-        styleHeader2_onAfterClick : function(e: any) {},
+        styleHeader2_onBeforeClick : (e: any) => {return true;},
+        styleHeader2_onAfterClick : (e: any) => {},
         
         //styleHeader3 event
-        styleHeader3_onBeforeClick : function(e: any) {return true;},
-        styleHeader3_onAfterClick : function(e: any) {},
+        styleHeader3_onBeforeClick : (e: any) => {return true;},
+        styleHeader3_onAfterClick : (e: any) => {},
         
         //styleHeader4 event
-        styleHeader4_onBeforeClick : function(e: any) {return true;},
-        styleHeader4_onAfterClick : function(e: any) {},
+        styleHeader4_onBeforeClick : (e: any) => {return true;},
+        styleHeader4_onAfterClick : (e: any) => {},
         
         //styleHeader5 event
-        styleHeader5_onBeforeClick : function(e: any) {return true;},
-        styleHeader5_onAfterClick : function(e: any) {},
+        styleHeader5_onBeforeClick : (e: any) => {return true;},
+        styleHeader5_onAfterClick : (e: any) => {},
         
         //styleHeader6 event
-        styleHeader6_onBeforeClick : function(e: any) {return true;},
-        styleHeader6_onAfterClick : function(e: any) {},
+        styleHeader6_onBeforeClick : (e: any) => {return true;},
+        styleHeader6_onAfterClick : (e: any) => {},
         
         //boldButton event
-        boldButton_onBeforeClick : function(e: any) {return true;},
-        boldButton_onAfterClick : function(e: any) {},
+        boldButton_onBeforeClick : (e: any) => {return true;},
+        boldButton_onAfterClick : (e: any) => {},
         
         //underlineButton event
-        underlineButton_onBeforeClick : function(e: any) {return true;},
-        underlineButton_onAfterClick : function(e: any) {},
+        underlineButton_onBeforeClick : (e: any) => {return true;},
+        underlineButton_onAfterClick : (e: any) => {},
         
         //italicButton event
-        italicButton_onBeforeClick : function(e: any) {return true;},
-        italicButton_onAfterClick : function(e: any) {},
+        italicButton_onBeforeClick : (e: any) => {return true;},
+        italicButton_onAfterClick : (e: any) => {},
         
         //ulButton event
-        ulButton_onBeforeClick : function(e: any) {return true;},
-        ulButton_onAfterClick : function(e: any) {},
+        ulButton_onBeforeClick : (e: any) => {return true;},
+        ulButton_onAfterClick : (e: any) => {},
         
         //olButton event
-        olButton_onBeforeClick : function(e: any) {return true;},
-        olButton_onAfterClick : function(e: any) {},
+        olButton_onBeforeClick : (e: any) => {return true;},
+        olButton_onAfterClick : (e: any) => {},
         
         //textAlignSelect event
-        textAlignSelect_onBeforeClick : function(e: any) {return true;},
-        textAlignSelect_onAfterClick : function(e: any) {},
+        textAlignSelect_onBeforeClick : (e: any) => {return true;},
+        textAlignSelect_onAfterClick : (e: any) => {},
         
         //textAlignLeft event
-        textAlignLeft_onBeforeClick : function(e: any) {return true;},
-        textAlignLeft_onAfterClick : function(e: any) {},
+        textAlignLeft_onBeforeClick : (e: any) => {return true;},
+        textAlignLeft_onAfterClick : (e: any) => {},
         
         //textAlignCenter event
-        textAlignCenter_onBeforeClick : function(e: any) {return true;},
-        textAlignCenter_onAfterClick : function(e: any) {},
+        textAlignCenter_onBeforeClick : (e: any) => {return true;},
+        textAlignCenter_onAfterClick : (e: any) => {},
         
         //textAlignRight event
-        textAlignRight_onBeforeClick : function(e: any) {return true;},
-        textAlignRight_onAfterClick : function(e: any) {},
+        textAlignRight_onBeforeClick : (e: any) => {return true;},
+        textAlignRight_onAfterClick : (e: any) => {},
         
         //attLinkButton event
-        attLinkButton_onBeforeClick : function(e: any) {return true;},
-        attLinkButton_onAfterClick : function(e: any) {},
+        attLinkButton_onBeforeClick : (e: any) => {return true;},
+        attLinkButton_onAfterClick : (e: any) => {},
         
         //attFileButton event
-        attFileButton_onBeforeClick : function(e: any) {return true;},
-        attFileButton_onAfterClick : function(e: any) {},
+        attFileButton_onBeforeClick : (e: any) => {return true;},
+        attFileButton_onAfterClick : (e: any) => {},
         
         //attImageButton event
-        attImageButton_onBeforeClick : function(e: any) {return true;},
-        attImageButton_onAfterClick : function(e: any) {},
+        attImageButton_onBeforeClick : (e: any) => {return true;},
+        attImageButton_onAfterClick : (e: any) => {},
         
         //attVideoButton event
-        attVideoButton_onBeforeClick : function(e: any) {return true;},
-        attVideoButton_onAfterClick : function(e: any) {},
+        attVideoButton_onBeforeClick : (e: any) => {return true;},
+        attVideoButton_onAfterClick : (e: any) => {},
         
         //fontSizeInputBox event
-        fontSizeInputBox_onBeforeClick : function(e: any) {return true;},
-        fontSizeInputBox_onAfterClick : function(e: any) {},
+        fontSizeInputBox_onBeforeClick : (e: any) => {return true;},
+        fontSizeInputBox_onAfterClick : (e: any) => {},
         
         //fontSizeInput event
-        fontSizeInput_onBeforeClick : function(e: any) {return true;},
-        fontSizeInput_onAfterClick : function(e: any) {},
-        fontSizeInput_onBeforeInput : function(e: any) {return true;},
-        fontSizeInput_onAfterInput : function(e: any) {},
-        fontSizeInput_onBeforeBlur : function(e: any) {return true;},
-        fontSizeInput_onAfterBlur : function(e: any) {},
+        fontSizeInput_onBeforeClick : (e: any) => {return true;},
+        fontSizeInput_onAfterClick : (e: any) => {},
+        fontSizeInput_onBeforeInput : (e: any) => {return true;},
+        fontSizeInput_onAfterInput : (e: any) => {},
+        fontSizeInput_onBeforeBlur : (e: any) => {return true;},
+        fontSizeInput_onAfterBlur : (e: any) => {},
         
         //letterSpacingInputBox event
-        letterSpacingInputBox_onBeforeClick : function(e: any) {return true;},
-        letterSpacingInputBox_onAfterClick : function(e: any) {},
+        letterSpacingInputBox_onBeforeClick : (e: any) => {return true;},
+        letterSpacingInputBox_onAfterClick : (e: any) => {},
         
         //letterSpacingInput event
-        letterSpacingInput_onBeforeClick : function(e: any) {return true;},
-        letterSpacingInput_onAfterClick : function(e: any) {},
-        letterSpacingInput_onBeforeInput : function(e: any) {return true;},
-        letterSpacingInput_onAfterInput : function(e: any) {},
-        letterSpacingInput_onBeforeBlur : function(e: any) {return true;},
-        letterSpacingInput_onAfterBlur : function(e: any) {},
+        letterSpacingInput_onBeforeClick : (e: any) => {return true;},
+        letterSpacingInput_onAfterClick : (e: any) => {},
+        letterSpacingInput_onBeforeInput : (e: any) => {return true;},
+        letterSpacingInput_onAfterInput : (e: any) => {},
+        letterSpacingInput_onBeforeBlur : (e: any) => {return true;},
+        letterSpacingInput_onAfterBlur : (e: any) => {},
         
         //lineHeightInputBox event
-        lineHeightInputBox_onBeforeClick : function(e: any) {return true;},
-        lineHeightInputBox_onAfterClick : function(e: any) {},
+        lineHeightInputBox_onBeforeClick : (e: any) => {return true;},
+        lineHeightInputBox_onAfterClick : (e: any) => {},
         
         //lineHeightInput event
-        lineHeightInput_onBeforeClick : function(e: any) {return true;},
-        lineHeightInput_onAfterClick : function(e: any) {},
-        lineHeightInput_onBeforeInput : function(e: any) {return true;},
-        lineHeightInput_onAfterInput : function(e: any) {},
-        lineHeightInput_onBeforeBlur : function(e: any) {return true;},
-        lineHeightInput_onAfterBlur : function(e: any) {},
+        lineHeightInput_onBeforeClick : (e: any) => {return true;},
+        lineHeightInput_onAfterClick : (e: any) => {},
+        lineHeightInput_onBeforeInput : (e: any) => {return true;},
+        lineHeightInput_onAfterInput : (e: any) => {},
+        lineHeightInput_onBeforeBlur : (e: any) => {return true;},
+        lineHeightInput_onAfterBlur : (e: any) => {},
         
         //fontFamilySelect event
-        fontFamilySelect_onBeforeClick : function(e: any) {return true;},
-        fontFamilySelect_onAfterClick : function(e: any) {},
+        fontFamilySelect_onBeforeClick : (e: any) => {return true;},
+        fontFamilySelect_onAfterClick : (e: any) => {},
         
         //color text select
-        colorTextSelect_onBeforeClick : function(e: any) {return true;},
-        colorTextSelect_onAfterClick : function(e: any) {},
+        colorTextSelect_onBeforeClick : (e: any) => {return true;},
+        colorTextSelect_onAfterClick : (e: any) => {},
         //color text select box
-        colorTextSelectBox_onBeforeClick : function(e: any) {return true;},
-        colorTextSelectBox_onAfterClick : function(e: any) {},
+        colorTextSelectBox_onBeforeClick : (e: any) => {return true;},
+        colorTextSelectBox_onAfterClick : (e: any) => {},
         //colorText0 button
-        colorText0_onBeforeClick : function(e: any) {return true;},
-        colorText0_onAfterClick : function(e: any) {},
+        colorText0_onBeforeClick : (e: any) => {return true;},
+        colorText0_onAfterClick : (e: any) => {},
         //colorText1 button
-        colorText1_onBeforeClick : function(e: any) {return true;},
-        colorText1_onAfterClick : function(e: any) {},
+        colorText1_onBeforeClick : (e: any) => {return true;},
+        colorText1_onAfterClick : (e: any) => {},
         //colorText2 button
-        colorText2_onBeforeClick : function(e: any) {return true;},
-        colorText2_onAfterClick : function(e: any) {},
+        colorText2_onBeforeClick : (e: any) => {return true;},
+        colorText2_onAfterClick : (e: any) => {},
         //colorText3 button
-        colorText3_onBeforeClick : function(e: any) {return true;},
-        colorText3_onAfterClick : function(e: any) {},
+        colorText3_onBeforeClick : (e: any) => {return true;},
+        colorText3_onAfterClick : (e: any) => {},
         //colorText4 button
-        colorText4_onBeforeClick : function(e: any) {return true;},
-        colorText4_onAfterClick : function(e: any) {},
+        colorText4_onBeforeClick : (e: any) => {return true;},
+        colorText4_onAfterClick : (e: any) => {},
         //colorText5 button
-        colorText5_onBeforeClick : function(e: any) {return true;},
-        colorText5_onAfterClick : function(e: any) {},
+        colorText5_onBeforeClick : (e: any) => {return true;},
+        colorText5_onAfterClick : (e: any) => {},
         //colorText6 button
-        colorText6_onBeforeClick : function(e: any) {return true;},
-        colorText6_onAfterClick : function(e: any) {},
+        colorText6_onBeforeClick : (e: any) => {return true;},
+        colorText6_onAfterClick : (e: any) => {},
         //colorText7 button
-        colorText7_onBeforeClick : function(e: any) {return true;},
-        colorText7_onAfterClick : function(e: any) {},
+        colorText7_onBeforeClick : (e: any) => {return true;},
+        colorText7_onAfterClick : (e: any) => {},
         //colorText R Input event
-        colorTextRInput_onBeforeClick : function(e: any) {return true;},
-        colorTextRInput_onAfterClick : function(e: any) {},
-        colorTextRInput_onBeforeInput : function(e: any) {return true;},
-        colorTextRInput_onAfterInput : function(e: any) {},
-        colorTextRInput_onBeforeBlur : function(e: any) {return true;},
-        colorTextRInput_onAfterBlur : function(e: any) {},
+        colorTextRInput_onBeforeClick : (e: any) => {return true;},
+        colorTextRInput_onAfterClick : (e: any) => {},
+        colorTextRInput_onBeforeInput : (e: any) => {return true;},
+        colorTextRInput_onAfterInput : (e: any) => {},
+        colorTextRInput_onBeforeBlur : (e: any) => {return true;},
+        colorTextRInput_onAfterBlur : (e: any) => {},
         //colorText G Input event
-        colorTextGInput_onBeforeClick : function(e: any) {return true;},
-        colorTextGInput_onAfterClick : function(e: any) {},
-        colorTextGInput_onBeforeInput : function(e: any) {return true;},
-        colorTextGInput_onAfterInput : function(e: any) {},
-        colorTextGInput_onBeforeBlur : function(e: any) {return true;},
-        colorTextGInput_onAfterBlur : function(e: any) {},
+        colorTextGInput_onBeforeClick : (e: any) => {return true;},
+        colorTextGInput_onAfterClick : (e: any) => {},
+        colorTextGInput_onBeforeInput : (e: any) => {return true;},
+        colorTextGInput_onAfterInput : (e: any) => {},
+        colorTextGInput_onBeforeBlur : (e: any) => {return true;},
+        colorTextGInput_onAfterBlur : (e: any) => {},
         //colorText B Input event
-        colorTextBInput_onBeforeClick : function(e: any) {return true;},
-        colorTextBInput_onAfterClick : function(e: any) {},
-        colorTextBInput_onBeforeInput : function(e: any) {return true;},
-        colorTextBInput_onAfterInput : function(e: any) {},
-        colorTextBInput_onBeforeBlur : function(e: any) {return true;},
-        colorTextBInput_onAfterBlur : function(e: any) {},
+        colorTextBInput_onBeforeClick : (e: any) => {return true;},
+        colorTextBInput_onAfterClick : (e: any) => {},
+        colorTextBInput_onBeforeInput : (e: any) => {return true;},
+        colorTextBInput_onAfterInput : (e: any) => {},
+        colorTextBInput_onBeforeBlur : (e: any) => {return true;},
+        colorTextBInput_onAfterBlur : (e: any) => {},
         //colorText Opacity Input event
-        colorTextOpacityInput_onBeforeClick : function(e: any) {return true;},
-        colorTextOpacityInput_onAfterClick : function(e: any) {},
-        colorTextOpacityInput_onBeforeInput : function(e: any) {return true;},
-        colorTextOpacityInput_onAfterInput : function(e: any) {},
-        colorTextOpacityInput_onBeforeBlur : function(e: any) {return true;},
-        colorTextOpacityInput_onAfterBlur : function(e: any) {},
+        colorTextOpacityInput_onBeforeClick : (e: any) => {return true;},
+        colorTextOpacityInput_onAfterClick : (e: any) => {},
+        colorTextOpacityInput_onBeforeInput : (e: any) => {return true;},
+        colorTextOpacityInput_onAfterInput : (e: any) => {},
+        colorTextOpacityInput_onBeforeBlur : (e: any) => {return true;},
+        colorTextOpacityInput_onAfterBlur : (e: any) => {},
         
         //color background select
-        colorBackSelect_onBeforeClick : function(e: any) {return true;},
-        colorBackSelect_onAfterClick : function(e: any) {},
+        colorBackSelect_onBeforeClick : (e: any) => {return true;},
+        colorBackSelect_onAfterClick : (e: any) => {},
         //color back select box
-        colorBackSelectBox_onBeforeClick : function(e: any) {return true;},
-        colorBackSelectBox_onAfterClick : function(e: any) {},
+        colorBackSelectBox_onBeforeClick : (e: any) => {return true;},
+        colorBackSelectBox_onAfterClick : (e: any) => {},
         //colorBack0 button
-        colorBack0_onBeforeClick : function(e: any) {return true;},
-        colorBack0_onAfterClick : function(e: any) {},
+        colorBack0_onBeforeClick : (e: any) => {return true;},
+        colorBack0_onAfterClick : (e: any) => {},
         //colorBack1 button
-        colorBack1_onBeforeClick : function(e: any) {return true;},
-        colorBack1_onAfterClick : function(e: any) {},
+        colorBack1_onBeforeClick : (e: any) => {return true;},
+        colorBack1_onAfterClick : (e: any) => {},
         //colorBack2 button
-        colorBack2_onBeforeClick : function(e: any) {return true;},
-        colorBack2_onAfterClick : function(e: any) {},
+        colorBack2_onBeforeClick : (e: any) => {return true;},
+        colorBack2_onAfterClick : (e: any) => {},
         //colorBack3 button
-        colorBack3_onBeforeClick : function(e: any) {return true;},
-        colorBack3_onAfterClick : function(e: any) {},
+        colorBack3_onBeforeClick : (e: any) => {return true;},
+        colorBack3_onAfterClick : (e: any) => {},
         //colorBack4 button
-        colorBack4_onBeforeClick : function(e: any) {return true;},
-        colorBack4_onAfterClick : function(e: any) {},
+        colorBack4_onBeforeClick : (e: any) => {return true;},
+        colorBack4_onAfterClick : (e: any) => {},
         //colorBack5 button
-        colorBack5_onBeforeClick : function(e: any) {return true;},
-        colorBack5_onAfterClick : function(e: any) {},
+        colorBack5_onBeforeClick : (e: any) => {return true;},
+        colorBack5_onAfterClick : (e: any) => {},
         //colorBack6 button
-        colorBack6_onBeforeClick : function(e: any) {return true;},
-        colorBack6_onAfterClick : function(e: any) {},
+        colorBack6_onBeforeClick : (e: any) => {return true;},
+        colorBack6_onAfterClick : (e: any) => {},
         //colorBack7 button
-        colorBack7_onBeforeClick : function(e: any) {return true;},
-        colorBack7_onAfterClick : function(e: any) {},
+        colorBack7_onBeforeClick : (e: any) => {return true;},
+        colorBack7_onAfterClick : (e: any) => {},
         //colorBack R Input event
-        colorBackRInput_onBeforeClick : function(e: any) {return true;},
-        colorBackRInput_onAfterClick : function(e: any) {},
-        colorBackRInput_onBeforeInput : function(e: any) {return true;},
-        colorBackRInput_onAfterInput : function(e: any) {},
-        colorBackRInput_onBeforeBlur : function(e: any) {return true;},
-        colorBackRInput_onAfterBlur : function(e: any) {},
+        colorBackRInput_onBeforeClick : (e: any) => {return true;},
+        colorBackRInput_onAfterClick : (e: any) => {},
+        colorBackRInput_onBeforeInput : (e: any) => {return true;},
+        colorBackRInput_onAfterInput : (e: any) => {},
+        colorBackRInput_onBeforeBlur : (e: any) => {return true;},
+        colorBackRInput_onAfterBlur : (e: any) => {},
         //colorBack G Input event
-        colorBackGInput_onBeforeClick : function(e: any) {return true;},
-        colorBackGInput_onAfterClick : function(e: any) {},
-        colorBackGInput_onBeforeInput : function(e: any) {return true;},
-        colorBackGInput_onAfterInput : function(e: any) {},
-        colorBackGInput_onBeforeBlur : function(e: any) {return true;},
-        colorBackGInput_onAfterBlur : function(e: any) {},
+        colorBackGInput_onBeforeClick : (e: any) => {return true;},
+        colorBackGInput_onAfterClick : (e: any) => {},
+        colorBackGInput_onBeforeInput : (e: any) => {return true;},
+        colorBackGInput_onAfterInput : (e: any) => {},
+        colorBackGInput_onBeforeBlur : (e: any) => {return true;},
+        colorBackGInput_onAfterBlur : (e: any) => {},
         //colorBack B Input event
-        colorBackBInput_onBeforeClick : function(e: any) {return true;},
-        colorBackBInput_onAfterClick : function(e: any) {},
-        colorBackBInput_onBeforeInput : function(e: any) {return true;},
-        colorBackBInput_onAfterInput : function(e: any) {},
-        colorBackBInput_onBeforeBlur : function(e: any) {return true;},
-        colorBackBInput_onAfterBlur : function(e: any) {},
+        colorBackBInput_onBeforeClick : (e: any) => {return true;},
+        colorBackBInput_onAfterClick : (e: any) => {},
+        colorBackBInput_onBeforeInput : (e: any) => {return true;},
+        colorBackBInput_onAfterInput : (e: any) => {},
+        colorBackBInput_onBeforeBlur : (e: any) => {return true;},
+        colorBackBInput_onAfterBlur : (e: any) => {},
         //colorBack Opacity Input event
-        colorBackOpacityInput_onBeforeClick : function(e: any) {return true;},
-        colorBackOpacityInput_onAfterClick : function(e: any) {},
-        colorBackOpacityInput_onBeforeInput : function(e: any) {return true;},
-        colorBackOpacityInput_onAfterInput : function(e: any) {},
-        colorBackOpacityInput_onBeforeBlur : function(e: any) {return true;},
-        colorBackOpacityInput_onAfterBlur : function(e: any) {},
+        colorBackOpacityInput_onBeforeClick : (e: any) => {return true;},
+        colorBackOpacityInput_onAfterClick : (e: any) => {},
+        colorBackOpacityInput_onBeforeInput : (e: any) => {return true;},
+        colorBackOpacityInput_onAfterInput : (e: any) => {},
+        colorBackOpacityInput_onBeforeBlur : (e: any) => {return true;},
+        colorBackOpacityInput_onAfterBlur : (e: any) => {},
         
         //formatClearButton event
-        formatClearButton_onBeforeClick : function(e: any) {return true;},
-        formatClearButton_onAfterClick : function(e: any) {},
+        formatClearButton_onBeforeClick : (e: any) => {return true;},
+        formatClearButton_onAfterClick : (e: any) => {},
         
         //undo event
-        undoButton_onBeforeClick : function(e: any) {return true;},
-        undoButton_onAfterClick : function(e: any) {},
+        undoButton_onBeforeClick : (e: any) => {return true;},
+        undoButton_onAfterClick : (e: any) => {},
         
         //redo event
-        redoButton_onBeforeClick : function(e: any) {return true;},
-        redoButton_onAfterClick : function(e: any) {},
+        redoButton_onBeforeClick : (e: any) => {return true;},
+        redoButton_onAfterClick : (e: any) => {},
         
         //help event
-        helpButton_onBeforeClick : function(e: any) {return true;},
-        helpButton_onAfterClick : function(e: any) {},
+        helpButton_onBeforeClick : (e: any) => {return true;},
+        helpButton_onAfterClick : (e: any) => {},
         
         //modal back event
-        modalBack_onBeforeClick : function(e: any) {return true;},
-        modalBack_onAfterClick : function(e: any) {},
+        modalBack_onBeforeClick : (e: any) => {return true;},
+        modalBack_onAfterClick : (e: any) => {},
         
         //modal att link event
-        attLinkModal_onBeforeClick : function(e: any) {return true;},
-        attLinkModal_onAfterClick : function(e: any) {},
+        attLinkModal_onBeforeClick : (e: any) => {return true;},
+        attLinkModal_onAfterClick : (e: any) => {},
         
         //modal att link text input event
-        attLinkText_onBeforeInput : function(e: any) {return true;},
-        attLinkText_onAfterInput : function(e: any) {},
-        attLinkText_onBeforeBlur : function(e: any) {return true;},
-        attLinkText_onAfterBlur : function(e: any) {},
+        attLinkText_onBeforeInput : (e: any) => {return true;},
+        attLinkText_onAfterInput : (e: any) => {},
+        attLinkText_onBeforeBlur : (e: any) => {return true;},
+        attLinkText_onAfterBlur : (e: any) => {},
         
         //modal att link href input event
-        attLinkHref_onBeforeInput : function(e: any) {return true;},
-        attLinkHref_onAfterInput : function(e: any) {},
-        attLinkHref_onBeforeBlur : function(e: any) {return true;},
-        attLinkHref_onAfterBlur : function(e: any) {},
+        attLinkHref_onBeforeInput : (e: any) => {return true;},
+        attLinkHref_onAfterInput : (e: any) => {},
+        attLinkHref_onBeforeBlur : (e: any) => {return true;},
+        attLinkHref_onAfterBlur : (e: any) => {},
         
         //modal att link insert button event
-        attLinkInsertButton_onBeforeClick : function(e: any) {return true;},
-        attLinkInsertButton_onAfterClick : function(e: any) {},
+        attLinkInsertButton_onBeforeClick : (e: any) => {return true;},
+        attLinkInsertButton_onAfterClick : (e: any) => {},
         
         //modal att file event
-        attFileModal_onBeforeClick : function(e: any) {return true;},
-        attFileModal_onAfterClick : function(e: any) {},
+        attFileModal_onBeforeClick : (e: any) => {return true;},
+        attFileModal_onAfterClick : (e: any) => {},
         
         //modal att file upload button event
-        attFileUploadButton_onBeforeClick : function(e: any) {return true;},
-        attFileUploadButton_onAfterClick : function(e: any) {},
+        attFileUploadButton_onBeforeClick : (e: any) => {return true;},
+        attFileUploadButton_onAfterClick : (e: any) => {},
         
         //modal att file upload div event
-        attFileUploadDiv_onBeforeDragover : function(e: any) {return true;},
-        attFileUploadDiv_onAfterDragover : function(e: any) {},
-        attFileUploadDiv_onBeforeDrop : function(e: any) {return true;},
-        attFileUploadDiv_onAfterDrop : function(e: any) {},
-        attFileUploadDiv_onBeforeClick : function(e: any) {return true;},
-        attFileUploadDiv_onAfterClick : function(e: any) {},
+        attFileUploadDiv_onBeforeDragover : (e: any) => {return true;},
+        attFileUploadDiv_onAfterDragover : (e: any) => {},
+        attFileUploadDiv_onBeforeDrop : (e: any) => {return true;},
+        attFileUploadDiv_onAfterDrop : (e: any) => {},
+        attFileUploadDiv_onBeforeClick : (e: any) => {return true;},
+        attFileUploadDiv_onAfterClick : (e: any) => {},
         
         //modal att file upload input event
-        attFileUpload_onBeforeInput : function(e: any) {return true;},
-        attFileUpload_onAfterInput : function(e: any) {},
-        attFileUpload_onBeforeBlur : function(e: any) {return true;},
-        attFileUpload_onAfterBlur : function(e: any) {},
+        attFileUpload_onBeforeInput : (e: any) => {return true;},
+        attFileUpload_onAfterInput : (e: any) => {},
+        attFileUpload_onBeforeBlur : (e: any) => {return true;},
+        attFileUpload_onAfterBlur : (e: any) => {},
         
         //modal att file insert button event
-        attFileInsertButton_onBeforeClick : function(e: any) {return true;},
-        attFileInsertButton_onAfterClick : function(e: any) {},
+        attFileInsertButton_onBeforeClick : (e: any) => {return true;},
+        attFileInsertButton_onAfterClick : (e: any) => {},
         
         //att link tooltip edit button event
-        attLinkTooltipEditButton_onBeforeClick : function(e: any) {return true;},
-        attLinkTooltipEditButton_onAfterClick : function(e: any) {},
+        attLinkTooltipEditButton_onBeforeClick : (e: any) => {return true;},
+        attLinkTooltipEditButton_onAfterClick : (e: any) => {},
         
         //att link tooltip unlink button event
-        attLinkTooltipUnlinkButton_onBeforeClick : function(e: any) {return true;},
-        attLinkTooltipUnlinkButton_onAfterClick : function(e: any) {},
+        attLinkTooltipUnlinkButton_onBeforeClick : (e: any) => {return true;},
+        attLinkTooltipUnlinkButton_onAfterClick : (e: any) => {},
         
         //modal att image event
-        attImageModal_onBeforeClick : function(e: any) {return true;},
-        attImageModal_onAfterClick : function(e: any) {},
+        attImageModal_onBeforeClick : (e: any) => {return true;},
+        attImageModal_onAfterClick : (e: any) => {},
         
         //modal att image upload button and view event
-        attImageUploadButtonAndView_onBeforeDragover : function(e: any) {return true;},
-        attImageUploadButtonAndView_onAfterDragover : function(e: any) {},
-        attImageUploadButtonAndView_onBeforeDrop : function(e: any) {return true;},
-        attImageUploadButtonAndView_onAfterDrop : function(e: any) {},
-        attImageUploadButtonAndView_onBeforeClick : function(e: any) {return true;},
-        attImageUploadButtonAndView_onAfterClick : function(e: any) {},
+        attImageUploadButtonAndView_onBeforeDragover : (e: any) => {return true;},
+        attImageUploadButtonAndView_onAfterDragover : (e: any) => {},
+        attImageUploadButtonAndView_onBeforeDrop : (e: any) => {return true;},
+        attImageUploadButtonAndView_onAfterDrop : (e: any) => {},
+        attImageUploadButtonAndView_onBeforeClick : (e: any) => {return true;},
+        attImageUploadButtonAndView_onAfterClick : (e: any) => {},
         
         //modal att image view pre button event
-        attImageViewPreButtion_onBeforeClick : function(e: any) {return true;},
-        attImageViewPreButtion_onAfterClick : function(e: any) {},
+        attImageViewPreButtion_onBeforeClick : (e: any) => {return true;},
+        attImageViewPreButtion_onAfterClick : (e: any) => {},
         
         //modal att image view next button event
-        attImageViewNextButtion_onBeforeClick : function(e: any) {return true;},
-        attImageViewNextButtion_onAfterClick : function(e: any) {},
+        attImageViewNextButtion_onBeforeClick : (e: any) => {return true;},
+        attImageViewNextButtion_onAfterClick : (e: any) => {},
         
         //modal att image upload input event
-        attImageUpload_onBeforeInput : function(e: any) {return true;},
-        attImageUpload_onAfterInput : function(e: any) {},
-        attImageUpload_onBeforeBlur : function(e: any) {return true;},
-        attImageUpload_onAfterBlur : function(e: any) {},
+        attImageUpload_onBeforeInput : (e: any) => {return true;},
+        attImageUpload_onAfterInput : (e: any) => {},
+        attImageUpload_onBeforeBlur : (e: any) => {return true;},
+        attImageUpload_onAfterBlur : (e: any) => {},
         
         //modal att image url input event
-        attImageURL_onBeforeInput : function(e: any) {return true;},
-        attImageURL_onAfterInput : function(e: any) {},
-        attImageURL_onBeforeBlur : function(e: any) {return true;},
-        attImageURL_onAfterBlur : function(e: any) {},
+        attImageURL_onBeforeInput : (e: any) => {return true;},
+        attImageURL_onAfterInput : (e: any) => {},
+        attImageURL_onBeforeBlur : (e: any) => {return true;},
+        attImageURL_onAfterBlur : (e: any) => {},
         
         //modal att image insert button event
-        attImageInsertButton_onBeforeClick : function(e: any) {return true;},
-        attImageInsertButton_onAfterClick : function(e: any) {},
+        attImageInsertButton_onBeforeClick : (e: any) => {return true;},
+        attImageInsertButton_onAfterClick : (e: any) => {},
         
         //modal att video event
-        attVideoModal_onBeforeClick : function(e: any) {return true;},
-        attVideoModal_onAfterClick : function(e: any) {},
+        attVideoModal_onBeforeClick : (e: any) => {return true;},
+        attVideoModal_onAfterClick : (e: any) => {},
         
         //modal att video embed id input event
-        attVideoEmbedId_onBeforeInput : function(e: any) {return true;},
-        attVideoEmbedId_onAfterInput : function(e: any) {},
-        attVideoEmbedId_onBeforeBlur : function(e: any) {return true;},
-        attVideoEmbedId_onAfterBlur : function(e: any) {},
+        attVideoEmbedId_onBeforeInput : (e: any) => {return true;},
+        attVideoEmbedId_onAfterInput : (e: any) => {},
+        attVideoEmbedId_onBeforeBlur : (e: any) => {return true;},
+        attVideoEmbedId_onAfterBlur : (e: any) => {},
         
         //modal att video width input event
-        attVideoWidth_onBeforeInput : function(e: any) {return true;},
-        attVideoWidth_onAfterInput : function(e: any) {},
-        attVideoWidth_onBeforeBlur : function(e: any) {return true;},
-        attVideoWidth_onAfterBlur : function(e: any) {},
+        attVideoWidth_onBeforeInput : (e: any) => {return true;},
+        attVideoWidth_onAfterInput : (e: any) => {},
+        attVideoWidth_onBeforeBlur : (e: any) => {return true;},
+        attVideoWidth_onAfterBlur : (e: any) => {},
         
         //modal att video height input event
-        attVideoHeight_onBeforeInput : function(e: any) {return true;},
-        attVideoHeight_onAfterInput : function(e: any) {},
-        attVideoHeight_onBeforeBlur : function(e: any) {return true;},
-        attVideoHeight_onAfterBlur : function(e: any) {},
+        attVideoHeight_onBeforeInput : (e: any) => {return true;},
+        attVideoHeight_onAfterInput : (e: any) => {},
+        attVideoHeight_onBeforeBlur : (e: any) => {return true;},
+        attVideoHeight_onAfterBlur : (e: any) => {},
         
         //modal att video insert button event
-        attVideoInsertButton_onBeforeClick : function(e: any) {return true;},
-        attVideoInsertButton_onAfterClick : function(e: any) {},
+        attVideoInsertButton_onBeforeClick : (e: any) => {return true;},
+        attVideoInsertButton_onAfterClick : (e: any) => {},
         
         //att image tooltip width input event
-        attImageAndVideoTooltipWidthInput_onBeforeInput : function(e: any) {return true;},
-        attImageAndVideoTooltipWidthInput_onAfterInput : function(e: any) {},
-        attImageAndVideoTooltipWidthInput_onBeforeBlur : function(e: any) {return true;},
-        attImageAndVideoTooltipWidthInput_onAfterBlur : function(e: any) {},
-        attImageAndVideoTooltipWidthInput_onBeforeKeyup : function(e: any) {return true;},
-        attImageAndVideoTooltipWidthInput_onAfterKeyup : function(e: any) {},
+        attImageAndVideoTooltipWidthInput_onBeforeInput : (e: any) => {return true;},
+        attImageAndVideoTooltipWidthInput_onAfterInput : (e: any) => {},
+        attImageAndVideoTooltipWidthInput_onBeforeBlur : (e: any) => {return true;},
+        attImageAndVideoTooltipWidthInput_onAfterBlur : (e: any) => {},
+        attImageAndVideoTooltipWidthInput_onBeforeKeyup : (e: any) => {return true;},
+        attImageAndVideoTooltipWidthInput_onAfterKeyup : (e: any) => {},
         
         //att image tooltip float none radio input event
-        attImageAndVideoTooltipFloatRadioNone_onBeforeClick : function(e: any) {return true;},
-        attImageAndVideoTooltipFloatRadioNone_onAfterClick : function(e: any) {},
+        attImageAndVideoTooltipFloatRadioNone_onBeforeClick : (e: any) => {return true;},
+        attImageAndVideoTooltipFloatRadioNone_onAfterClick : (e: any) => {},
         
         //att image tooltip float left radio input event
-        attImageAndVideoTooltipFloatRadioLeft_onBeforeClick : function(e: any) {return true;},
-        attImageAndVideoTooltipFloatRadioLeft_onAfterClick : function(e: any) {},
+        attImageAndVideoTooltipFloatRadioLeft_onBeforeClick : (e: any) => {return true;},
+        attImageAndVideoTooltipFloatRadioLeft_onAfterClick : (e: any) => {},
         
         //att image tooltip float right radio input event
-        attImageAndVideoTooltipFloatRadioRight_onBeforeClick : function(e: any) {return true;},
-        attImageAndVideoTooltipFloatRadioRight_onAfterClick : function(e: any) {},
+        attImageAndVideoTooltipFloatRadioRight_onBeforeClick : (e: any) => {return true;},
+        attImageAndVideoTooltipFloatRadioRight_onAfterClick : (e: any) => {},
         
         //att image tooltip shape square radio input event
-        attImageAndVideoTooltipShapeRadioSquare_onBeforeClick : function(e: any) {return true;},
-        attImageAndVideoTooltipShapeRadioSquare_onAfterClick : function(e: any) {},
+        attImageAndVideoTooltipShapeRadioSquare_onBeforeClick : (e: any) => {return true;},
+        attImageAndVideoTooltipShapeRadioSquare_onAfterClick : (e: any) => {},
         
         //att image tooltip shape radius radio input event
-        attImageAndVideoTooltipShapeRadioRadius_onBeforeClick : function(e: any) {return true;},
-        attImageAndVideoTooltipShapeRadioRadius_onAfterClick : function(e: any) {},
+        attImageAndVideoTooltipShapeRadioRadius_onBeforeClick : (e: any) => {return true;},
+        attImageAndVideoTooltipShapeRadioRadius_onAfterClick : (e: any) => {},
         
         //att image tooltip shape circle radio input event
-        attImageAndVideoTooltipShapeRadioCircle_onBeforeClick : function(e: any) {return true;},
-        attImageAndVideoTooltipShapeRadioCircle_onAfterClick : function(e: any) {},
+        attImageAndVideoTooltipShapeRadioCircle_onBeforeClick : (e: any) => {return true;},
+        attImageAndVideoTooltipShapeRadioCircle_onAfterClick : (e: any) => {},
         
         //modal help event
-        helpModal_onBeforeClick : function(e: any) {return true;},
-        helpModal_onAfterClick : function(e: any) {},
+        helpModal_onBeforeClick : (e: any) => {return true;},
+        helpModal_onAfterClick : (e: any) => {},
         
         //placeholder event
-        placeholder_onBeforeClick : function(e: any) {return true;},
-        placeholder_onAfterClick : function(e: any) {},
+        placeholder_onBeforeClick : (e: any) => {return true;},
+        placeholder_onAfterClick : (e: any) => {},
     }
 }
