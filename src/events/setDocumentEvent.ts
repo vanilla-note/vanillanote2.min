@@ -1,4 +1,4 @@
-import { Vanillanote } from "../types/vanillanote";
+import type { Vanillanote } from "../types/vanillanote";
 import { initToggleButtonVariables, onEventDisable } from "../utils/handleActive";
 import { doDecreaseTextareaHeight, doIncreaseTextareaHeight, modifyTextareaScroll, setAllModalSize, setAllToolSize, setAllToolTipPosition, setPlaceholderSize } from "../utils/handleElement";
 import { setEditSelection } from "../utils/handleSelection";
@@ -6,9 +6,9 @@ import { extractNumber, getParentNote } from "../utils/util";
 
 export const setDocumentEvents = (vn: Vanillanote) => {
     //document, window event 생성
-    vn.events.documentEvents.noteObserver = new MutationObserver(function(mutations) {
+    vn.events.documentEvents.noteObserver = new MutationObserver((mutations) => {
         let mutationEl;
-        mutations.forEach(function(mutation) {
+        mutations.forEach((mutation) => {
             mutationEl = mutation.target;
         });
         if(!mutationEl) return;
@@ -17,24 +17,24 @@ export const setDocumentEvents = (vn: Vanillanote) => {
         vn.variables.lastActiveNoteId = note._id;
         
         // Does not record more than the recodeLimit number.
-        if(note._records.recodeNotes.length >= note._records.recodeLimit) {
-            note._records.recodeNotes.shift();
-            note._records.recodeNotes.push(note._elements.textarea.cloneNode(true));
+        if(note._recodes.recodeNotes.length >= note._recodes.recodeLimit) {
+            note._recodes.recodeNotes.shift();
+            note._recodes.recodeNotes.push(note._elements.textarea.cloneNode(true));
         }
         else {
-            note._records.recodeConting = note._records.recodeConting + 1;
-            // If a new change occurs in the middle of undoing, subsequent records are deleted.
-            if(note._records.recodeConting < note._records.recodeNotes.length) {
-                note._records.recodeNotes.splice(note._records.recodeConting);
+            note._recodes.recodeConting = note._recodes.recodeConting + 1;
+            // If a new change occurs in the middle of undoing, subsequent recodes are deleted.
+            if(note._recodes.recodeConting < note._recodes.recodeNotes.length) {
+                note._recodes.recodeNotes.splice(note._recodes.recodeConting);
             }
-            note._records.recodeNotes.push(note._elements.textarea.cloneNode(true));
+            note._recodes.recodeNotes.push(note._elements.textarea.cloneNode(true));
         }
     });
     
     // Adjust note size according to window change.
     const window_onResize = () => {
         // A delay of 0.05 second
-        if(!vn.variables.canEvents) return;
+        if(!vn.variables.canEvent) return;
         onEventDisable(vn, "resize");
         
         Object.keys(vn.vanillanoteElements).forEach((id) => {
@@ -80,7 +80,7 @@ export const setDocumentEvents = (vn: Vanillanote) => {
         vn.variables.lastScreenHeight = window.visualViewport.height;
     };
     
-    const document_onSelectionchange = function(e: Event) {
+    const document_onSelectionchange = (e: Event) => {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount < 1) return;
         const range = selection.getRangeAt(0);
@@ -111,7 +111,7 @@ export const setDocumentEvents = (vn: Vanillanote) => {
         // In case it's not inside the note.
         if(!isVanillanote) {
             const noteIds = Object.keys(vn.vanillanoteElements);
-            for(var i = 0; i < noteIds.length; i++) {
+            for(let i = 0; i < noteIds.length; i++) {
                 initToggleButtonVariables(vn.vanillanoteElements[noteIds[i]]);
             }
             return;
@@ -121,10 +121,8 @@ export const setDocumentEvents = (vn: Vanillanote) => {
         if(!isTextarea) {
             return;
         }
-        var noteIndex = textarea.getAttribute("data-note-id");
         // Save the current selection.
         if(!setEditSelection(note, selection)) return;	// Exit if the save was unsuccessful
-    //			setEditSelection(noteIndex, selection);
         //textarea scrolling
         modifyTextareaScroll(textarea, note);
     };
@@ -136,17 +134,17 @@ export const setDocumentEvents = (vn: Vanillanote) => {
     vn.events.documentEvents.keydown = (event: KeyboardEvent) => {
         if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z")) {
             event.preventDefault();
-            (vn.events.elementEvents as any).undoButton_onClick(event);
+            (vn.events.elementEvents as any).undoButton_onClick(event, vn);
         }
         if ((event.ctrlKey || event.metaKey) && (event.key === "y" || event.key === "Y")) {
             event.preventDefault();
-            (vn.events.elementEvents as any).redoButton_onClick(event);
+            (vn.events.elementEvents as any).redoButton_onClick(event, vn);
         }
     };
-    vn.events.documentEvents.resize = function(event: UIEvent) {
+    vn.events.documentEvents.resize = (event: UIEvent) => {
         window_onResize();
     };
-    vn.events.documentEvents.resizeViewport = function(event: Event) {
+    vn.events.documentEvents.resizeViewport = (event: Event) => {
         window_resizeViewport(event);
     };
     document.addEventListener("selectionchange", vn.events.documentEvents.selectionchange);
