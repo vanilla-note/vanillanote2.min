@@ -1,14 +1,14 @@
-import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
-import { getElement, getElementReplaceTag, getObjectEditElementAttributes, getObjectEditElementCss, getParentTagName, getParentUnitTagElemnt, removeDoubleTag, removeEmptyElment, setEditNodeAndElement } from "./handleActive";
-import { closeAllTooltip, getSpecialTag } from "./handleElement";
-import { getCssTextFromObject, getObjectFromCssText, getParentNote, mergeObjects } from "./util";
+import type { VanillanoteElement } from "../types/vanillanote";
+import { getAttributesObjectFromElement, getElement, getElementReplaceTag, getObjectEditElementAttributes, getObjectEditElementCss, getObjectNoteCss, getParentTagName, getParentUnitTagElemnt, getSpecialTag, onEventDisable, removeDoubleTag, removeEmptyElment, setEditNodeAndElement } from "./handleActive";
+import { appearAttImageAndVideoTooltip, appearAttLinkToolTip, closeAllTooltip, setEditStyleTag } from "./handleElement";
+import { compareObject, getCssTextFromObject, getObjectFromCssText, getParentNote, mergeObjects, setAttributesObjectToElement } from "./util";
 
 export const setNewSelection = (startNode: Node, startOffset: number, endNode: Node, endOffset: number) => {
     if(!document.contains(startNode) || !document.contains(endNode)) {
         return;
     }
-    var newRange = document.createRange();
-    var newSelection = window.getSelection();
+    const newRange = document.createRange();
+    const newSelection = window.getSelection();
     newRange.setStart(startNode, startOffset);
     newRange.setEnd(endNode, endOffset);
     newSelection!.removeAllRanges();
@@ -17,26 +17,20 @@ export const setNewSelection = (startNode: Node, startOffset: number, endNode: N
     return newSelection;
 };
 
-/**
-* handleSpecialTagSelection
-* @description This function Open tooltip according to the tag of the selected element.
-* @param {Vanillanote} vn - vanillanote object
-* @param {String or Number} noteIndex - The index of the note.
-*/
-export const handleSpecialTagSelection = (vn: Vanillanote, noteIndex: number) => {
-    closeAllTooltip(noteIndex);
-    if(!vn.variables.editRanges[noteIndex]!.collapsed) return;
-    var tagName = getSpecialTag(vn.variables.editStartNode[noteIndex]);
+export const handleSpecialTagSelection = (note: VanillanoteElement) => {
+    closeAllTooltip(note);
+    if(!note._selection.editRange!.collapsed) return;
+    const tagName = getSpecialTag(note._selection.editStartNode, note);
     
     switch(tagName) {
         case "A":
-            appearAttLinkToolTip(noteIndex);
+            appearAttLinkToolTip(note);
             break;
         case "IMG":
-            appearAttImageAndVideoTooltip(noteIndex);
+            appearAttImageAndVideoTooltip(note);
             break;
         case "IFRAME":
-            appearAttImageAndVideoTooltip(noteIndex);
+            appearAttImageAndVideoTooltip(note);
             break;
         default :
             return;
@@ -47,14 +41,14 @@ export const handleSpecialTagSelection = (vn: Vanillanote, noteIndex: number) =>
 export const setOriginEditSelection = (note: VanillanoteElement) => {
     if(note._selection.editRange) {
         note._selection.setEditStyleTagToggle = 2;	// The 'selectiononchange' event usually occurs twice (once when removed and once when added back).
-        var selection = window.getSelection();
+        const selection = window.getSelection();
         selection!.removeAllRanges();
         selection!.addRange(note._selection.editRange);
     }
 };
 
 export const setEditSelection = (note: VanillanoteElement, selection: Selection) => {
-    const isInTextarea = function(noteName: string) {
+    const isInTextarea = (noteName: string) => {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount < 1) return false;
         
@@ -157,40 +151,35 @@ export const setEditSelection = (note: VanillanoteElement, selection: Selection)
         note._selection.editDragUnitElement.push(unitElement);
     }
     // Set style and tag based on the selected elements.
-    setEditStyleTag(noteIndex);
+    setEditStyleTag(note);
     
     // Perform additional actions based on the selected element's tag.
-    handleSpecialTagSelection(noteIndex);
+    handleSpecialTagSelection(note);
     
     return true;
 };
 
-/**
- * isValidSelection
- * @description check that now selection is valid
- * @returns {Boolean} - if vaild, return true
- */
 export const isValidSelection = (note: VanillanoteElement) => {
-    if(!note._selection.editRanges) return false;
-    if(!note._selection.editStartElements) return false;
+    if(!note._selection.editRange) return false;
+    if(!note._selection.editStartElement) return false;
     if(!note._selection.editStartUnitElement) return false;
     return true;
 };
 
 export const modifySeletedElements = (note: VanillanoteElement) => {
-    var isEnd = false;
-    var element = note._selection.editStartNode;
-    var selectedNodes: any[] = [];
+    let isEnd = false;
+    let element = note._selection.editStartNode;
+    const selectedNodes: any[] = [];
     if(!note._selection.editStartUnitElement || !note._selection.editEndUnitElement) return selectedNodes;
     
-    var lastNode = note._selection.editEndUnitElement.lastChild;
+    let lastNode = note._selection.editEndUnitElement.lastChild;
     while(lastNode) {
         if(!lastNode.lastChild) break;
         lastNode = lastNode.lastChild;
     }
     
     // Recursive function to get all child nodes
-    var getChildNodes = function(node: any){
+    const getChildNodes = (node: any) => {
         if(node === lastNode) {
             selectedNodes.push(node);
             isEnd = true;
@@ -203,7 +192,7 @@ export const modifySeletedElements = (note: VanillanoteElement) => {
         }
         
         if(node && node.childNodes && node.childNodes.length) {
-            for (var i = 0; i < node.childNodes.length; i++) {
+            for (let i = 0; i < node.childNodes.length; i++) {
                 getChildNodes(node.childNodes[i]);	// Recursive call
             }
         }
@@ -229,12 +218,12 @@ export const modifySelectedUnitElementTag = (target: any, _note?: VanillanoteEle
     const note = _note ? _note : getParentNote(target);
     if(!note) return;
     if(!isValidSelection(note)) return;
-    var tag = target.getAttribute("data-tag-name")
-    var tempEl;
+    const tag = target.getAttribute("data-tag-name")
+    let tempEl;
     
     if(note._vn.consts.DOUBLE_TAG.indexOf(tag) >= 0) { // ul or ol
-        var tempDoubleElement = document.createElement(tag);
-        for(var i = 0; i < note._selection.editDragUnitElement.length; i++) {
+        const tempDoubleElement = document.createElement(tag);
+        for(let i = 0; i < note._selection.editDragUnitElement.length; i++) {
             if((note._selection.editDragUnitElement as any)[i].tagName === "LI") {
                 // Remove ul or ol tag
                 removeDoubleTag(note, (note._selection.editDragUnitElement as any)[i].parentNode);
@@ -258,7 +247,7 @@ export const modifySelectedUnitElementTag = (target: any, _note?: VanillanoteEle
             tempDoubleElement.append(tempEl);
         }
     } else {
-        for(var i = 0; i < note._selection.editDragUnitElement.length; i++) {
+        for(let i = 0; i < note._selection.editDragUnitElement.length; i++) {
             if((note._selection.editDragUnitElement as any)[i].tagName === "LI") {
                 // Remove ul or ol tag
                 removeDoubleTag(note, (note._selection.editDragUnitElement as any)[i].parentNode);
@@ -275,8 +264,8 @@ export const modifySelectedUnitElementTag = (target: any, _note?: VanillanoteEle
     }
     
     // Sets the new selection range.
-    var newStartOffset = 0
-    var newEndOffset = note._selection.editEndElement ? (note._selection.editEndElement as any).textContent.length : 0
+    let newStartOffset = 0
+    const newEndOffset = note._selection.editEndElement ? (note._selection.editEndElement as any).textContent.length : 0
     if(note._selection.editStartElement === note._selection.editEndElement) {
         newStartOffset = newEndOffset;
     }
@@ -301,7 +290,7 @@ export const modifySelectedUnitElementStyle = (target: any, _note?: VanillanoteE
     let nowCssObject;
     let tempEl
     
-    for(const i = 0; i < note._selection.editDragUnitElement.length; i++) {
+    for(let i = 0; i < note._selection.editDragUnitElement.length; i++) {
         nowCssText = (note._selection.editDragUnitElement as any)[i].getAttribute("style");
         // Convert style text to an object
         nowCssObject = getObjectFromCssText(nowCssText);
@@ -356,16 +345,16 @@ export const modifySelectedSingleElement = (note: VanillanoteElement, csses: Rec
     selectedNodes = modifySeletedElements(note);
     
     // Text content before the starting node of the selection.
-    var sS =(note._selection.editStartNode as any).textContent.slice(0,note._selection.startOffset);
+    const sS =(note._selection.editStartNode as any).textContent.slice(0,note._selection.startOffset);
     // Text content after the starting node of the selection.
-    var sE =(note._selection.editStartNode as any).textContent.slice(note._selection.startOffset,note._selection.editStartNode!.textContent!.length);
+    let sE =(note._selection.editStartNode as any).textContent.slice(note._selection.startOffset,note._selection.editStartNode!.textContent!.length);
     // Text content before the ending node of the selection.
-    var eS = (note._selection.editEndNode as any).textContent.slice(0,note._selection.endOffset);
+    const eS = (note._selection.editEndNode as any).textContent.slice(0,note._selection.endOffset);
     // Text content after the ending node of the selection.
-    var eE = (note._selection.editEndNode as any).textContent.slice(note._selection.endOffset,note._selection.editEndNode!.textContent!.length);
+    const eE = (note._selection.editEndNode as any).textContent.slice(note._selection.endOffset,note._selection.editEndNode!.textContent!.length);
     
     // An internal function used for inserting nodes.
-    var insertSelectedNode = function(tempEl: any, tempUnitEl: any) {
+    const insertSelectedNode = (tempEl: any, tempUnitEl: any) => {
         if(!tempEl) return;
         if(tempUnitEl) {
             tempUnitEl.insertBefore(tempEl, null);
@@ -375,10 +364,10 @@ export const modifySelectedSingleElement = (note: VanillanoteElement, csses: Rec
         }
     }
     // A condition indicating that the end node of the selection has been reached.
-    var isEnd = false;
+    let isEnd = false;
     // A check to determine if the starting node and ending node of the selection are the same.
-    var isStartNodeEqualEndNode = note._selection.editStartNode === note._selection.editEndNode;
-    for(var i = 0; i < selectedNodes.length; i++) {
+    const isStartNodeEqualEndNode = note._selection.editStartNode === note._selection.editEndNode;
+    for(let i = 0; i < selectedNodes.length; i++) {
         if(selectedNodes[i].nodeType === 3) {	// A comment indicating that the subsequent code handles text nodes in the selection.
             if(!attributes) newAttributes = getObjectEditElementAttributes(selectedNodes[i], note);	// If no attributes are provided for the new element, use the existing attributes of the node being replaced.
             if(!tagName) newTagName = getSpecialTag(selectedNodes[i], note);	// If no tag name is provided for the new element, use the existing tag name of the node being replaced.
@@ -473,7 +462,7 @@ export const modifySelectedSingleElement = (note: VanillanoteElement, csses: Rec
     }
     
     // Clean up the target elements for editing.
-    for(var i = 0; i < note._selection.editDragUnitElement.length; i++) {
+    for(let i = 0; i < note._selection.editDragUnitElement.length; i++) {
         removeEmptyElment(note._selection.editDragUnitElement[i], note);
     }
     
@@ -498,39 +487,34 @@ export const modifySelectedSingleElement = (note: VanillanoteElement, csses: Rec
             );
 };
 
-/**
-* textarea_onBeforeinputSpelling
-* @description Handles the event when text is input in the editNote.
-* @param {Event} e - The input event.
-*/
-var textarea_onBeforeinputSpelling = function(e: any) {
-    var noteId = getNoteId(e.target);
-    if(!noteIndex) return;
+export const textarea_onBeforeinputSpelling = (e: any) => {
+    const note = getParentNote(e.target);
+    if(!note) return;
     // A delay of 0.05 seconds is applied for textarea_onBeforeinputSpelling event to avoid errors when inputting a large number of characters at once.
-    if(!vn.variables.canEvents) return;
-    onEventDisable("input");
+    if(!note._vn.variables.canEvent) return;
+    onEventDisable(note._vn, "input");
     
     // If no specific range is selected, return.
-    if(!isValidSelection(noteIndex)) return;
+    if(!isValidSelection(note)) return;
     
     // Get the current set style.
-    var cssText = "";
-    var cssObject = getObjectNoteCss(noteIndex);
+    let cssText = "";
+    const cssObject = getObjectNoteCss(note);
     // Style check is only required for the starting element when inputting.
-    var cssObjectEl = getObjectEditElementCss(vn.variables.editStartElements[noteIndex]);
+    let cssObjectEl = getObjectEditElementCss(note._selection.editStartElement, note);
     
     // Ignore font size when inputting in a header.
-    if ((vn.variables.editStartUnitElement[noteIndex] as any).tagName.substring(0, 1) === "H") {
+    if ((note._selection.editStartUnitElement as any).tagName.substring(0, 1) === "H") {
         delete cssObject["font-size"];
         delete cssObject["letter-spacing"];
         delete cssObject["line-height"];
     }
     else {	// If it is not a header, if there are any child elements with missing font-size and line-height, put them back.
-        if(vn.variables.editStartElements[noteIndex] instanceof Element
-            && vn.consts.UNIT_TAG.indexOf((vn.variables.editStartElements[noteIndex] as any).tagName) < 0
+        if(note._selection.editStartElement instanceof Element
+            && note._vn.consts.UNIT_TAG.indexOf((note._selection.editStartElement as any).tagName) < 0
             && (!cssObjectEl["font-size"] || !cssObjectEl["line-height"])) {
             cssObjectEl = cssObject;
-            setAttributesObjectToElement(vn.variables.editStartElements[noteIndex], {"style" : getCssTextFromObject(cssObjectEl)});
+            setAttributesObjectToElement(note._selection.editStartElement, {"style" : getCssTextFromObject(cssObjectEl)});
         }
     }
     
@@ -543,21 +527,21 @@ var textarea_onBeforeinputSpelling = function(e: any) {
     }
     
     // Create the edit point.
-    var selectElement = document.createElement("span");
-    selectElement.setAttribute("class",vn.variables.noteName + "-point");
+    const selectElement = document.createElement("span");
+    selectElement.setAttribute("class",note._noteName + "-point");
     selectElement.appendChild(document.createTextNode("!"));
     // Execute only when the starting point is a single point.
-    if((vn.variables.editRanges[noteIndex] as any).collapsed) {
-        (vn.variables.editRanges[noteIndex] as any).insertNode(selectElement);
+    if((note._selection.editRange as any).collapsed) {
+        (note._selection.editRange as any).insertNode(selectElement);
         // Modify the style of the selected element.
         try {
-            modifySelectedSingleElement(noteIndex, getObjectNoteCss(noteIndex));
+            modifySelectedSingleElement(note, getObjectNoteCss(note));
         }
         catch (err){}
         
         // Retrieve the edit point.
-        var newSelectElements = document.getElementsByClassName(vn.variables.noteName + "-point");
-        var newSelectElement = newSelectElements[0];
+        const newSelectElements = document.getElementsByClassName(note._noteName + "-point");
+        const newSelectElement = newSelectElements[0];
         
         if(cssText) {
             newSelectElement.setAttribute("style",cssText);	
@@ -565,7 +549,7 @@ var textarea_onBeforeinputSpelling = function(e: any) {
             newSelectElement.removeAttribute("style");
         }
         // Remove the class of all edit points.
-        for(var i = 0; i < newSelectElements.length; i++) {
+        for(let i = 0; i < newSelectElements.length; i++) {
             newSelectElements[i].removeAttribute("class");	
         }
         // Sets the new selection range.
@@ -573,37 +557,32 @@ var textarea_onBeforeinputSpelling = function(e: any) {
     }
     else {
         // Modify the style of the selected element.
-        modifySelectedSingleElement(noteIndex, getObjectNoteCss(noteIndex));
+        modifySelectedSingleElement(note, getObjectNoteCss(note));
     }
 };
 
-/**
-* textarea_onKeydownEnter
-* @description Handles the event when the enter key is pressed in the editNote.
-* @param {Element} target - The target element where the enter key was pressed.
-*/
-var textarea_onKeydownEnter = function(target: any) {
-    var noteId = getNoteId(target);
-    if(!noteIndex) return;
-    if(!isValidSelection(noteIndex)) return;
-    if(vn.variables.editStartUnitElement[noteIndex] && (vn.variables.editStartUnitElement[noteIndex] as any).textContent) {
+export const textarea_onKeydownEnter = (target: any) => {
+    const note = getParentNote(target);
+    if(!note) return;
+    if(!isValidSelection(note)) return;
+    if(note._selection.editStartUnitElement && (note._selection.editStartUnitElement as any).textContent) {
         return;
     }
     // Ignore if it is an empty-able tag (except BR, img, input).
-    if(vn.variables.editStartNode[noteIndex] instanceof Element
-        && vn.consts.EMPTY_ABLE_TAG.indexOf((vn.variables.editStartNode[noteIndex] as any).tagName) >= 0
-        && (vn.variables.editStartNode[noteIndex] as any).tagName !== "BR") {
+    if(note._selection.editStartNode instanceof Element
+        && note._vn.consts.EMPTY_ABLE_TAG.indexOf((note._selection.editStartNode as any).tagName) >= 0
+        && (note._selection.editStartNode as any).tagName !== "BR") {
         return;
     }
-    var tempEl1;
-    var tempEl2;
-    var tagName = (vn.variables.editStartUnitElement[noteIndex] as any).tagName;
+    let tempEl1;
+    let tempEl2;
+    const tagName = (note._selection.editStartUnitElement as any).tagName;
     tempEl1 = document.createElement(tagName);
     tempEl2 = document.createElement("BR");
     tempEl1.appendChild(tempEl2);
-    tempEl1 = setAttributesObjectToElement(tempEl1, (getAttributesObjectFromElement((vn.variables.editStartUnitElement[noteIndex] as any)) as any));
+    tempEl1 = setAttributesObjectToElement(tempEl1, (getAttributesObjectFromElement((note._selection.editStartUnitElement as any)) as any));
     
-    (vn.variables.editStartUnitElement[noteIndex] as any).replaceWith(tempEl1);
+    (note._selection.editStartUnitElement as any).replaceWith(tempEl1);
     
     // Sets the new selection range.
     setNewSelection(tempEl1, 0, tempEl1, 0);
