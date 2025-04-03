@@ -142,6 +142,8 @@ export interface Vanillanote extends VanillanoteConfig{
 	mountNote(element?: HTMLElement): void;
 	destroy(): void;
 	unmountNote(element?: HTMLElement): void;
+
+	_initialized: boolean;
 }
 
 export interface NoteLinkData {

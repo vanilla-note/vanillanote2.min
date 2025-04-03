@@ -365,6 +365,7 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
         mountNote(element?: HTMLElement) {},
         destroy() {destroyVanillanote();},
         unmountNote(element?: HTMLElement) {},
+        _initialized: false
     };
     singletonVanillanote.mountNote = (element?: HTMLElement) => {
         mountVanillanote(singletonVanillanote as Vanillanote, element);
@@ -377,7 +378,7 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
 }
 
 const initVanillanote = () => {
-    if(!singletonVanillanote) return null;
+    if(!singletonVanillanote || singletonVanillanote._initialized) return;
     //The logic for using document, window and navigator to use getVanillanote in an SSR environment is declared below.
     singletonVanillanote.variables.lastScreenHeight =  typeof window !== 'undefined' && window.visualViewport ? window.visualViewport.height : null;
     singletonVanillanote.getNote = (noteId: string): VanillanoteElement | null => {

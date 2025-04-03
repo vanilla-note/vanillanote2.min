@@ -1,6 +1,6 @@
 {
   "name": "vanillanote2",
-  "version": "1.0.0",
+  "version": "1.0.1-beta.1",
   "description": "A simple editor using only Vanilla JS and ES5 syntax.",
   "main": "dist/Vanillanote2.bundle.js",
   "module": "dist/Vanillanote2.bundle.js",
