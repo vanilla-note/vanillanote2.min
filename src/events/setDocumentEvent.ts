@@ -1,5 +1,5 @@
 import type { Vanillanote } from "../types/vanillanote";
-import { initToggleButtonVariables, onEventDisable } from "../utils/handleActive";
+import { initToggleButtonVariables, onEventDisable, recodeNote } from "../utils/handleActive";
 import { doDecreaseTextareaHeight, doIncreaseTextareaHeight, modifyTextareaScroll, setAllModalSize, setAllToolSize, setAllToolTipPosition, setPlaceholderSize } from "../utils/handleElement";
 import { setEditSelection } from "../utils/handleSelection";
 import { extractNumber, getParentNote } from "../utils/util";
@@ -15,20 +15,8 @@ export const setDocumentEvents = (vn: Vanillanote) => {
         const note = getParentNote(mutationEl);
         if(!note) return;
         vn.variables.lastActiveNoteId = note._id;
-        
-        // Does not record more than the recodeLimit number.
-        if(note._recodes.recodeNotes.length >= note._recodes.recodeLimit) {
-            note._recodes.recodeNotes.shift();
-            note._recodes.recodeNotes.push(note._elements.textarea.cloneNode(true));
-        }
-        else {
-            note._recodes.recodeConting = note._recodes.recodeConting + 1;
-            // If a new change occurs in the middle of undoing, subsequent recodes are deleted.
-            if(note._recodes.recodeConting < note._recodes.recodeNotes.length) {
-                note._recodes.recodeNotes.splice(note._recodes.recodeConting);
-            }
-            note._recodes.recodeNotes.push(note._elements.textarea.cloneNode(true));
-        }
+
+        recodeNote(note);
     });
     
     // Adjust note size according to window change.
@@ -69,6 +57,7 @@ export const setDocumentEvents = (vn: Vanillanote) => {
         
         if(isTextarea && vn.variables.lastScreenHeight! > window.visualViewport.height) {
             const note = getParentNote(textarea);
+            if(!note) return;
             const toolHeight = extractNumber(note._elements.tool.style.height) ? extractNumber(note._elements.tool.style.height) : 93.6;
             vn.variables.mobileKeyboardExceptHeight = window.visualViewport.height - (toolHeight! / 2);
             doDecreaseTextareaHeight(note);
