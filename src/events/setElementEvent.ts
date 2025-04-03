@@ -1,6 +1,6 @@
 import type { Vanillanote } from "../types/vanillanote";
 import { setAttFileUploadDiv, setAttImageUploadAndView, setAttTempFileValid, setAttTempImageValid } from "../utils/createElement";
-import { connectObserver, doEditUnitCheck, getElement, getNextElementsUntilNotTag, getObjectNoteCss, getPreviousElementsUntilNotTag, initToggleButtonVariables, removeEmptyElment, replaceDifferentBetweenElements, validCheckAttLink, validCheckAttVideo } from "../utils/handleActive";
+import { connectObserver, doEditUnitCheck, getElement, getNextElementsUntilNotTag, getObjectNoteCss, getPreviousElementsUntilNotTag, initToggleButtonVariables, recodeNote, removeEmptyElment, replaceDifferentBetweenElements, validCheckAttLink, validCheckAttVideo } from "../utils/handleActive";
 import { button_onToggle, closeAllModal, closeAllSelectBoxes, closePlaceholder, doIncreaseTextareaHeight, initTextarea, openAttLinkModal, openPlaceholder, selectToggle, setAllModalSize, setAllToolSize, setAllToolTipPosition, setImageAndVideoWidth } from "../utils/handleElement";
 import { isValidSelection, modifySelectedSingleElement, modifySelectedUnitElementStyle, modifySelectedUnitElementTag, setEditSelection, setNewSelection, setOriginEditSelection, textarea_onBeforeinputSpelling, textarea_onKeydownEnter } from "../utils/handleSelection";
 import { checkHex, checkNumber, checkRealNumber, getClassName, getCssTextFromObject, getEventChildrenClassName, getHexColorFromColorName, getId, getParentNote, getRGBAFromHex, getUUID, isMobileDevice } from "../utils/util";
@@ -50,6 +50,7 @@ export const setElementEvents = (vn: Vanillanote) => {
     //styleNomal event
     vn.events.elementEvents.styleNomal_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -57,6 +58,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         }
         // Changing the tag
         modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        recodeNote(note);
         selectToggle(target, note);
     };
 
@@ -64,6 +67,7 @@ export const setElementEvents = (vn: Vanillanote) => {
     //styleHeader1 event
     vn.events.elementEvents.styleHeader1_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -71,12 +75,15 @@ export const setElementEvents = (vn: Vanillanote) => {
         }
         // Changing the tag
         modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        recodeNote(note);
         selectToggle(target, note);
     };
     //==================================================================================
     //styleHeader2 event
     vn.events.elementEvents.styleHeader2_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -84,12 +91,15 @@ export const setElementEvents = (vn: Vanillanote) => {
         }
         // Changing the tag
         modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        recodeNote(note);
         selectToggle(target, note);
     };
     //==================================================================================
     //styleHeader3 event
     vn.events.elementEvents.styleHeader3_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -97,12 +107,15 @@ export const setElementEvents = (vn: Vanillanote) => {
         }
         // Changing the tag
         modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        recodeNote(note);
         selectToggle(target, note);
     };
     //==================================================================================
     //styleHeader4 event
     vn.events.elementEvents.styleHeader4_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -110,12 +123,15 @@ export const setElementEvents = (vn: Vanillanote) => {
         }
         // Changing the tag
         modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        recodeNote(note);
         selectToggle(target, note);
     };
     //==================================================================================
     //styleHeader5 event
     vn.events.elementEvents.styleHeader5_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -123,12 +139,15 @@ export const setElementEvents = (vn: Vanillanote) => {
         }
         // Changing the tag
         modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        recodeNote(note);
         selectToggle(target, note);
     };
     //==================================================================================
     //styleHeader6 event
     vn.events.elementEvents.styleHeader6_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -136,6 +155,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         }
         // Changing the tag
         modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        recodeNote(note);
         selectToggle(target, note);
     };
 
@@ -158,6 +179,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
 
@@ -180,6 +203,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
 
@@ -202,6 +227,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
 
@@ -209,6 +236,7 @@ export const setElementEvents = (vn: Vanillanote) => {
     //ul
     vn.events.elementEvents.ulButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -216,6 +244,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         }
         // Changing the tag
         modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        recodeNote(note);
     };
 
 
@@ -223,6 +253,7 @@ export const setElementEvents = (vn: Vanillanote) => {
     //ol
     vn.events.elementEvents.olButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -230,6 +261,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         }
         // Changing the tag
         modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        recodeNote(note);
     };
 
     //==================================================================================
@@ -248,6 +281,7 @@ export const setElementEvents = (vn: Vanillanote) => {
     //text-align-left
     vn.events.elementEvents.textAlignLeft_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -256,12 +290,15 @@ export const setElementEvents = (vn: Vanillanote) => {
         // Changing the text-align
         modifySelectedUnitElementStyle(target, note);
         selectToggle(target, note);
+        //변경사항 기록
+        recodeNote(note);
     };
 
     //==================================================================================
     //text-align-center
     vn.events.elementEvents.textAlignCenter_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -270,12 +307,15 @@ export const setElementEvents = (vn: Vanillanote) => {
         // Changing the text-align
         modifySelectedUnitElementStyle(target, note);
         selectToggle(target, note);
+        //변경사항 기록
+        recodeNote(note);
     };
 
     //==================================================================================
     //text-align-right
     vn.events.elementEvents.textAlignRight_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         // If a child element is selected, event is controlled
         let target = e.target;
         if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
@@ -284,6 +324,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         // Changing the text-align
         modifySelectedUnitElementStyle(target, note);
         selectToggle(target, note);
+        //변경사항 기록
+        recodeNote(note);
     };
 
     //==================================================================================
@@ -361,6 +403,8 @@ export const setElementEvents = (vn: Vanillanote) => {
             if(attIsblank.checked) attributes["target"] = "_blank";
             modifySelectedSingleElement(note, null, "a", attributes);
         }
+        //변경사항 기록
+        recodeNote(note);
         
         closeAllModal(note);
     };
@@ -375,7 +419,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         const nextElements = getNextElementsUntilNotTag(note._selection.editStartElement, "A", vn.consts);
         const startEl = previousElements[previousElements.length - 1];
         const endEl = nextElements[nextElements.length - 1];
-        
+        //변경사항 기록
+        recodeNote(note);
         // Sets the new selection range.
         const newSelection = setNewSelection(
                 startEl.firstChild,
@@ -397,7 +442,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         const nextElements = getNextElementsUntilNotTag(note._selection.editStartElement, "A", vn.consts);
         const startEl = previousElements[previousElements.length - 1];
         const endEl = nextElements[nextElements.length - 1];
-        
+        //변경사항 기록
+        recodeNote(note);
         // Sets the new selection range.
         const newSelection = setNewSelection(
                 startEl.firstChild,
@@ -567,6 +613,8 @@ export const setElementEvents = (vn: Vanillanote) => {
             if(i === keys.length - 1) selectEl = tempEl1;
         }
         closeAllModal(note);
+        //변경사항 기록
+        recodeNote(note);
         // Sets the new selection range.
         setNewSelection(
             selectEl,
@@ -690,6 +738,7 @@ export const setElementEvents = (vn: Vanillanote) => {
         If there is no range:
             Reset attTempImages, attImageUploadButtonAndView, attImageURL and close modal
         */
+        let isChange = false;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!isValidSelection(note)) {
@@ -723,8 +772,9 @@ export const setElementEvents = (vn: Vanillanote) => {
                 );
             tempEl1.appendChild(tempEl2)
             editStartUnitElements.parentNode.insertBefore(tempEl1, editStartUnitElements.nextSibling);
-            
             closeAllModal(note);
+            //변경사항 기록
+            isChange = true;
             // Sets the new selection range.
             setNewSelection(
                 tempEl1,
@@ -767,8 +817,9 @@ export const setElementEvents = (vn: Vanillanote) => {
                 
                 if(i === 0) selectEl = tempEl1;
             }
-                
             closeAllModal(note);
+            //변경사항 기록
+            isChange = true;
             // Sets the new selection range.
             setNewSelection(
                 selectEl,
@@ -778,7 +829,9 @@ export const setElementEvents = (vn: Vanillanote) => {
                 );
             return;
         }
-        
+
+        //변경사항 기록
+        if(isChange) recodeNote(note);
         closeAllModal(note);
         return;
     };
@@ -838,6 +891,10 @@ export const setElementEvents = (vn: Vanillanote) => {
         if(widthPer < 10) widthPer = 10;
         if(widthPer > 100) widthPer = 100;
         e.target.value = widthPer;
+        const note = getParentNote(e.target);
+        if(!note) return;
+        //변경사항 기록
+        recodeNote(note);
     };
     //modal att video height
     vn.events.elementEvents.attVideoHeight_onInput = (e: any) => {
@@ -854,6 +911,10 @@ export const setElementEvents = (vn: Vanillanote) => {
         if(height < 50) height = 50;
         if(height > 1000) height = 1000;
         e.target.value = height;
+        const note = getParentNote(e.target);
+        if(!note) return;
+        //변경사항 기록
+        recodeNote(note);
     };
     //modal att video insert
     vn.events.elementEvents.attVideoInsertButton_onClick = (e: any) => {
@@ -903,8 +964,9 @@ export const setElementEvents = (vn: Vanillanote) => {
                 );
             tempEl1.appendChild(tempEl2)
             editStartUnitElements.parentNode.insertBefore(tempEl1, editStartUnitElements.nextSibling);
-            
             closeAllModal(note);
+            //변경사항 기록
+            recodeNote(note);
             // Sets the new selection range.
             setNewSelection(
                 tempEl1,
@@ -945,6 +1007,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         imgNode.style.float = "none";
         (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
         note._selection.editStartNode = imgNode;
+        //변경사항 기록
+        recodeNote(note);
     };
     //att image tooltip float radio left input event
     vn.events.elementEvents.attImageAndVideoTooltipFloatRadioLeft_onClick = (e: any) => {
@@ -955,6 +1019,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         imgNode.style.float = "left";
         (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
         note._selection.editStartNode = imgNode;
+        //변경사항 기록
+        recodeNote(note);
     };
     //att image tooltip float radio right input event
     vn.events.elementEvents.attImageAndVideoTooltipFloatRadioRight_onClick = (e: any) => {
@@ -965,6 +1031,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         imgNode.style.float = "right";
         (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
         note._selection.editStartNode = imgNode;
+        //변경사항 기록
+        recodeNote(note);
     };
     //att image tooltip shape square radio input event
     vn.events.elementEvents.attImageAndVideoTooltipShapeRadioSquare_onClick = (e: any) => {
@@ -975,6 +1043,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         imgNode.style.removeProperty("border-radius");
         (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
         note._selection.editStartNode = imgNode;
+        //변경사항 기록
+        recodeNote(note);
     };
     //att image tooltip shape radius radio input event
     vn.events.elementEvents.attImageAndVideoTooltipShapeRadioRadius_onClick = (e: any) => {
@@ -985,6 +1055,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         imgNode.style.borderRadius = "5%";
         (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
         note._selection.editStartNode = imgNode;
+        //변경사항 기록
+        recodeNote(note);
     };
     //att image tooltip shape circle radio input event
     vn.events.elementEvents.attImageAndVideoTooltipShapeRadioCircle_onClick = (e: any) => {
@@ -995,6 +1067,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         imgNode.style.borderRadius = "50%";
         (note._selection.editStartNode as any).parentNode.replaceChild(imgNode, (note._selection.editStartNode as any));
         note._selection.editStartNode = imgNode;
+        //변경사항 기록
+        recodeNote(note);
     };
 
     //==================================================================================
@@ -1010,6 +1084,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //fontSizeInput event
@@ -1059,6 +1135,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //letterSpacingInput event
@@ -1112,6 +1190,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //lineHeightInput event
@@ -1317,6 +1397,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorText1 event
@@ -1338,6 +1420,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorText2 event
@@ -1359,6 +1443,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorText3 event
@@ -1380,6 +1466,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorText4 event
@@ -1401,6 +1489,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorText5 event
@@ -1422,6 +1512,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorText6 event
@@ -1443,6 +1535,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorText7 event
@@ -1464,6 +1558,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
 
@@ -1625,6 +1721,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorBack1 event
@@ -1646,6 +1744,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorBack2 event
@@ -1667,6 +1767,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorBack3 event
@@ -1688,6 +1790,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorBack4 event
@@ -1709,6 +1813,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorBack5 event
@@ -1730,6 +1836,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorBack6 event
@@ -1751,6 +1859,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
     //colorBack7 event
@@ -1772,6 +1882,8 @@ export const setElementEvents = (vn: Vanillanote) => {
         else {	// Dragging
             // Specify style for dragged characters
             modifySelectedSingleElement(note, getObjectNoteCss(note));
+            //변경사항 기록
+            recodeNote(note);
         }
     };
 
@@ -1793,6 +1905,8 @@ export const setElementEvents = (vn: Vanillanote) => {
                 "line-height" : note._attributes.defaultTextareaLineHeight + "px",
                 "font-family" : note._attributes.defaultTextareaFontFamily,
             });
+            //변경사항 기록
+            recodeNote(note);
         }
     };
 
@@ -1804,9 +1918,9 @@ export const setElementEvents = (vn: Vanillanote) => {
         if(!note) return;
         // Disconnect the observer.
         vn.events.documentEvents.noteObserver!.disconnect();
-        if(note._recodes.recodeConting <= 0) return;
-        note._recodes.recodeConting = note._recodes.recodeConting - 1;
-        replaceDifferentBetweenElements(vn, note._elements.textarea, note._recodes.recodeNotes[note._recodes.recodeConting]);
+        if(note._recodes.recodeCount <= 0) return;
+        note._recodes.recodeCount = note._recodes.recodeCount - 1;
+        replaceDifferentBetweenElements(vn, note._elements.textarea, note._recodes.recodeNotes[note._recodes.recodeCount]);
         
         // Reconnect the observer.
         connectObserver(vn);
@@ -1820,9 +1934,9 @@ export const setElementEvents = (vn: Vanillanote) => {
         if(!note) return;
         // Disconnect the observer.
         vn.events.documentEvents.noteObserver!.disconnect();
-        if(note._recodes.recodeConting >= note._recodes.recodeNotes.length - 1) return;
-        note._recodes.recodeConting = note._recodes.recodeConting + 1;
-        replaceDifferentBetweenElements(vn, note._elements.textarea, note._recodes.recodeNotes[note._recodes.recodeConting]);
+        if(note._recodes.recodeCount >= note._recodes.recodeNotes.length - 1) return;
+        note._recodes.recodeCount = note._recodes.recodeCount + 1;
+        replaceDifferentBetweenElements(vn, note._elements.textarea, note._recodes.recodeNotes[note._recodes.recodeCount]);
         
         // Reconnect the observer.
         connectObserver(vn);
@@ -1875,6 +1989,7 @@ export const setElementEvents = (vn: Vanillanote) => {
     //==================================================================================
     vn.events.elementEvents.textarea_onClick = (e: any) => {
         const note = getParentNote(e.target);
+        if(!note) return;
         closeAllSelectBoxes(note);
     };
     vn.events.elementEvents.textarea_onFocus = (e: any) => {
@@ -1916,6 +2031,7 @@ export const setElementEvents = (vn: Vanillanote) => {
     vn.events.elementEvents.textarea_onKeyup = (e: any) => {
         const textarea = e.target;
         const note = getParentNote(textarea);
+        if(!note) return;
         // Open placeholder.
         closePlaceholder(note);
         // Disconnect the observer.
