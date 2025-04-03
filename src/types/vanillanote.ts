@@ -144,6 +144,39 @@ export interface Vanillanote extends VanillanoteConfig{
 	unmountNote(element?: HTMLElement): void;
 }
 
+export interface NoteLinkData {
+	text: string;
+	href: string;
+	target?: string;
+  }
+  
+  export interface NoteFileData {
+	uuid: string;
+	name: string;
+  }
+  
+  export interface NoteImageData {
+	src: string;
+	uuid?: string;
+  }
+  
+  export interface NoteVideoData {
+	src: string;
+	width?: string;
+	height?: string;
+  }
+  
+  export interface NoteData {
+	html: string;
+	plainText: string;
+	links: NoteLinkData[];
+	files: NoteFileData[];
+	images: NoteImageData[];
+	videos: NoteVideoData[];
+	fileObjects: Record<string, File>;
+	imageObjects: Record<string, File>;
+  }
+
 /**
  * Represents a DOM element rendered by Vanillanote.
  * 
@@ -863,10 +896,7 @@ export interface VanillanoteElement extends HTMLDivElement {
 	 * console.log(data.files); // Object containing file UUID keys and File objects
 	 * console.log(data.textarea); // The editor's contenteditable div element
 	 */
-	_getNoteData(): {
-		textarea: HTMLTextAreaElement;
-	  	files: Record<string, File>;
-	};
+	getNoteData(): NoteData;
 
-	_setNoteData(data: HTMLTextAreaElement): void; //???????
+	setNoteData(data: NoteData ): void;
 }
