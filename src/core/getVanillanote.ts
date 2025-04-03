@@ -1,14 +1,15 @@
+import type { Vanillanote, VanillanoteConfig, VanillanoteElement } from "../types/vanillanote";
 import type { Consts } from "../types/consts";
 import type { Colors } from "../types/csses";
 import type { LanguageSet } from "../types/language";
-import type { Vanillanote, VanillanoteConfig } from "../types/vanillanote";
 import type { Variables } from "../types/variables";
 import type { Attributes } from "../types/attributes";
 import { NoteModeByDevice } from "../types/enums";
 import { mountVanillanote } from "./mountVanillanote";
-import { destroyVanillanote } from "./destroyVanillanote";
-import { initVanillanote } from "./initVanillanote";
 import { unmountVanillanote } from "./unmountVanillanote";
+import { setDocumentEvents } from "../events/setDocumentEvent";
+import { setCssEvents } from "../events/setCssEvent";
+import { setElementEvents } from "../events/setElementEvent";
 
 let singletonVanillanote: Vanillanote | null = null;
 export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
@@ -360,19 +361,13 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
         vanillanoteElements : {},
         getNote(noteId: string) {return null},
         beforeAlert(message: string) {return true},
-        init() {},
+        init() {initVanillanote();},
         mountNote(element?: HTMLElement) {},
-        destroy() {},
+        destroy() {destroyVanillanote();},
         unmountNote(element?: HTMLElement) {},
-    };
-    singletonVanillanote.init = () => {
-        initVanillanote(singletonVanillanote as Vanillanote);
     };
     singletonVanillanote.mountNote = (element?: HTMLElement) => {
         mountVanillanote(singletonVanillanote as Vanillanote, element);
-    };
-    singletonVanillanote.destroy = () => {
-        destroyVanillanote(singletonVanillanote as Vanillanote);
     };
     singletonVanillanote.unmountNote = (element?: HTMLElement) => {
         unmountVanillanote(singletonVanillanote as Vanillanote, element);
@@ -380,6 +375,121 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
 
     return singletonVanillanote;
 }
+
+const initVanillanote = () => {
+    if(!singletonVanillanote) return null;
+    //The logic for using document, window and navigator to use getVanillanote in an SSR environment is declared below.
+    singletonVanillanote.variables.lastScreenHeight =  typeof window !== 'undefined' && window.visualViewport ? window.visualViewport.height : null;
+    singletonVanillanote.getNote = (noteId: string): VanillanoteElement | null => {
+        return singletonVanillanote!.vanillanoteElements[noteId] ? singletonVanillanote!.vanillanoteElements[noteId] : null;
+    };
+    
+    //animation 등록
+    const animationStyleId = `${singletonVanillanote.variables.noteName}_animation_styles-sheet`;
+    if (!document.getElementById(animationStyleId)) {
+        const cssText = `
+          @keyframes ${singletonVanillanote.variables.noteName}-modal-input {
+            0% { width: 30%; }
+            100% { width: 80%; }
+          }
+          @keyframes ${singletonVanillanote.variables.noteName}-modal-small-input {
+            0% { width: 0%; }
+            100% { width: 20%; }
+          }
+        `;
+        const styleElement = document.createElement("style");
+        styleElement.id = animationStyleId;
+        styleElement.textContent = cssText.trim();
+        document.head.appendChild(styleElement);
+    }
+
+    // Create google icons link cdn
+    const googleIconHrefBase = "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded";
+    const iconLinkId = singletonVanillanote.variables.noteName + "_icons-link";
+    
+    const alreadyIncluded = Array.from(document.head.querySelectorAll('link[rel="stylesheet"]')).some(link => {
+        const href = link.getAttribute('href');
+        return href && href.startsWith(googleIconHrefBase);
+    });
+    
+    if (!alreadyIncluded && !document.getElementById(iconLinkId)) {
+        const linkElementGoogleIcons = document.createElement("link");
+        linkElementGoogleIcons.setAttribute("id", iconLinkId);
+        linkElementGoogleIcons.setAttribute("rel", "stylesheet");
+        linkElementGoogleIcons.setAttribute("href", googleIconHrefBase + ":opsz,wght,FILL,GRAD@48,400,0,0");
+        document.head.appendChild(linkElementGoogleIcons);
+    }
+
+    //event 등록
+    setDocumentEvents(singletonVanillanote);
+    setCssEvents(singletonVanillanote);
+    setElementEvents(singletonVanillanote);
+}
+
+const destroyVanillanote = () => {
+    if(!singletonVanillanote) return;
+    const noteName = singletonVanillanote.variables.noteName;
+
+    // 1. Remove animation styles
+    const animationStyle = document.getElementById(`${noteName}_animation_styles-sheet`);
+    if (animationStyle) animationStyle.remove();
+
+    // 2. Remove Google Icons Link
+    const iconLink = document.getElementById(`${noteName}_icons-link`);
+    if (iconLink) iconLink.remove();
+
+    // 3. Remove document-level event listeners
+    const docEvents = singletonVanillanote.events.documentEvents;
+    if (docEvents.selectionchange)
+        document.removeEventListener("selectionchange", docEvents.selectionchange);
+    if (docEvents.keydown)
+        document.removeEventListener("keydown", docEvents.keydown);
+    if (docEvents.resize)
+        window.removeEventListener("resize", docEvents.resize);
+    if (docEvents.resizeViewport && window.visualViewport)
+        window.visualViewport.removeEventListener("resize", docEvents.resizeViewport);
+
+    // 4. Clear reference objects and events
+    Object.keys(singletonVanillanote.vanillanoteElements).forEach((noteId) => {
+        const note = singletonVanillanote!.vanillanoteElements[noteId];
+        unmountVanillanote(singletonVanillanote as Vanillanote);
+        delete singletonVanillanote!.vanillanoteElements[noteId];
+    });
+
+    // 5. Nullify all references in Vanillanote object
+    singletonVanillanote.colors = {} as any;
+    singletonVanillanote.languageSet = {} as any;
+    singletonVanillanote.attributes = {} as any;
+    singletonVanillanote.variables = {} as any;
+    singletonVanillanote.vanillanoteElements = {};
+    singletonVanillanote.events.documentEvents = {
+        noteObserver: null,
+        selectionchange: null,
+        keydown: null,
+        resize: null,
+        resizeViewport: null,
+    };
+    singletonVanillanote.events.cssEvents = {
+        target_onClick: null,
+        target_onMouseover: null,
+        target_onMouseout: null,
+        target_onTouchstart: null,
+        target_onTouchend: null,
+    };
+    // Clear element events
+    Object.keys(singletonVanillanote.events.elementEvents).forEach((key) => {
+        (singletonVanillanote!.events.elementEvents as any)[key] = null;
+    });
+
+    // 6. Replace method with empty versions
+    singletonVanillanote.getNote = () => null;
+    singletonVanillanote.init = () => {};
+    singletonVanillanote.mountNote = () => {};
+    singletonVanillanote.unmountNote = () => {};
+    singletonVanillanote.destroy = () => {};
+
+    singletonVanillanote = null;
+};
 
 export const getVanillanoteConfig =(): VanillanoteConfig => {
     const attribute: Attributes = {
