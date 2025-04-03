@@ -1,10 +1,11 @@
-import type { Vanillanote, VanillanoteElement } from "../types/vanillanote";
+import type { NoteData, Vanillanote, VanillanoteElement } from "../types/vanillanote";
 import type { NoteAttributes } from "../types/attributes";
 import type { Colors, Csses } from "../types/csses";
 import { NoteModeByDevice, ToolPosition } from "../types/enums";
 import { addClickEvent, createElement, createElementBasic, createElementButton, createElementFontFamiliySelect, createElementInput, createElementInputCheckbox, createElementInputRadio, createElementRadioLabel, createElementSelect } from "../utils/createElement";
 import { checkAlphabetAndNumber, checkNumber, checkRealNumber, getClassName, getColors, getCommaStrFromArr, getCssClassText, getExtractColorValue, getHexColorFromColorName, getId, getInvertColor, getIsIOS, getRGBAFromHex, isMobileDevice, } from "../utils/util";
 import { initTextarea } from "../utils/handleElement";
+import { recodeNote } from "../utils/handleActive";
 
 export const mountVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     const targetElement = element ? element : document;
@@ -37,54 +38,6 @@ export const mountVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
         //create note
         vn.vanillanoteElements[noteId] = createNote(vn, vanillanote);
     });
-
-    //vanillanote element methods
-    const getNoteData = () => {
-        /*
-        const noteIndex = getNoteIndex(this);
-        const textarea = vn.elements.textareas[noteIndex];
-        
-        const fileEls = textarea.querySelectorAll("[uuid]");
-        
-        const attFiles: any = {};
-        for (const key in vn.variables.attFiles[noteIndex]) {
-            if (vn.variables.attFiles[noteIndex].hasOwnProperty(key)) {
-                attFiles[key] = vn.variables.attFiles[noteIndex][key];
-            }
-        }
-        for (const key in vn.variables.attImages[noteIndex]) {
-            if (vn.variables.attImages[noteIndex].hasOwnProperty(key)) {
-                attFiles[key] = vn.variables.attImages[noteIndex][key];
-            }
-        }
-        const attFileKeys = Object.keys(attFiles);
-        const attFileKeysLength = attFileKeys.length;
-        const returnAttFiles: any = {};
-        const chkCnt;
-        
-        //Add only the files in the current note
-        for(let i = 0; i < attFileKeysLength; i++) {
-            chkCnt = 0;
-            for(let j = 0; j < fileEls.length; j++) {
-                if(attFileKeys[i] === fileEls[j].getAttribute("uuid")) chkCnt++;
-            }
-            if(chkCnt > 0) {
-                returnAttFiles[attFileKeys[i]] =  attFiles[attFileKeys[i]];
-            }
-        }
-        //Add only the images in the current note
-        
-        const noteData = {
-                "noteIndex" : noteIndex,
-                "textarea" : textarea,
-                "files" : returnAttFiles,
-            }
-        
-        return noteData;
-        */
-    };
-
-    const setNoteData = () => {};
 
     // To prevent the Google icon from initially displaying as text, it is shown after a delay of 0.1 seconds.
     setTimeout(() => {
@@ -195,14 +148,112 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteEleme
     //element 생성
     setNoteElement(vn, note, noteAttributes);
 
-    note._getNoteData = () => {
+    note.getNoteData = () => {
+        const textarea = note._elements.textarea;
+        const fileEls = textarea.querySelectorAll("[uuid]");
+        const imageEls = textarea.querySelectorAll("img[data-note-id]");
+        const linkEls = textarea.querySelectorAll("a[data-note-id]");
+        const iframeEls = textarea.querySelectorAll("iframe[data-note-id]");
+    
+        // 1. 현재 note 내에서 실제 사용 중인 파일과 이미지만 수집
+        const allAttachMap: Record<string, File> = { ...note._attFiles, ...note._attImages };
+        const filteredFiles: Record<string, File> = {};
+        const filteredImages: Record<string, File> = {};
+    
+        Object.keys(allAttachMap).forEach((uuid) => {
+            if (Array.from(fileEls).some(el => el.getAttribute("uuid") === uuid)) {
+                filteredFiles[uuid] = allAttachMap[uuid];
+            }
+            if (Array.from(imageEls).some(el => el.getAttribute("uuid") === uuid)) {
+                filteredImages[uuid] = allAttachMap[uuid];
+            }
+        });
+    
+        // 2. 링크 정보 수집
+        const links: { text: string; href: string; target?: string }[] = [];
+        linkEls.forEach((el) => {
+            links.push({
+                text: el.textContent || "",
+                href: el.getAttribute("href") || "",
+                target: el.getAttribute("target") || undefined,
+            });
+        });
+    
+        // 3. 이미지 정보 수집 (uuid optional)
+        const images: { src: string; uuid?: string }[] = [];
+        imageEls.forEach((el) => {
+            images.push({
+                src: el.getAttribute("src") || "",
+                uuid: el.getAttribute("uuid") || undefined,
+            });
+        });
+    
+        // 4. 파일 메타 정보 수집
+        const files: { uuid: string; name: string }[] = [];
+        Object.keys(filteredFiles).forEach((uuid) => {
+            files.push({
+                uuid,
+                name: filteredFiles[uuid].name,
+            });
+        });
+    
+        // 5. 유튜브 iframe 정보 수집
+        const videos: { src: string; width?: string; height?: string }[] = [];
+        iframeEls.forEach((el: any) => {
+            const src = el.getAttribute("src") || "";
+            if (src.includes("youtube.com/embed")) {
+                videos.push({
+                    src,
+                    width: el.style.width || el.getAttribute("width") || undefined,
+                    height: el.style.height || el.getAttribute("height") || undefined,
+                });
+            }
+        });
+    
+        // 6. 최종 리턴
         return {
-            //임시
-            textarea: document.createElement('textarea'),
-            files: note._attFiles
-        }
+            html: textarea.innerHTML,
+            plainText: textarea.textContent || "",
+            links,
+            files,
+            images,
+            videos,
+            fileObjects: filteredFiles,
+            imageObjects: filteredImages,
+        };
     };
-    note._setNoteData = (data: HTMLTextAreaElement) => {};
+    
+    note.setNoteData = (data: NoteData) => {
+        const textarea = note._elements.textarea;
+        if (!textarea) return;
+    
+        // 1. 초기화
+        textarea.innerHTML = "";
+        note._attFiles = {};
+        note._attImages = {};
+    
+        // 2. HTML 삽입
+        textarea.innerHTML = data.html;
+    
+        // 3. 파일 복원 (File 링크 재연결)
+        Object.entries(data.fileObjects).forEach(([uuid, file]) => {
+            note._attFiles[uuid] = file;
+            const anchors = textarea.querySelectorAll(`a[uuid="${uuid}"]`);
+            anchors.forEach(a => {
+                a.setAttribute("href", URL.createObjectURL(file));
+                a.setAttribute("download", file.name);
+            });
+        });
+    
+        // 4. 이미지 복원 (src + 파일 객체)
+        Object.entries(data.imageObjects).forEach(([uuid, file]) => {
+            note._attImages[uuid] = file;
+            const imgs = textarea.querySelectorAll(`img[uuid="${uuid}"]`);
+            imgs.forEach(img => {
+                img.setAttribute("src", URL.createObjectURL(file));
+            });
+        });
+    };
 
     return note;
 }
