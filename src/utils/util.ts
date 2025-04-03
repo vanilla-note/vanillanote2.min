@@ -1,8 +1,13 @@
 import type { Colors } from "../types/csses";
 import type { VanillanoteElement } from "../types/vanillanote";
 
-export const getParentNote = (targetElement: HTMLElement): VanillanoteElement => {
-    return targetElement.closest('[data-vanillanote]')!
+export const getParentNote = (targetElement: HTMLElement): VanillanoteElement | null => {
+    let target: any = targetElement;
+    while(!(target instanceof Element)) {
+        target = target.parentNode;
+    }
+    if(!target.closest) return null;
+    return target.closest('[data-vanillanote]')!
 }
 
 export const getId = (noteName: string, noteId: string, id: string) => {
@@ -29,7 +34,7 @@ export const getCssClassText = (noteName: string, noteId: string, className: str
     return "." + getId(noteName, noteId, className) + " {" + getCssTextFromObject(cssObject) + "}";
 };
 
-export const getUUID = () => { // Public Domain/MIT
+export const getUUID = () => {
     let d = new Date().getTime();
     if (typeof performance !== "undefined" && typeof performance.now === "function"){
         d += performance.now();
