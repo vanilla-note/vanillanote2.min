@@ -116,6 +116,7 @@ export const allButtonToggle = (note: VanillanoteElement) => {
 
 export const selectToggle = (target: any, _note?: VanillanoteElement) => {
     const note = _note ? _note : getParentNote(target);
+    if(!note) return;
     // If a child element is selected, event is controlled
     if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
         target = target.parentNode!;
@@ -219,6 +220,7 @@ export const fontFamilySelectList_onClick = (e: any, _note?: VanillanoteElement)
     if(!e.target) return;
     const selectLsit = e.target;
     const note = _note ? _note : getParentNote(e.target);
+    if(!note) return;
     const fontFamily = selectLsit.getAttribute("data-font-family");
     const oldStyleObject: any = getObjectFromCssText(note._elements.fontFamilySelect.getAttribute("style")!);
     oldStyleObject["font-family"] = fontFamily;
