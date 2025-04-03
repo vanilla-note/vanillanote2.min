@@ -197,14 +197,14 @@ export const createElementInput = (
     
     element.addEventListener("input", (event: any) => {
         if(!(note._elementEvents as any)[id+"_onBeforeInput"](event)) return;
-        (note._elementEvents as any)[id+"_onInput"](event);
+        (note._vn.events.elementEvents as any)[id+"_onInput"](event);
         (note._elementEvents as any)[id+"_onAfterInput"](event);
         
         event.stopImmediatePropagation();
     });
     element.addEventListener("blur", (event: any) => {
         if(!(note._elementEvents as any)[id+"_onBeforeBlur"](event)) return;
-        (note._elementEvents as any)[id+"_onBlur"](event);
+        (note._vn.events.elementEvents as any)[id+"_onBlur"](event);
         (note._elementEvents as any)[id+"_onAfterBlur"](event);
         
         event.stopImmediatePropagation();
@@ -251,7 +251,7 @@ export const createElementFontFamiliySelect = (
     const element = createElement(elementTag, note, id, className, appendNodeSetObject);
     // The font event is dynamically generated
     (note._elementEvents as any)[id+"_onBeforeClick"] = (event: any) => {return true;};
-    (note._elementEvents as any)[id+"_onClick"] = (event: any) => {
+    (note._vn.events.elementEvents as any)[id+"_onClick"] = (event: any) => {
         fontFamilySelectList_onClick(event, note);
         selectToggle(event.target, note);
         // If the selection is a single point
@@ -286,9 +286,8 @@ export const addClickEvent = (
             note._vn.events.cssEvents.target_onClick!(event);
             note._cssEvents.target_onAfterClick(event);
         }
-        
         if(!(note._elementEvents as any)[id+"_onBeforeClick"](event)) return;
-        (note._elementEvents as any)[id+"_onClick"](event);
+        (note._vn.events.elementEvents as any)[id+"_onClick"](event);
         (note._elementEvents as any)[id+"_onAfterClick"](event);
         
         event.stopImmediatePropagation();
