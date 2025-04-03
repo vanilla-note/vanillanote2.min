@@ -12,23 +12,21 @@ export const mountVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     //if there is no note, no create.
     const notes = targetElement.querySelectorAll('[data-vanillanote]');
     if(notes.length <= 0) return;
-    //id duplication check
-    const idMap = new Map();
     notes.forEach(note => {
         const id = note.getAttribute('data-id');
         if (!id) throw new Error(`The data-id attribute of vanillanote is required.`);
         if (id) {
-          if (idMap.has(id)) {
-            throw new Error(`Duplicate vanillanote id detected: ${id}`);
-          } else {
-            idMap.set(id, true);
-          }
+            if (Object.keys(vn.vanillanoteElements).includes(id)) {
+                throw new Error(`${id} is a note that has already been created.`);
+            }
         }
     });
 
-    //create note
     notes.forEach((note) => {
         const noteId = note.getAttribute('data-id')!;
+        if (Object.keys(vn.vanillanoteElements).includes(noteId)) {
+            throw new Error(`Duplicate vanillanote id detected: ${noteId}`);
+        }
         const vanillanote: VanillanoteElement = note as VanillanoteElement;
         vanillanote.setAttribute('id', getId(vn.variables.noteName, noteId, 'note'));
         vanillanote.setAttribute('class', getClassName(vn.variables.noteName, noteId, 'note'));
@@ -36,7 +34,7 @@ export const mountVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
         vanillanote._noteName = vn.variables.noteName;
         vanillanote._id = noteId;
         vanillanote._vn = vn;
-
+        //create note
         vn.vanillanoteElements[noteId] = createNote(vn, vanillanote);
     });
 
@@ -185,7 +183,7 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteEleme
     };
     note._recodes = {
         recodeNotes : [],
-        recodeConting : -1,
+        recodeCount : -1,
         recodeLimit : noteAttributes.recodeLimit,
     };
     note._attTempFiles = {};
@@ -1736,17 +1734,17 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
     let toolPosition = note.getAttribute("tool-position") && ["BOTTOM", "TOP"].indexOf(note.getAttribute("tool-position")!) >= 0
      ? note.getAttribute("tool-position") as ToolPosition : (isNoteByMobile ? ToolPosition.bottom : ToolPosition.top);
     let toolDefaultLine = checkNumber(note.getAttribute("tool-default-line")) ? Number(note.getAttribute("tool-default-line")) : (isNoteByMobile ? 2 : 1);
-    let toolToggleUsing = note.getAttribute("tool-toggle") ? note.getAttribute("tool-toggle")!.toUpperCase() === "true" : (isNoteByMobile ? true : false);
+    let toolToggleUsing = note.getAttribute("tool-toggle") ? note.getAttribute("tool-toggle")!.toLowerCase() === "true" : (isNoteByMobile ? true : false);
 
     //text area size
     let textareaOriginWidth = note.getAttribute("textarea-width") ? note.getAttribute("textarea-width")! : vn.attributes.textareaOriginWidth;
     let textareaOriginHeight = note.getAttribute("textarea-height") ? note.getAttribute("textarea-height")! : vn.attributes.textareaOriginHeight;
     let textareaMaxWidth = note.getAttribute("textarea-max-width") ? note.getAttribute("textarea-max-width")! : vn.attributes.textareaMaxWidth;
     let textareaMaxHeight = note.getAttribute("textarea-max-height") ? note.getAttribute("textarea-max-height")! : vn.attributes.textareaMaxHeight;
-    let textareaHeightIsModify =note.getAttribute("textarea-height-isModify") ? note.getAttribute("textarea-height-isModify")!.toUpperCase() === "true" : vn.attributes.textareaHeightIsModify;
+    let textareaHeightIsModify =note.getAttribute("textarea-height-isModify") ? note.getAttribute("textarea-height-isModify")!.toLowerCase() === "true" : vn.attributes.textareaHeightIsModify;
 
     //placeholder
-    let placeholderIsVisible = note.getAttribute("placeholder-is-visible") ? note.getAttribute("placeholder-is-visible")!.toUpperCase() === "true" : vn.attributes.placeholderIsVisible;
+    let placeholderIsVisible = note.getAttribute("placeholder-is-visible") ? note.getAttribute("placeholder-is-visible")!.toLowerCase() === "true" : vn.attributes.placeholderIsVisible;
     let placeholderAddTop = checkRealNumber(note.getAttribute("placeholder-add-top")) ? Number(note.getAttribute("placeholder-add-top")) : vn.attributes.placeholderAddTop;
     let placeholderAddLeft = checkRealNumber(note.getAttribute("placeholder-add-left")) ? Number(note.getAttribute("placeholder-add-left")) : vn.attributes.placeholderAddLeft;
     let placeholderWidth = note.getAttribute("placeholder-width") ? note.getAttribute("placeholder-width")! : vn.attributes.placeholderWidth;
@@ -1812,37 +1810,37 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
     //Color
     let mainColor = note.getAttribute("main-color") ? getHexColorFromColorName(note.getAttribute("main-color")!) : vn.attributes.mainColor;
     let colorSet = note.getAttribute("color-set") ? note.getAttribute("color-set")!.toLowerCase() : vn.attributes.colorSet;
-    let invertColor = note.getAttribute("invert-color") ?  note.getAttribute("invert-color") === "true" : vn.attributes.invertColor;
+    let invertColor = note.getAttribute("invert-color") ?  note.getAttribute("invert-color")!.toLowerCase() === "true" : vn.attributes.invertColor;
 
     //using tool function
-    let usingParagraphStyle = note.getAttribute("using-paragraph-style") === "false" ? false : vn.attributes.usingParagraphStyle;
-    let usingBold = note.getAttribute("using-bold") === "false" ? false : vn.attributes.usingBold;
-    let usingUnderline = note.getAttribute("using-underline") === "false" ? false : vn.attributes.usingUnderline;
-    let usingItalic = note.getAttribute("using-italic") === "false" ? false : vn.attributes.usingItalic;
-    let usingUl = note.getAttribute("using-ul") === "false" ? false : vn.attributes.usingUl;
-    let usingOl = note.getAttribute("using-ol") === "false" ? false : vn.attributes.usingOl;
-    let usingTextAlign = note.getAttribute("using-text-align") === "false" ? false : vn.attributes.usingTextAlign;
-    let usingAttLink = note.getAttribute("using-att-link") === "false" ? false : vn.attributes.usingAttLink;
-    let usingAttFile = note.getAttribute("using-att-file") === "false" ? false : vn.attributes.usingAttFile;
-    let usingAttImage = note.getAttribute("using-att-image") === "false" ? false : vn.attributes.usingAttImage;
-    let usingAttVideo = note.getAttribute("using-att-video") === "false" ? false : vn.attributes.usingAttVideo;
-    let usingFontSize = note.getAttribute("using-font-size") === "false" ? false : vn.attributes.usingFontSize;
-    let usingLetterSpacing = note.getAttribute("using-letter-spacing") === "false" ? false : vn.attributes.usingLetterSpacing;
-    let usingLineHeight = note.getAttribute("using-line-height") === "false" ? false : vn.attributes.usingLineHeight;
-    let usingFontFamily = note.getAttribute("using-font-family") === "false" ? false : vn.attributes.usingFontFamily;
-    let usingColorText = note.getAttribute("using-color-text") === "false" ? false : vn.attributes.usingColorText;
-    let usingColorBack = note.getAttribute("using-color-back") === "false" ? false : vn.attributes.usingColorBack;
-    let usingFormatClear = note.getAttribute("using-format-clear") === "false" ? false : vn.attributes.usingFormatClear;
-    let usingUndo = note.getAttribute("using-undo") === "false" ? false : vn.attributes.usingUndo;
-    let usingRedo = note.getAttribute("using-redo") === "false" ? false : vn.attributes.usingRedo;
-    let usingHelp = note.getAttribute("using-help") === "false" ? false : vn.attributes.usingHelp;
-    if(note.getAttribute("using-paragraph-all-style") === "false") {
+    let usingParagraphStyle = note.getAttribute("using-paragraph-style") && note.getAttribute("using-paragraph-style")!.toLowerCase() === "false" ? false : vn.attributes.usingParagraphStyle;
+    let usingBold = note.getAttribute("using-bold") && note.getAttribute("using-bold")!.toLowerCase() === "false" ? false : vn.attributes.usingBold;
+    let usingUnderline = note.getAttribute("using-underline") && note.getAttribute("using-underline")!.toLowerCase() === "false" ? false : vn.attributes.usingUnderline;
+    let usingItalic = note.getAttribute("using-italic") && note.getAttribute("using-italic")!.toLowerCase() === "false" ? false : vn.attributes.usingItalic;
+    let usingUl = note.getAttribute("using-ul") && note.getAttribute("using-ul")!.toLowerCase() === "false" ? false : vn.attributes.usingUl;
+    let usingOl = note.getAttribute("using-ol") && note.getAttribute("using-ol")!.toLowerCase() === "false" ? false : vn.attributes.usingOl;
+    let usingTextAlign = note.getAttribute("using-text-align") && note.getAttribute("using-text-align")!.toLowerCase() === "false" ? false : vn.attributes.usingTextAlign;
+    let usingAttLink = note.getAttribute("using-att-link") && note.getAttribute("using-att-link")!.toLowerCase() === "false" ? false : vn.attributes.usingAttLink;
+    let usingAttFile = note.getAttribute("using-att-file") && note.getAttribute("using-att-file")!.toLowerCase() === "false" ? false : vn.attributes.usingAttFile;
+    let usingAttImage = note.getAttribute("using-att-image") && note.getAttribute("using-att-image")!.toLowerCase() === "false" ? false : vn.attributes.usingAttImage;
+    let usingAttVideo = note.getAttribute("using-att-video") && note.getAttribute("using-att-video")!.toLowerCase() === "false" ? false : vn.attributes.usingAttVideo;
+    let usingFontSize = note.getAttribute("using-font-size") && note.getAttribute("using-font-size")!.toLowerCase() === "false" ? false : vn.attributes.usingFontSize;
+    let usingLetterSpacing = note.getAttribute("using-letter-spacing") && note.getAttribute("using-letter-spacing")!.toLowerCase() === "false" ? false : vn.attributes.usingLetterSpacing;
+    let usingLineHeight = note.getAttribute("using-line-height") && note.getAttribute("using-line-height")!.toLowerCase() === "false" ? false : vn.attributes.usingLineHeight;
+    let usingFontFamily = note.getAttribute("using-font-family") && note.getAttribute("using-font-family")!.toLowerCase() === "false" ? false : vn.attributes.usingFontFamily;
+    let usingColorText = note.getAttribute("using-color-text") && note.getAttribute("using-color-text")!.toLowerCase() === "false" ? false : vn.attributes.usingColorText;
+    let usingColorBack = note.getAttribute("using-color-back") && note.getAttribute("using-color-back")!.toLowerCase() === "false" ? false : vn.attributes.usingColorBack;
+    let usingFormatClear = note.getAttribute("using-format-clear") && note.getAttribute("using-format-clear")!.toLowerCase() === "false" ? false : vn.attributes.usingFormatClear;
+    let usingUndo = note.getAttribute("using-undo") && note.getAttribute("using-undo")!.toLowerCase() === "false" ? false : vn.attributes.usingUndo;
+    let usingRedo = note.getAttribute("using-redo") && note.getAttribute("using-redo")!.toLowerCase() === "false" ? false : vn.attributes.usingRedo;
+    let usingHelp = note.getAttribute("using-help") && note.getAttribute("using-help")!.toLowerCase() === "false" ? false : vn.attributes.usingHelp;
+    if(note.getAttribute("using-paragraph-all-style") && note.getAttribute("using-paragraph-all-style")!.toLowerCase() === "false") {
         usingParagraphStyle = false;
         usingUl = false;
         usingOl = false;
         usingTextAlign = false;
     }
-    if(note.getAttribute("using-character-style") === "false") {
+    if(note.getAttribute("using-character-style") && note.getAttribute("using-character-style")!.toLowerCase() === "false") {
         usingBold = false;
         usingUnderline = false;
         usingItalic = false;
@@ -1851,18 +1849,18 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
         usingColorBack = false;
         usingFormatClear = false;
     }
-    if(note.getAttribute("using-character-size") === "false") {
+    if(note.getAttribute("using-character-size") && note.getAttribute("using-character-size")!.toLowerCase() === "false") {
         usingFontSize = false;
         usingLetterSpacing = false;
         usingLineHeight = false;
     }
-    if(note.getAttribute("using-attach-file") === "false") {
+    if(note.getAttribute("using-attach-file") && note.getAttribute("using-attach-file")!.toLowerCase() === "false") {
         usingAttLink = false;
         usingAttFile = false;
         usingAttImage = false;
         usingAttVideo = false;
     }
-    if(note.getAttribute("using-do") === "false") {
+    if(note.getAttribute("using-do") && note.getAttribute("using-do")!.toLowerCase() === "false") {
         usingUndo = false;
         usingRedo = false;
     }
