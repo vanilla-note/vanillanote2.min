@@ -618,3 +618,19 @@ export const showAlert = (message: string, beforeAlert: ((message: string) => bo
     if(!beforeAlert(message)) return;
     alert(message);
 };
+
+export const recodeNote = (note: VanillanoteElement) => {
+    // Does not record more than the recodeLimit number.
+    if(note._recodes.recodeNotes.length >= note._recodes.recodeLimit) {
+        note._recodes.recodeNotes.shift();
+        note._recodes.recodeNotes.push(note._elements.textarea.cloneNode(true));
+    }
+    else {
+        note._recodes.recodeCount = note._recodes.recodeCount + 1;
+        // If a new change occurs in the middle of undoing, subsequent recodes are deleted.
+        if(note._recodes.recodeCount < note._recodes.recodeNotes.length) {
+            note._recodes.recodeNotes.splice(note._recodes.recodeCount);
+        }
+        note._recodes.recodeNotes.push(note._elements.textarea.cloneNode(true));
+    }
+}
