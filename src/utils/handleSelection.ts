@@ -1,5 +1,5 @@
 import type { VanillanoteElement } from "../types/vanillanote";
-import { getAttributesObjectFromElement, getElement, getElementReplaceTag, getObjectEditElementAttributes, getObjectEditElementCss, getObjectNoteCss, getParentTagName, getParentUnitTagElemnt, getSpecialTag, onEventDisable, removeDoubleTag, removeEmptyElment, setEditNodeAndElement } from "./handleActive";
+import { getAttributesObjectFromElement, getElement, getElementReplaceTag, getObjectEditElementAttributes, getObjectEditElementCss, getObjectNoteCss, getParentTagName, getParentUnitTagElemnt, getSpecialTag, onEventDisable, recodeNote, removeDoubleTag, removeEmptyElment, setEditNodeAndElement } from "./handleActive";
 import { appearAttImageAndVideoTooltip, appearAttLinkToolTip, closeAllTooltip, setEditStyleTag } from "./handleElement";
 import { compareObject, getCssTextFromObject, getObjectFromCssText, getParentNote, mergeObjects, setAttributesObjectToElement } from "./util";
 
