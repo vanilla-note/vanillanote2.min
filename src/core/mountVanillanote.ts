@@ -5,7 +5,6 @@ import { NoteModeByDevice, ToolPosition } from "../types/enums";
 import { addClickEvent, createElement, createElementBasic, createElementButton, createElementFontFamiliySelect, createElementInput, createElementInputCheckbox, createElementInputRadio, createElementRadioLabel, createElementSelect } from "../utils/createElement";
 import { checkAlphabetAndNumber, checkNumber, checkRealNumber, getClassName, getColors, getCommaStrFromArr, getCssClassText, getExtractColorValue, getHexColorFromColorName, getId, getInvertColor, getIsIOS, getRGBAFromHex, isMobileDevice, } from "../utils/util";
 import { initTextarea } from "../utils/handleElement";
-import { recodeNote } from "../utils/handleActive";
 
 export const mountVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
     const targetElement = element ? element : document;
