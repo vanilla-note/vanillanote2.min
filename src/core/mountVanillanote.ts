@@ -1,12 +1,11 @@
 import type { NoteData, Vanillanote, VanillanoteElement } from "../types/vanillanote";
 import type { NoteAttributes } from "../types/attributes";
 import type { Colors, Csses } from "../types/csses";
+import type { Handler } from "../types/handler";
 import { NoteModeByDevice, ToolPosition } from "../types/enums";
-import { addClickEvent, createElement, createElementBasic, createElementButton, createElementFontFamiliySelect, createElementInput, createElementInputCheckbox, createElementInputRadio, createElementRadioLabel, createElementSelect } from "../utils/createElement";
 import { checkAlphabetAndNumber, checkNumber, checkRealNumber, getClassName, getColors, getCommaStrFromArr, getCssClassText, getExtractColorValue, getHexColorFromColorName, getId, getInvertColor, getIsIOS, getRGBAFromHex, isMobileDevice, } from "../utils/util";
-import { initTextarea } from "../utils/handleElement";
 
-export const mountVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
+export const mountVanillanote = (vn: Vanillanote, handler: Handler, element?: HTMLElement) => {
     const targetElement = element ? element : document;
 
     //if there is no note, no create.
@@ -33,9 +32,8 @@ export const mountVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
         vanillanote.setAttribute("data-note-id", noteId);
         vanillanote._noteName = vn.variables.noteName;
         vanillanote._id = noteId;
-        vanillanote._vn = vn;
         //create note
-        vn.vanillanoteElements[noteId] = createNote(vn, vanillanote);
+        vn.vanillanoteElements[noteId] = createNote(vn, handler, vanillanote);
     });
 
     // To prevent the Google icon from initially displaying as text, it is shown after a delay of 0.1 seconds.
@@ -47,9 +45,9 @@ export const mountVanillanote = (vn: Vanillanote, element?: HTMLElement) => {
         (vn.events.documentEvents as any)["resize"]();
     }, vn.variables.loadInterval);
     
-}
+};
 
-const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteElement => {
+const createNote = (vn: Vanillanote, handler: Handler, note: VanillanoteElement): VanillanoteElement => {
     //속성 정의
     const noteAttributes = getNoteAttribute(vn, note);
     //색상 정의
@@ -145,7 +143,7 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteEleme
     //event 정의
     setNoteEvent(note);
     //element 생성
-    setNoteElement(vn, note, noteAttributes);
+    setNoteElement(vn, handler, note, noteAttributes);
 
     note.getNoteData = () => {
         const textarea = note._elements.textarea;
@@ -255,13 +253,13 @@ const createNote = (vn: Vanillanote, note: VanillanoteElement): VanillanoteEleme
     };
 
     return note;
-}
+};
 
-const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttributes: NoteAttributes) => {
+const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElement, noteAttributes: NoteAttributes) => {
     let tempElement: HTMLBRElement | null = null;
 
     //template
-    const template = createElement(
+    const template = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.template.id,
@@ -270,17 +268,17 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     template.style.display = "none";
 
     //textarea
-    const textarea = createElementBasic(
+    const textarea = handler.createElementBasic(
         note._noteName + "-textarea",
         note,
         vn.consts.CLASS_NAMES.textarea.id,
         vn.consts.CLASS_NAMES.textarea.className,
     );
-    textarea.setAttribute("contenteditable",true);
+    textarea.setAttribute("contenteditable","true");
     textarea.setAttribute("role","textbox");
-    textarea.setAttribute("aria-multiline",true);
-    textarea.setAttribute("spellcheck",true);
-    textarea.setAttribute("autocorrect",true);
+    textarea.setAttribute("aria-multiline","true");
+    textarea.setAttribute("spellcheck","true");
+    textarea.setAttribute("autocorrect","true");
     textarea.setAttribute("name",getId(note._noteName, note._id, vn.consts.CLASS_NAMES.textarea.id));
     textarea.setAttribute("title", vn.languageSet[note._attributes.language].textareaTooltip);
     textarea.addEventListener("focus", (event: any) => {
@@ -308,12 +306,12 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         event.stopImmediatePropagation();
     });
     vn.events.documentEvents.noteObserver!.observe(textarea, vn.variables.observerOptions);
-    initTextarea(textarea);
+    handler.initTextarea(textarea);
 
     //tool
-    const tool = createElement("div", note, vn.consts.CLASS_NAMES.tool.id, vn.consts.CLASS_NAMES.tool.className);
+    const tool = handler.createElement("div", note, vn.consts.CLASS_NAMES.tool.id, vn.consts.CLASS_NAMES.tool.className);
     //tool toggle
-    const toolToggleButton = createElementButton(
+    const toolToggleButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.toolToggleButton.id,
@@ -322,7 +320,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
 
     //paragraph style
-    const paragraphStyleSelect = createElementSelect(
+    const paragraphStyleSelect = handler.createElementSelect(
         "span",
         note,
         vn.consts.CLASS_NAMES.paragraphStyleSelect.id,
@@ -330,14 +328,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":true, "text":"auto_fix_high"}
     );
     paragraphStyleSelect.setAttribute("title", vn.languageSet[note._attributes.language].styleTooltip);
-    const paragraphStyleSelectBox = createElement(
+    const paragraphStyleSelectBox = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.paragraphStyleSelectBox.id,
         vn.consts.CLASS_NAMES.paragraphStyleSelectBox.className,
     );
     paragraphStyleSelect.appendChild(paragraphStyleSelectBox);
-    const paragraphStyleNormalButton = createElementButton(
+    const paragraphStyleNormalButton = handler.createElementButton(
         "div",
         note,
         vn.consts.CLASS_NAMES.styleNomal.id,
@@ -346,7 +344,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     paragraphStyleNormalButton.setAttribute("data-tag-name","p");
     paragraphStyleSelectBox.appendChild(paragraphStyleNormalButton);
-    const paragraphStyleHeader1Button = createElementButton(
+    const paragraphStyleHeader1Button = handler.createElementButton(
         "h1",
         note,
         vn.consts.CLASS_NAMES.styleHeader1.id,
@@ -355,7 +353,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     paragraphStyleHeader1Button.setAttribute("data-tag-name","H1");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader1Button);
-    const paragraphStyleHeader2Button = createElementButton(
+    const paragraphStyleHeader2Button = handler.createElementButton(
         "h2",
         note,
         vn.consts.CLASS_NAMES.styleHeader2.id,
@@ -364,7 +362,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     paragraphStyleHeader2Button.setAttribute("data-tag-name","H2");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader2Button);
-    const paragraphStyleHeader3Button = createElementButton(
+    const paragraphStyleHeader3Button = handler.createElementButton(
         "h3",
         note,
         vn.consts.CLASS_NAMES.styleHeader3.id,
@@ -373,7 +371,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     paragraphStyleHeader3Button.setAttribute("data-tag-name","H3");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader3Button);
-    const paragraphStyleHeader4Button = createElementButton(
+    const paragraphStyleHeader4Button = handler.createElementButton(
         "h4",
         note,
         vn.consts.CLASS_NAMES.styleHeader4.id,
@@ -382,7 +380,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     paragraphStyleHeader4Button.setAttribute("data-tag-name","H4");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader4Button);
-    const paragraphStyleHeader5Button = createElementButton(
+    const paragraphStyleHeader5Button = handler.createElementButton(
         "h5",
         note,
         vn.consts.CLASS_NAMES.styleHeader5.id,
@@ -391,7 +389,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     paragraphStyleHeader5Button.setAttribute("data-tag-name","H5");
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader5Button);
-    const paragraphStyleHeader6Button = createElementButton(
+    const paragraphStyleHeader6Button = handler.createElementButton(
         "h6",
         note,
         vn.consts.CLASS_NAMES.styleHeader6.id,
@@ -402,7 +400,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     paragraphStyleSelectBox.appendChild(paragraphStyleHeader6Button);
 
     //bold
-    const boldButton = createElementButton(
+    const boldButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.boldButton.id,
@@ -411,7 +409,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     boldButton.setAttribute("title", vn.languageSet[note._attributes.language].boldTooltip);
     //under-line
-    const underlineButton = createElementButton(
+    const underlineButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.underlineButton.id,
@@ -420,7 +418,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     underlineButton.setAttribute("title", vn.languageSet[note._attributes.language].underlineTooltip);
     //italic
-    const italicButton = createElementButton(
+    const italicButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.italicButton.id,
@@ -429,7 +427,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     italicButton.setAttribute("title", vn.languageSet[note._attributes.language].italicTooltip);
     //ul
-    const ulButton = createElementButton(
+    const ulButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.ulButton.id,
@@ -439,7 +437,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     ulButton.setAttribute("title", vn.languageSet[note._attributes.language].ulTooltip);
     ulButton.setAttribute("data-tag-name","UL");
     //ol
-    const olButton = createElementButton(
+    const olButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.olButton.id,
@@ -450,7 +448,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     olButton.setAttribute("data-tag-name","OL");
 
     //text-align
-    const textAlignSelect = createElementSelect(
+    const textAlignSelect = handler.createElementSelect(
         "span",
         note,
         vn.consts.CLASS_NAMES.textAlignSelect.id,
@@ -458,14 +456,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":true, "text":"notes"}
     );
     textAlignSelect.setAttribute("title", vn.languageSet[note._attributes.language].textAlignTooltip);
-    const textAlignSelectBox = createElement(
+    const textAlignSelectBox = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.textAlignSelectBox.id,
         vn.consts.CLASS_NAMES.textAlignSelectBox.className,
     );
     textAlignSelect.appendChild(textAlignSelectBox);
-    const textAlignLeftButton = createElementButton(
+    const textAlignLeftButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.textAlignLeft.id,
@@ -474,7 +472,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     textAlignLeftButton.setAttribute("data-tag-style","text-align:left;");
     textAlignSelectBox.appendChild(textAlignLeftButton);
-    const textAlignCenterButton = createElementButton(
+    const textAlignCenterButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.textAlignCenter.id,
@@ -483,7 +481,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     textAlignCenterButton.setAttribute("data-tag-style","text-align:center;");
     textAlignSelectBox.appendChild(textAlignCenterButton);
-    const textAlignRightButton = createElementButton(
+    const textAlignRightButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.textAlignRight.id,
@@ -494,7 +492,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     textAlignSelectBox.appendChild(textAlignRightButton);
 
     //att link
-    const attLinkButton = createElementButton(
+    const attLinkButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.attLinkButton.id,
@@ -503,7 +501,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     attLinkButton.setAttribute("title", vn.languageSet[note._attributes.language].attLinkTooltip);
     //att file
-    const attFileButton = createElementButton(
+    const attFileButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.attFileButton.id,
@@ -512,7 +510,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     attFileButton.setAttribute("title", vn.languageSet[note._attributes.language].attFileTooltip);
     //att image
-    const attImageButton = createElementButton(
+    const attImageButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.attImageButton.id,
@@ -521,7 +519,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     attImageButton.setAttribute("title", vn.languageSet[note._attributes.language].attImageTooltip);
     //att video
-    const attVideoButton = createElementButton(
+    const attVideoButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.attVideoButton.id,
@@ -531,63 +529,63 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attVideoButton.setAttribute("title", vn.languageSet[note._attributes.language].attVideoTooltip);
     
     //font size
-    const fontSizeInputBox = createElementButton(
+    const fontSizeInputBox = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.fontSizeInputBox.id,
         vn.consts.CLASS_NAMES.fontSizeInputBox.className,
         {"isIcon":true, "text":"format_size"}
     );
-    const fontSizeInput = createElementInput(
+    const fontSizeInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.fontSizeInput.id,
         vn.consts.CLASS_NAMES.fontSizeInput.className,
     );
     fontSizeInput.setAttribute("type","number");
     fontSizeInput.setAttribute("title", vn.languageSet[note._attributes.language].fontSizeTooltip);
-    addClickEvent(
+    handler.addClickEvent(
         fontSizeInput,
         vn.consts.CLASS_NAMES.fontSizeInput.id,
         note,
     );
     fontSizeInputBox.appendChild(fontSizeInput);
     //letter spacing
-    const letterSpacingInputBox = createElementButton(
+    const letterSpacingInputBox = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.letterSpacingInputBox.id,
         vn.consts.CLASS_NAMES.letterSpacingInputBox.className,
         {"isIcon":true, "text":"swap_horiz"}
     );
-    const letterSpacingInput = createElementInput(
+    const letterSpacingInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.letterSpacingInput.id,
         vn.consts.CLASS_NAMES.letterSpacingInput.className,
     );
     letterSpacingInput.setAttribute("type","number");
     letterSpacingInput.setAttribute("title", vn.languageSet[note._attributes.language].letterSpacingTooltip);
-    addClickEvent(
+    handler.addClickEvent(
         letterSpacingInput,
         vn.consts.CLASS_NAMES.letterSpacingInput.id,
         note,
     );
     letterSpacingInputBox.appendChild(letterSpacingInput);
     //line height
-    const lineHeightInputBox = createElementButton(
+    const lineHeightInputBox = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.lineHeightInputBox.id,
         vn.consts.CLASS_NAMES.lineHeightInputBox.className,
         {"isIcon":true, "text":"height"}
     );
-    const lineHeightInput = createElementInput(
+    const lineHeightInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.lineHeightInput.id,
         vn.consts.CLASS_NAMES.lineHeightInput.className,
     );
     lineHeightInput.setAttribute("type","number");
     lineHeightInput.setAttribute("title", vn.languageSet[note._attributes.language].lineHeightTooltip);
-    addClickEvent(
+    handler.addClickEvent(
         lineHeightInput,
         vn.consts.CLASS_NAMES.lineHeightInput.id,
         note,
@@ -595,7 +593,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     lineHeightInputBox.appendChild(lineHeightInput);
     
     //font style(font family)
-    const fontFamilySelect = createElementSelect(
+    const fontFamilySelect = handler.createElementSelect(
         "span",
         note,
         vn.consts.CLASS_NAMES.fontFamilySelect.id,
@@ -608,7 +606,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     fontFamilySelect.setAttribute("style","font-family:" + note._attributes.defaultTextareaFontFamily + ";");
     fontFamilySelect.setAttribute("title", vn.languageSet[note._attributes.language].fontFamilyTooltip);
-    const fontFamilySelectBox = createElement(
+    const fontFamilySelectBox = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.fontFamilySelectBox.id,
@@ -616,7 +614,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     fontFamilySelect.appendChild(fontFamilySelectBox);
     for(let fontIdx = 0; fontIdx < note._attributes.defaultFontFamilies.length; fontIdx++) {
-        const tempElement = createElementFontFamiliySelect(
+        const tempElement = handler.createElementFontFamiliySelect(
             "div",
             note,
             vn.consts.CLASS_NAMES.fontFamily.id + fontIdx,
@@ -629,7 +627,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     }
 
     //color text select
-    const colorTextSelect = createElementSelect(
+    const colorTextSelect = handler.createElementSelect(
         "span",
         note,
         vn.consts.CLASS_NAMES.colorTextSelect.id,
@@ -637,14 +635,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":true, "text":"format_color_text", "iconStyle" : "-webkit-text-stroke: 0.5px black; font-size: 1.1em"}
     );
     colorTextSelect.setAttribute("title",vn.languageSet[note._attributes.language].colorTextTooltip);
-    const colorTextSelectBox = createElement(
+    const colorTextSelectBox = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.colorTextSelectBox.id,
         vn.consts.CLASS_NAMES.colorTextSelectBox.className,
     );
     colorTextSelect.appendChild(colorTextSelectBox);
-    const colorTextRIcon = createElement(
+    const colorTextRIcon = handler.createElement(
         "span",
         note,
         vn.consts.CLASS_NAMES.colorTextRExplain.id,
@@ -653,15 +651,15 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     colorTextRIcon.style.paddingLeft = (note._attributes.sizeRate * 8) + "px";
     colorTextSelectBox.appendChild(colorTextRIcon);
-    const colorTextRInput = createElementInput(
+    const colorTextRInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.colorTextRInput.id,
         vn.consts.CLASS_NAMES.colorTextRInput.className
     );
     colorTextRInput.setAttribute("maxlength", "2");
-    addClickEvent(colorTextRInput, vn.consts.CLASS_NAMES.colorTextRInput.id, note);
+    handler.addClickEvent(colorTextRInput, vn.consts.CLASS_NAMES.colorTextRInput.id, note);
     colorTextSelectBox.appendChild(colorTextRInput);
-    const colorTextGIcon = createElement(
+    const colorTextGIcon = handler.createElement(
         "span",
         note,
         vn.consts.CLASS_NAMES.colorTextGExplain.id,
@@ -669,15 +667,15 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":"G"}
     );
     colorTextSelectBox.appendChild(colorTextGIcon);
-    const colorTextGInput = createElementInput(
+    const colorTextGInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.colorTextGInput.id,
         vn.consts.CLASS_NAMES.colorTextGInput.className
     );
     colorTextGInput.setAttribute("maxlength", "2");
-    addClickEvent(colorTextGInput, vn.consts.CLASS_NAMES.colorTextGInput.id, note);
+    handler.addClickEvent(colorTextGInput, vn.consts.CLASS_NAMES.colorTextGInput.id, note);
     colorTextSelectBox.appendChild(colorTextGInput);
-    const colorTextBIcon = createElement(
+    const colorTextBIcon = handler.createElement(
         "span",
         note,
         vn.consts.CLASS_NAMES.colorTextBExplain.id,
@@ -685,15 +683,15 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":"B"}
     );
     colorTextSelectBox.appendChild(colorTextBIcon);
-    const colorTextBInput = createElementInput(
+    const colorTextBInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.colorTextBInput.id,
         vn.consts.CLASS_NAMES.colorTextBInput.className
     );
     colorTextBInput.setAttribute("maxlength", "2");
-    addClickEvent(colorTextBInput, vn.consts.CLASS_NAMES.colorTextBInput.id, note);
+    handler.addClickEvent(colorTextBInput, vn.consts.CLASS_NAMES.colorTextBInput.id, note);
     colorTextSelectBox.appendChild(colorTextBInput);
-    const colorTextOpacityIcon = createElement(
+    const colorTextOpacityIcon = handler.createElement(
         "span",
         note,
         vn.consts.CLASS_NAMES.colorTextOpacityExplain.id,
@@ -701,44 +699,44 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":"Opacity"}
     );
     colorTextSelectBox.appendChild(colorTextOpacityIcon);
-    const colorTextOpacityInput = createElementInput(
+    const colorTextOpacityInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.colorTextOpacityInput.id,
         vn.consts.CLASS_NAMES.colorTextOpacityInput.className
     );
     colorTextOpacityInput.setAttribute("type","number");
     colorTextOpacityInput.setAttribute("maxlength", "3");
-    addClickEvent(colorTextOpacityInput, vn.consts.CLASS_NAMES.colorTextOpacityInput.id, note);
+    handler.addClickEvent(colorTextOpacityInput, vn.consts.CLASS_NAMES.colorTextOpacityInput.id, note);
     colorTextSelectBox.appendChild(colorTextOpacityInput);
     tempElement = document.createElement("br");
     colorTextSelectBox.appendChild(tempElement);
-    const colorText0 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText0.id, vn.consts.CLASS_NAMES.colorText0.className);
+    const colorText0 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText0.id, vn.consts.CLASS_NAMES.colorText0.className);
     colorText0.style.backgroundColor = note._colors.color12;
     colorTextSelectBox.appendChild(colorText0);
-    const colorText1 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText1.id, vn.consts.CLASS_NAMES.colorText1.className);
+    const colorText1 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText1.id, vn.consts.CLASS_NAMES.colorText1.className);
     colorText1.style.backgroundColor = note._colors.color14;
     colorTextSelectBox.appendChild(colorText1);
-    const colorText2 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText2.id, vn.consts.CLASS_NAMES.colorText2.className);
+    const colorText2 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText2.id, vn.consts.CLASS_NAMES.colorText2.className);
     colorText2.style.backgroundColor = note._colors.color15;
     colorTextSelectBox.appendChild(colorText2);
-    const colorText3 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText3.id, vn.consts.CLASS_NAMES.colorText3.className);
+    const colorText3 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText3.id, vn.consts.CLASS_NAMES.colorText3.className);
     colorText3.style.backgroundColor = note._colors.color16;
     colorTextSelectBox.appendChild(colorText3);
-    const colorText4 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText4.id, vn.consts.CLASS_NAMES.colorText4.className);
+    const colorText4 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText4.id, vn.consts.CLASS_NAMES.colorText4.className);
     colorText4.style.backgroundColor = note._colors.color17;
     colorTextSelectBox.appendChild(colorText4);
-    const colorText5 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText5.id, vn.consts.CLASS_NAMES.colorText5.className);
+    const colorText5 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText5.id, vn.consts.CLASS_NAMES.colorText5.className);
     colorText5.style.backgroundColor = note._colors.color18;
     colorTextSelectBox.appendChild(colorText5);
-    const colorText6 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText6.id, vn.consts.CLASS_NAMES.colorText6.className);
+    const colorText6 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText6.id, vn.consts.CLASS_NAMES.colorText6.className);
     colorText6.style.backgroundColor = note._colors.color19;
     colorTextSelectBox.appendChild(colorText6);
-    const colorText7 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText7.id, vn.consts.CLASS_NAMES.colorText7.className);
+    const colorText7 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorText7.id, vn.consts.CLASS_NAMES.colorText7.className);
     colorText7.style.backgroundColor = note._colors.color20;
     colorTextSelectBox.appendChild(colorText7);
 
     //color background select
-    const colorBackSelect = createElementSelect(
+    const colorBackSelect = handler.createElementSelect(
         "span",
         note,
         vn.consts.CLASS_NAMES.colorBackSelect.id,
@@ -746,14 +744,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":true, "text":"format_color_fill", "iconStyle" : "font-size: 1.1em; -webkit-text-stroke: 0.5px " + note._colors.color1 + ";"}
     );
     colorBackSelect.setAttribute("title",vn.languageSet[note._attributes.language].colorBackTooltip);
-    const colorBackSelectBox = createElement(
+    const colorBackSelectBox = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.colorBackSelectBox.id,
         vn.consts.CLASS_NAMES.colorBackSelectBox.className
     );
     colorBackSelect.appendChild(colorBackSelectBox);
-    const colorBackRIcon = createElement("span",
+    const colorBackRIcon = handler.createElement("span",
         note,
         vn.consts.CLASS_NAMES.colorBackRExplain.id,
         vn.consts.CLASS_NAMES.colorBackRExplain.className,
@@ -761,15 +759,15 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     colorBackRIcon.style.paddingLeft = (note._attributes.sizeRate * 8) + "px";
     colorBackSelectBox.appendChild(colorBackRIcon);
-    const colorBackRInput = createElementInput(
+    const colorBackRInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.colorBackRInput.id,
         vn.consts.CLASS_NAMES.colorBackRInput.className,
     );
     colorBackRInput.setAttribute("maxlength", "2");
-    addClickEvent(colorBackRInput, vn.consts.CLASS_NAMES.colorBackRInput.id, note);
+    handler.addClickEvent(colorBackRInput, vn.consts.CLASS_NAMES.colorBackRInput.id, note);
     colorBackSelectBox.appendChild(colorBackRInput);
-    const colorBackGIcon = createElement(
+    const colorBackGIcon = handler.createElement(
         "span",
         note,
         vn.consts.CLASS_NAMES.colorBackGExplain.id,
@@ -777,15 +775,15 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":"G"}
     );
     colorBackSelectBox.appendChild(colorBackGIcon);
-    const colorBackGInput = createElementInput(
+    const colorBackGInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.colorBackGInput.id,
         vn.consts.CLASS_NAMES.colorBackGInput.className,
     );
     colorBackGInput.setAttribute("maxlength", "2");
-    addClickEvent(colorBackGInput, vn.consts.CLASS_NAMES.colorBackGInput.id, note);
+    handler.addClickEvent(colorBackGInput, vn.consts.CLASS_NAMES.colorBackGInput.id, note);
     colorBackSelectBox.appendChild(colorBackGInput);
-    const colorBackBIcon = createElement(
+    const colorBackBIcon = handler.createElement(
         "span",
         note,
         vn.consts.CLASS_NAMES.colorBackBExplain.id,
@@ -793,15 +791,15 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":"B"}
     );
     colorBackSelectBox.appendChild(colorBackBIcon);
-    const colorBackBInput = createElementInput(
+    const colorBackBInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.colorBackBInput.id,
         vn.consts.CLASS_NAMES.colorBackBInput.className
     );
     colorBackBInput.setAttribute("maxlength", "2");
-    addClickEvent(colorBackBInput, vn.consts.CLASS_NAMES.colorBackBInput.id, note);
+    handler.addClickEvent(colorBackBInput, vn.consts.CLASS_NAMES.colorBackBInput.id, note);
     colorBackSelectBox.appendChild(colorBackBInput);
-    const colorBackOpacityIcon = createElement(
+    const colorBackOpacityIcon = handler.createElement(
         "span",
         note,
         vn.consts.CLASS_NAMES.colorBackOpacityExplain.id,
@@ -809,44 +807,44 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":"Opacity"}
     );
     colorBackSelectBox.appendChild(colorBackOpacityIcon);
-    const colorBackOpacityInput = createElementInput(
+    const colorBackOpacityInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.colorBackOpacityInput.id,
         vn.consts.CLASS_NAMES.colorBackOpacityInput.className
     );
     colorBackOpacityInput.setAttribute("type","number");
     colorBackOpacityInput.setAttribute("maxlength", "3");
-    addClickEvent(colorBackOpacityInput, vn.consts.CLASS_NAMES.colorBackOpacityInput.id, note);
+    handler.addClickEvent(colorBackOpacityInput, vn.consts.CLASS_NAMES.colorBackOpacityInput.id, note);
     colorBackSelectBox.appendChild(colorBackOpacityInput);
     tempElement = document.createElement("br");
     colorBackSelectBox.appendChild(tempElement);
-    const colorBack0 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack0.id, vn.consts.CLASS_NAMES.colorBack0.className);
+    const colorBack0 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack0.id, vn.consts.CLASS_NAMES.colorBack0.className);
     colorBack0.style.backgroundColor = note._colors.color13;
     colorBackSelectBox.appendChild(colorBack0);
-    const colorBack1 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack1.id, vn.consts.CLASS_NAMES.colorBack1.className);
+    const colorBack1 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack1.id, vn.consts.CLASS_NAMES.colorBack1.className);
     colorBack1.style.backgroundColor = note._colors.color14;
     colorBackSelectBox.appendChild(colorBack1);
-    const colorBack2 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack2.id, vn.consts.CLASS_NAMES.colorBack2.className);
+    const colorBack2 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack2.id, vn.consts.CLASS_NAMES.colorBack2.className);
     colorBack2.style.backgroundColor = note._colors.color15;
     colorBackSelectBox.appendChild(colorBack2);
-    const colorBack3 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack3.id, vn.consts.CLASS_NAMES.colorBack3.className);
+    const colorBack3 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack3.id, vn.consts.CLASS_NAMES.colorBack3.className);
     colorBack3.style.backgroundColor = note._colors.color16;
     colorBackSelectBox.appendChild(colorBack3);
-    const colorBack4 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack4.id, vn.consts.CLASS_NAMES.colorBack4.className);
+    const colorBack4 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack4.id, vn.consts.CLASS_NAMES.colorBack4.className);
     colorBack4.style.backgroundColor = note._colors.color17;
     colorBackSelectBox.appendChild(colorBack4);
-    const colorBack5 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack5.id, vn.consts.CLASS_NAMES.colorBack5.className);
+    const colorBack5 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack5.id, vn.consts.CLASS_NAMES.colorBack5.className);
     colorBack5.style.backgroundColor = note._colors.color18;
     colorBackSelectBox.appendChild(colorBack5);
-    const colorBack6 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack6.id, vn.consts.CLASS_NAMES.colorBack6.className);
+    const colorBack6 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack6.id, vn.consts.CLASS_NAMES.colorBack6.className);
     colorBack6.style.backgroundColor = note._colors.color19;
     colorBackSelectBox.appendChild(colorBack6);
-    const colorBack7 = createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack7.id, vn.consts.CLASS_NAMES.colorBack7.className);
+    const colorBack7 = handler.createElementBasic("div", note, vn.consts.CLASS_NAMES.colorBack7.id, vn.consts.CLASS_NAMES.colorBack7.className);
     colorBack7.style.backgroundColor = note._colors.color20;
     colorBackSelectBox.appendChild(colorBack7);
 
     //formatClearButton
-    const formatClearButton = createElementButton(
+    const formatClearButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.formatClearButton.id,
@@ -855,7 +853,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     formatClearButton.setAttribute("title",vn.languageSet[note._attributes.language].formatClearButtonTooltip);
     //undo
-    const undoButton = createElementButton(
+    const undoButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.undoButton.id,
@@ -864,7 +862,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     undoButton.setAttribute("title",vn.languageSet[note._attributes.language].undoTooltip);
     //redo
-    const redoButton = createElementButton(
+    const redoButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.redoButton.id,
@@ -873,7 +871,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     redoButton.setAttribute("title",vn.languageSet[note._attributes.language].redoTooltip);
     //help
-    const helpButton = createElementButton(
+    const helpButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.helpButton.id,
@@ -883,7 +881,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     helpButton.setAttribute("title",vn.languageSet[note._attributes.language].helpTooltip);
 
     //modal
-    const modalBack = createElementBasic(
+    const modalBack = handler.createElementBasic(
         "div",
         note,
         vn.consts.CLASS_NAMES.modalBack.id,
@@ -891,13 +889,13 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
 
     //modal att link
-    const attLinkModal = createElementBasic(
+    const attLinkModal = handler.createElementBasic(
         "div",
         note,
         vn.consts.CLASS_NAMES.attLinkModal.id,
         vn.consts.CLASS_NAMES.attLinkModal.className
     );
-    const attLinkModalTitle = createElement(
+    const attLinkModalTitle = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attLinkHeader.id,
@@ -905,7 +903,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":vn.languageSet[note._attributes.language].attLinkModalTitle}
     );
     attLinkModal.appendChild(attLinkModalTitle);
-    const attLinkInTextExplain = createElement(
+    const attLinkInTextExplain = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attLinkExplain1.id,
@@ -913,14 +911,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":vn.languageSet[note._attributes.language].attLinkInTextExplain}
     );
     attLinkModal.appendChild(attLinkInTextExplain);
-    const attLinkText = createElementInput(
+    const attLinkText = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.attLinkText.id,
         vn.consts.CLASS_NAMES.attLinkText.className
     );
     attLinkText.setAttribute("title",vn.languageSet[note._attributes.language].attLinkInTextTooltip);
     attLinkModal.appendChild(attLinkText);
-    const attLinkInLinkExplain = createElement(
+    const attLinkInLinkExplain = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attLinkExplain2.id,
@@ -928,20 +926,20 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":vn.languageSet[note._attributes.language].attLinkInLinkExplain}
     );
     attLinkModal.appendChild(attLinkInLinkExplain);
-    const attLinkHref = createElementInput(
+    const attLinkHref = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.attLinkHref.id,
         vn.consts.CLASS_NAMES.attLinkHref.className
     );
     attLinkHref.setAttribute("title",vn.languageSet[note._attributes.language].attLinkInLinkTooltip);
     attLinkModal.appendChild(attLinkHref);
-    const attLinkIsBlankCheckbox = createElementInputCheckbox(
+    const attLinkIsBlankCheckbox = handler.createElementInputCheckbox(
         note,
         vn.consts.CLASS_NAMES.attLinkIsBlankCheckbox.id,
         vn.consts.CLASS_NAMES.attLinkIsBlankCheckbox.className
     );
     attLinkIsBlankCheckbox.setAttribute("title",vn.languageSet[note._attributes.language].attLinkIsOpenTooltip);
-    const attLinkIsOpenExplain = createElement(
+    const attLinkIsOpenExplain = handler.createElement(
         "label",
         note,
         vn.consts.CLASS_NAMES.attLinkIsBlankLabel.id,
@@ -950,25 +948,25 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     attLinkIsOpenExplain.insertBefore(attLinkIsBlankCheckbox, attLinkIsOpenExplain.firstChild);
     attLinkModal.appendChild(attLinkIsOpenExplain);
-    const attLinkValidCheckText = createElement(
+    const attLinkValidCheckText = handler.createElement(
         "span",
         note,
         vn.consts.CLASS_NAMES.attLinkValidCheckText.id,
         vn.consts.CLASS_NAMES.attLinkValidCheckText.className
     );
-    const attLinkValidCheckbox = createElementInputCheckbox(
+    const attLinkValidCheckbox = handler.createElementInputCheckbox(
         note,
         vn.consts.CLASS_NAMES.attLinkValidCheckbox.id,
         vn.consts.CLASS_NAMES.attLinkValidCheckbox.className,
     );
     attLinkValidCheckbox.style.display = "none";
-    const attModalBox = createElement(
+    const attModalBox = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attLinkFooter.id,
         vn.consts.CLASS_NAMES.attLinkFooter.className
     );
-    const attLinkInsertButton = createElementButton(
+    const attLinkInsertButton = handler.createElementButton(
         "button",
         note,
         vn.consts.CLASS_NAMES.attLinkInsertButton.id,
@@ -981,13 +979,13 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attLinkModal.appendChild(attModalBox);
 
     //modal att file
-    const attFileModal = createElementBasic(
+    const attFileModal = handler.createElementBasic(
         "div",
         note,
         vn.consts.CLASS_NAMES.attFileModal.id,
         vn.consts.CLASS_NAMES.attFileModal.className
     );
-    const attFileModalTitle = createElement(
+    const attFileModalTitle = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attFileHeader.id,
@@ -996,13 +994,13 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     attFileModal.appendChild(attFileModalTitle);
     //layout : upload file
-    const attFilelayout = createElement(
+    const attFilelayout = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attFilelayout.id,
         vn.consts.CLASS_NAMES.attFilelayout.className
     );
-    const attFileExplain1 = createElement(
+    const attFileExplain1 = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attFileExplain1.id,
@@ -1014,7 +1012,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attFilelayout.appendChild(tempElement);
     const attFileUploadDivBox = document.createElement("div");
     attFileUploadDivBox.setAttribute("style","width:90%;text-align:center;margin:0 auto;");
-    const attFileUploadDiv = createElementButton(
+    const attFileUploadDiv = handler.createElementButton(
         "div",
         note,
         vn.consts.CLASS_NAMES.attFileUploadDiv.id,
@@ -1037,7 +1035,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attFilelayout.appendChild(attFileUploadDivBox);
     const attFileUploadButtonBox = document.createElement("div");
     attFileUploadButtonBox.setAttribute("style","width:90%;text-align:right;margin:5px auto 20px auto;");
-    const attFileUploadButton = createElementButton(
+    const attFileUploadButton = handler.createElementButton(
         "button",
         note,
         vn.consts.CLASS_NAMES.attFileUploadButton.id,
@@ -1046,7 +1044,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     attFileUploadButtonBox.appendChild(attFileUploadButton);
     attFilelayout.appendChild(attFileUploadButtonBox);
-    const attFileUpload = createElementInput(
+    const attFileUpload = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.attFileUpload.id,
         vn.consts.CLASS_NAMES.attFileUpload.className
@@ -1056,13 +1054,13 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     //attFilelayout.appendChild(attFileUploadButtonBox);
     attFilelayout.appendChild(attFileUpload);
     attFileModal.appendChild(attFilelayout);
-    const attFileInsertButtonBox = createElement(
+    const attFileInsertButtonBox = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attFileFooter.id,
         vn.consts.CLASS_NAMES.attFileFooter.className
     );
-    const attFileInsertButton = createElementButton(
+    const attFileInsertButton = handler.createElementButton(
         "button",
         note,
         vn.consts.CLASS_NAMES.attFileInsertButton.id,
@@ -1073,13 +1071,13 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attFileModal.appendChild(attFileInsertButtonBox);
 
     //modal att image
-    const attImageModal = createElementBasic(
+    const attImageModal = handler.createElementBasic(
         "div",
         note,
         vn.consts.CLASS_NAMES.attImageModal.id,
         vn.consts.CLASS_NAMES.attImageModal.className
     );
-    const attImageModalTitle = createElement(
+    const attImageModalTitle = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attImageHeader.id,
@@ -1087,7 +1085,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":vn.languageSet[note._attributes.language].attImageModalTitle}
     );
     attImageModal.appendChild(attImageModalTitle);
-    const attImageExplain1 = createElement(
+    const attImageExplain1 = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attImageExplain1.id,
@@ -1099,7 +1097,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attImageModal.appendChild(tempElement);
     const attImageUploadButtonAndViewBox = document.createElement("div");
     attImageUploadButtonAndViewBox.setAttribute("style","width:90%;text-align:center;margin:0 auto;position:relative;");
-    const attImageViewPreButtion = createElementButton(
+    const attImageViewPreButtion = handler.createElementButton(
         "button",
         note,
         vn.consts.CLASS_NAMES.attImageViewPreButtion.id,
@@ -1108,7 +1106,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     );
     attImageViewPreButtion.setAttribute("style","position:absolute;top:50%;transform:translateY(-50%) translateX(1%);");
     attImageUploadButtonAndViewBox.appendChild(attImageViewPreButtion);
-    const attImageUploadButtonAndView = createElementBasic(
+    const attImageUploadButtonAndView = handler.createElementBasic(
         "div",
         note,
         vn.consts.CLASS_NAMES.attImageUploadButtonAndView.id,
@@ -1128,7 +1126,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         event.stopImmediatePropagation();
     });
     attImageUploadButtonAndViewBox.appendChild(attImageUploadButtonAndView);
-    const attImageViewNextButtion = createElementButton(
+    const attImageViewNextButtion = handler.createElementButton(
         "button",
         note,
         vn.consts.CLASS_NAMES.attImageViewNextButtion.id,
@@ -1138,7 +1136,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attImageViewNextButtion.setAttribute("style","position:absolute;top:50%;transform:translateY(-50%) translateX(-101%);");
     attImageUploadButtonAndViewBox.appendChild(attImageViewNextButtion);
     attImageModal.appendChild(attImageUploadButtonAndViewBox);
-    const attImageUpload = createElementInput(
+    const attImageUpload = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.attImageUpload.id,
         vn.consts.CLASS_NAMES.attImageUpload.className
@@ -1148,7 +1146,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     const attImageAcceptTypes = getCommaStrFromArr(note._attributes.attImageAcceptTypes)
     attImageUpload.setAttribute("accept", attImageAcceptTypes);	    
     attImageModal.appendChild(attImageUpload);
-    const attImageExplain2 = createElement(
+    const attImageExplain2 = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attImageExplain2.id,
@@ -1158,20 +1156,20 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attImageModal.appendChild(attImageExplain2);
     tempElement = document.createElement("br");
     attImageModal.appendChild(tempElement);
-    const attImageURL = createElementInput(
+    const attImageURL = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.attImageURL.id,
         vn.consts.CLASS_NAMES.attImageURL.className
     );
     attImageURL.setAttribute("title",vn.languageSet[note._attributes.language].attImageURLTooltip);
     attImageModal.appendChild(attImageURL);
-    const attImageInsertButtonBox = createElement(
+    const attImageInsertButtonBox = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attImageFooter.id,
         vn.consts.CLASS_NAMES.attImageFooter.className
     );
-    const attImageInsertButton = createElementButton(
+    const attImageInsertButton = handler.createElementButton(
         "button",
         note,
         vn.consts.CLASS_NAMES.attImageInsertButton.id,
@@ -1182,13 +1180,13 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attImageModal.appendChild(attImageInsertButtonBox);
 
     //modal att video
-    const attVideoModal = createElementBasic(
+    const attVideoModal = handler.createElementBasic(
         "div",
         note,
         vn.consts.CLASS_NAMES.attVideoModal.id,
         vn.consts.CLASS_NAMES.attVideoModal.className
     );
-    const attVideoModalTitle = createElement(
+    const attVideoModalTitle = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attVideoHeader.id,
@@ -1196,7 +1194,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":vn.languageSet[note._attributes.language].attVideoModalTitle}
     );
     attVideoModal.appendChild(attVideoModalTitle);
-    const attVideoExplain1 = createElement(
+    const attVideoExplain1 = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attVideoExplain1.id,
@@ -1204,14 +1202,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":vn.languageSet[note._attributes.language].attVideoExplain1}
     );
     attVideoModal.appendChild(attVideoExplain1);
-    const attVideoEmbedId = createElementInput(
+    const attVideoEmbedId = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.attVideoEmbedId.id,
         vn.consts.CLASS_NAMES.attVideoEmbedId.className
     );
     attVideoEmbedId.setAttribute("title",vn.languageSet[note._attributes.language].attVideoEmbedIdTooltip);
     attVideoModal.appendChild(attVideoEmbedId);
-    const attVideoExplain2 = createElement(
+    const attVideoExplain2 = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attVideoExplain2.id,
@@ -1221,7 +1219,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attVideoModal.appendChild(attVideoExplain2);
     const attVideoWidthTextBox = document.createElement("div");
     attVideoWidthTextBox.setAttribute("style","padding-left:20px;color:" + note._colors.color10);
-    const attVideoWidthText = createElement(
+    const attVideoWidthText = handler.createElement(
         "span",
         note,
         "",
@@ -1229,7 +1227,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":true, "text":"width", "iconStyle":"color:" + note._colors.color10}
     );
     attVideoWidthTextBox.appendChild(attVideoWidthText);
-    const attVideoWidth  = createElementInput(
+    const attVideoWidth  = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.attVideoWidth.id,
         vn.consts.CLASS_NAMES.attVideoWidth.className
@@ -1238,7 +1236,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attVideoWidth.setAttribute("type", "number");
     attVideoWidth.setAttribute("style","text-align:right;");
     attVideoWidthTextBox.appendChild(attVideoWidth);
-    const attVideoWidthUnit = createElement(
+    const attVideoWidthUnit = handler.createElement(
         "span",
         note,
         "",
@@ -1250,7 +1248,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attVideoModal.appendChild(attVideoWidthTextBox);
     const attVideoHeightTextBox = document.createElement("div");
     attVideoHeightTextBox.setAttribute("style","padding-left:20px;color:" + note._colors.color10);
-    const attVideoHeightText = createElement(
+    const attVideoHeightText = handler.createElement(
         "span",
         note,
         "",
@@ -1258,7 +1256,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":true, "text":"height", "iconStyle":"color:" + note._colors.color10}
     );
     attVideoHeightTextBox.appendChild(attVideoHeightText);
-    const attVideoHeight = createElementInput(
+    const attVideoHeight = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.attVideoHeight.id,
         vn.consts.CLASS_NAMES.attVideoHeight.className
@@ -1267,7 +1265,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attVideoHeight.setAttribute("type", "number");
     attVideoHeight.setAttribute("style","text-align:right;");
     attVideoHeightTextBox.appendChild(attVideoHeight);
-    const attVideoHeightUnit = createElement(
+    const attVideoHeightUnit = handler.createElement(
         "span",
         note,
         "",
@@ -1277,26 +1275,26 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attVideoHeightUnit.setAttribute("style","padding-left:10px;font-size:0.8em");
     attVideoHeightTextBox.appendChild(attVideoHeightUnit);
     attVideoModal.appendChild(attVideoHeightTextBox);
-    const attVideoValidCheckText = createElement(
+    const attVideoValidCheckText = handler.createElement(
         "span",
         note,
         vn.consts.CLASS_NAMES.attVideoValidCheckText.id,
         vn.consts.CLASS_NAMES.attVideoValidCheckText.className
     );
-    const attVideoValidCheckbox = createElementInputCheckbox(
+    const attVideoValidCheckbox = handler.createElementInputCheckbox(
         note,
         vn.consts.CLASS_NAMES.attVideoValidCheckbox.id,
         vn.consts.CLASS_NAMES.attVideoValidCheckbox.className
     );
     attVideoValidCheckbox.style.display = "none";
-    const attVideoInsertButton = createElementButton(
+    const attVideoInsertButton = handler.createElementButton(
         "button",
         note,
         vn.consts.CLASS_NAMES.attVideoInsertButton.id,
         vn.consts.CLASS_NAMES.attVideoInsertButton.className,
         {"isIcon":true, "text":"videocam"}
     );
-    const attVideoFooter = createElement(
+    const attVideoFooter = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attVideoFooter.id,
@@ -1308,27 +1306,27 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attVideoModal.appendChild(attVideoFooter);
 
     //att link tooltip
-    const attLinkTooltip = createElement(
+    const attLinkTooltip = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attLinkTooltip.id,
         vn.consts.CLASS_NAMES.attLinkTooltip.className
     );
-    const attLinkTooltipHref = createElement(
+    const attLinkTooltipHref = handler.createElement(
         "a",
         note,
         vn.consts.CLASS_NAMES.attLinkTooltipHref.id,
         vn.consts.CLASS_NAMES.attLinkTooltipHref.className
     );
     attLinkTooltipHref.setAttribute("target","_blank");
-    const attLinkTooltipEditButton = createElementButton(
+    const attLinkTooltipEditButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.attLinkTooltipEditButton.id,
         vn.consts.CLASS_NAMES.attLinkTooltipEditButton.className,
         {"isIcon":true, "text":"add_link", "iconStyle":"font-size:0.9em"}
     );
-    const attLinkTooltipUnlinkButton = createElementButton(
+    const attLinkTooltipUnlinkButton = handler.createElementButton(
         "span",
         note,
         vn.consts.CLASS_NAMES.attLinkTooltipUnlinkButton.id,
@@ -1340,7 +1338,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attLinkTooltip.appendChild(attLinkTooltipHref);
 
     //att image tooltip
-    const attImageAndVideoTooltip = createElement(
+    const attImageAndVideoTooltip = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltip.id,
@@ -1352,7 +1350,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attImageAndVideoTooltipWidthText.setAttribute("style","padding: 0 0 0 10px;");
     attImageAndVideoTooltipWidthText.textContent = vn.languageSet[note._attributes.language].attImageAndVideoTooltipWidthInput;
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipWidthText);
-    const attImageAndVideoTooltipWidthInput = createElementInput(
+    const attImageAndVideoTooltipWidthInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipWidthInput.id,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipWidthInput.className
@@ -1374,40 +1372,40 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attImageAndVideoTooltipFloatRadioBox.setAttribute("class",getClassName(note._noteName, note.id, "small_text_box"));
     attImageAndVideoTooltipFloatRadioBox.textContent = vn.languageSet[note._attributes.language].attImageAndVideoTooltipFloatRadio;
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioBox);
-    const attImageAndVideoTooltipFloatRadioNone = createElementInputRadio(
+    const attImageAndVideoTooltipFloatRadioNone = handler.createElementInputRadio(
         note,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioNone.id,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioNone.className,
         getId(note._noteName, note.id, "attImageAndVideoTooltipFloatRadio")
     );
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioNone);
-    const attImageAndVideoTooltipFloatRadioNoneLabel = createElementRadioLabel(
+    const attImageAndVideoTooltipFloatRadioNoneLabel = handler.createElementRadioLabel(
         note,
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioNone.id),
         "close"
     );
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioNoneLabel);
-    const attImageAndVideoTooltipFloatRadioLeft = createElementInputRadio(
+    const attImageAndVideoTooltipFloatRadioLeft = handler.createElementInputRadio(
         note,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioLeft.id,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioLeft.className,
         getId(note._noteName, note.id, "attImageAndVideoTooltipFloatRadio")
     );
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioLeft);
-    const attImageAndVideoTooltipFloatRadioLeftLabel = createElementRadioLabel(
+    const attImageAndVideoTooltipFloatRadioLeftLabel = handler.createElementRadioLabel(
         note,
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioLeft.id),
         "art_track"
     );
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioLeftLabel);
-    const attImageAndVideoTooltipFloatRadioRight = createElementInputRadio(
+    const attImageAndVideoTooltipFloatRadioRight = handler.createElementInputRadio(
         note,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioRight.id,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioRight.className,
         getId(note._noteName, note.id, "attImageAndVideoTooltipFloatRadio")
     );
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioRight);
-    const attImageAndVideoTooltipFloatRadioRightLabel = createElementRadioLabel(
+    const attImageAndVideoTooltipFloatRadioRightLabel = handler.createElementRadioLabel(
         note,
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioRight.id),
         "burst_mode"
@@ -1419,40 +1417,40 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attImageAndVideoTooltipShapeRadioBox.setAttribute("class",getClassName(note._noteName, note.id, "small_text_box"));
     attImageAndVideoTooltipShapeRadioBox.textContent = vn.languageSet[note._attributes.language].attImageAndVideoTooltipShapeRadio;
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioBox);
-    const attImageAndVideoTooltipShapeRadioSquare = createElementInputRadio(
+    const attImageAndVideoTooltipShapeRadioSquare = handler.createElementInputRadio(
         note,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioSquare.id,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioSquare.className,
         getId(note._noteName, note.id, "attImageAndVideoTooltipShapeRadio")
     );
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioSquare);
-    const attImageAndVideoTooltipShapeRadioSquareLabel = createElementRadioLabel(
+    const attImageAndVideoTooltipShapeRadioSquareLabel = handler.createElementRadioLabel(
         note,
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioSquare.id),
         "crop_5_4"
     );
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioSquareLabel);
-    const attImageAndVideoTooltipShapeRadioRadius = createElementInputRadio(
+    const attImageAndVideoTooltipShapeRadioRadius = handler.createElementInputRadio(
         note,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioRadius.id,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioRadius.className,
         getId(note._noteName, note.id, "attImageAndVideoTooltipShapeRadio")
     );
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioRadius);
-    const attImageAndVideoTooltipShapeRadioRadiusLabel = createElementRadioLabel(
+    const attImageAndVideoTooltipShapeRadioRadiusLabel = handler.createElementRadioLabel(
         note,
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioRadius.id),
         "aspect_ratio"
     );
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioRadiusLabel);
-    const attImageAndVideoTooltipShapeRadioCircle = createElementInputRadio(
+    const attImageAndVideoTooltipShapeRadioCircle = handler.createElementInputRadio(
         note,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioCircle.id,
         vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioCircle.className,
         getId(note._noteName, note.id, "attImageAndVideoTooltipShapeRadio")
     );
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioCircle);
-    const attImageAndVideoTooltipShapeRadioCircleLabel = createElementRadioLabel(
+    const attImageAndVideoTooltipShapeRadioCircleLabel = handler.createElementRadioLabel(
         note,
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioCircle.id),
         "circle"
@@ -1461,13 +1459,13 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     attImageAndVideoTooltip.appendChild(attImageAndVideoTooltipShapeBox);
 
     //modal help
-    const helpModal = createElementBasic(
+    const helpModal = handler.createElementBasic(
         "div",
         note,
         vn.consts.CLASS_NAMES.helpModal.id,
         vn.consts.CLASS_NAMES.helpModal.className
     );
-    const helpHeader = createElement(
+    const helpHeader = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.helpHeader.id,
@@ -1475,7 +1473,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         {"isIcon":false, "text":vn.languageSet[note._attributes.language].helpModalTitle}
     );
     helpModal.appendChild(helpHeader);
-    const helpMain = createElement(
+    const helpMain = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.helpMain.id,
@@ -1498,7 +1496,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     });
     helpMain.appendChild(helpMainTable);
     helpModal.appendChild(helpMain);
-    const helpFooter = createElement(
+    const helpFooter = handler.createElement(
         "div",
         note,
         vn.consts.CLASS_NAMES.helpFooter.id,
@@ -1508,7 +1506,7 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     helpModal.appendChild(helpFooter);
 
     //placeholder
-    const placeholder = createElementBasic(
+    const placeholder = handler.createElementBasic(
         "div",
         note,
         vn.consts.CLASS_NAMES.placeholder.id,
@@ -1572,9 +1570,9 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
     note.appendChild(template);
 
     //set value
-    fontSizeInput.value = note._status.fontSize;
-    letterSpacingInput.value = note._status.letterSpacing;
-    lineHeightInput.value = note._status.lineHeight;
+    fontSizeInput.value = String(note._status.fontSize);
+    letterSpacingInput.value = String(note._status.letterSpacing);
+    lineHeightInput.value = String(note._status.lineHeight);
 
     colorTextRInput.value = note._status.colorTextR;
     colorTextGInput.value = note._status.colorTextG;
@@ -1611,26 +1609,26 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
 
     //element 정의
     note._elements = {
-        template : template,
+        template : template as HTMLDivElement,
         textarea : textarea,
-        tool : tool,
+        tool : tool as HTMLDivElement,
         toolToggleButton : toolToggleButton,
         paragraphStyleSelect : paragraphStyleSelect,
-        paragraphStyleSelectBox : paragraphStyleSelectBox,
-        paragraphStyleNormalButton : paragraphStyleNormalButton,
-        paragraphStyleHeader1Button : paragraphStyleHeader1Button,
-        paragraphStyleHeader2Button : paragraphStyleHeader2Button,
-        paragraphStyleHeader3Button : paragraphStyleHeader3Button,
-        paragraphStyleHeader4Button : paragraphStyleHeader4Button,
-        paragraphStyleHeader5Button : paragraphStyleHeader5Button,
-        paragraphStyleHeader6Button : paragraphStyleHeader6Button,
+        paragraphStyleSelectBox : paragraphStyleSelectBox as HTMLDivElement,
+        paragraphStyleNormalButton : paragraphStyleNormalButton as HTMLDivElement,
+        paragraphStyleHeader1Button : paragraphStyleHeader1Button as HTMLHeadingElement,
+        paragraphStyleHeader2Button : paragraphStyleHeader2Button as HTMLHeadingElement,
+        paragraphStyleHeader3Button : paragraphStyleHeader3Button as HTMLHeadingElement,
+        paragraphStyleHeader4Button : paragraphStyleHeader4Button as HTMLHeadingElement,
+        paragraphStyleHeader5Button : paragraphStyleHeader5Button as HTMLHeadingElement,
+        paragraphStyleHeader6Button : paragraphStyleHeader6Button as HTMLHeadingElement,
         boldButton : boldButton,
         underlineButton : underlineButton,
         italicButton : italicButton,
         ulButton : ulButton,
         olButton : olButton,
         textAlignSelect : textAlignSelect,
-        textAlignSelectBox : textAlignSelectBox,
+        textAlignSelectBox : textAlignSelectBox as HTMLDivElement,
         textAlignLeftButton : textAlignLeftButton,
         textAlignCenterButton : textAlignCenterButton,
         textAlignRightButton : textAlignRightButton,
@@ -1645,9 +1643,9 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         lineHeightInputBox : lineHeightInputBox,
         lineHeightInput : lineHeightInput,
         fontFamilySelect : fontFamilySelect,
-        fontFamilySelectBox : fontFamilySelectBox,
+        fontFamilySelectBox : fontFamilySelectBox as HTMLDivElement,
         colorTextSelect : colorTextSelect,
-        colorTextSelectBox : colorTextSelectBox,
+        colorTextSelectBox : colorTextSelectBox as HTMLDivElement,
         colorTextRIcon : colorTextRIcon,
         colorTextRInput : colorTextRInput,
         colorTextGIcon : colorTextGIcon,
@@ -1656,16 +1654,16 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         colorTextBInput : colorTextBInput,
         colorTextOpacityIcon : colorTextOpacityIcon,
         colorTextOpacityInput : colorTextOpacityInput,
-        colorText0 : colorText0,
-        colorText1 : colorText1,
-        colorText2 : colorText2,
-        colorText3 : colorText3,
-        colorText4 : colorText4,
-        colorText5 : colorText5,
-        colorText6 : colorText6,
-        colorText7 : colorText7,
+        colorText0 : colorText0 as HTMLDivElement,
+        colorText1 : colorText1 as HTMLDivElement,
+        colorText2 : colorText2 as HTMLDivElement,
+        colorText3 : colorText3 as HTMLDivElement,
+        colorText4 : colorText4 as HTMLDivElement,
+        colorText5 : colorText5 as HTMLDivElement,
+        colorText6 : colorText6 as HTMLDivElement,
+        colorText7 : colorText7 as HTMLDivElement,
         colorBackSelect : colorBackSelect,
-        colorBackSelectBox : colorBackSelectBox,
+        colorBackSelectBox : colorBackSelectBox as HTMLDivElement,
         colorBackRIcon : colorBackRIcon,
         colorBackRInput : colorBackRInput,
         colorBackGIcon : colorBackGIcon,
@@ -1674,59 +1672,59 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         colorBackBInput : colorBackBInput,
         colorBackOpacityIcon : colorBackOpacityIcon,
         colorBackOpacityInput : colorBackOpacityInput,
-        colorBack0 : colorBack0,
-        colorBack1 : colorBack1,
-        colorBack2 : colorBack2,
-        colorBack3 : colorBack3,
-        colorBack4 : colorBack4,
-        colorBack5 : colorBack5,
-        colorBack6 : colorBack6,
-        colorBack7 : colorBack7,
+        colorBack0 : colorBack0 as HTMLDivElement,
+        colorBack1 : colorBack1 as HTMLDivElement,
+        colorBack2 : colorBack2 as HTMLDivElement,
+        colorBack3 : colorBack3 as HTMLDivElement,
+        colorBack4 : colorBack4 as HTMLDivElement,
+        colorBack5 : colorBack5 as HTMLDivElement,
+        colorBack6 : colorBack6 as HTMLDivElement,
+        colorBack7 : colorBack7 as HTMLDivElement,
         formatClearButton : formatClearButton,
         undoButton : undoButton,
         redoButton : redoButton,
         helpButton : helpButton,
-        modalBack : modalBack,
-        attLinkModal : attLinkModal,
-        attLinkModalTitle : attLinkModalTitle,
-        attLinkInTextExplain : attLinkInTextExplain,
+        modalBack : modalBack as HTMLDivElement,
+        attLinkModal : attLinkModal as HTMLDivElement,
+        attLinkModalTitle : attLinkModalTitle as HTMLDivElement,
+        attLinkInTextExplain : attLinkInTextExplain as HTMLDivElement,
         attLinkText : attLinkText,
-        attLinkInLinkExplain : attLinkInLinkExplain,
+        attLinkInLinkExplain : attLinkInLinkExplain as HTMLDivElement,
         attLinkHref : attLinkHref,
         attLinkIsBlankCheckbox : attLinkIsBlankCheckbox,
-        attLinkIsOpenExplain : attLinkIsOpenExplain,
+        attLinkIsOpenExplain : attLinkIsOpenExplain as HTMLLabelElement,
         attLinkValidCheckText : attLinkValidCheckText,
         attLinkValidCheckbox : attLinkValidCheckbox,
-        attModalBox : attModalBox,
-        attLinkInsertButton : attLinkInsertButton,
-        attFileModal : attFileModal,
-        attFileModalTitle : attFileModalTitle,
-        attFilelayout : attFilelayout,
-        attFileExplain1 : attFileExplain1,
+        attModalBox : attModalBox as HTMLDivElement,
+        attLinkInsertButton : attLinkInsertButton as HTMLButtonElement,
+        attFileModal : attFileModal as HTMLDivElement,
+        attFileModalTitle : attFileModalTitle as HTMLDivElement,
+        attFilelayout : attFilelayout as HTMLDivElement,
+        attFileExplain1 : attFileExplain1 as HTMLDivElement,
         attFileUploadDivBox : attFileUploadDivBox,
-        attFileUploadDiv : attFileUploadDiv,
+        attFileUploadDiv : attFileUploadDiv as HTMLDivElement,
         attFileUploadButtonBox : attFileUploadButtonBox,
-        attFileUploadButton : attFileUploadButton,
+        attFileUploadButton : attFileUploadButton as HTMLButtonElement,
         attFileUpload : attFileUpload,
-        attFileInsertButtonBox : attFileInsertButtonBox,
-        attFileInsertButton : attFileInsertButton,
-        attImageModal : attImageModal,
-        attImageModalTitle : attImageModalTitle,
-        attImageExplain1 : attImageExplain1,
+        attFileInsertButtonBox : attFileInsertButtonBox as HTMLDivElement,
+        attFileInsertButton : attFileInsertButton as HTMLButtonElement,
+        attImageModal : attImageModal as HTMLDivElement,
+        attImageModalTitle : attImageModalTitle as HTMLDivElement,
+        attImageExplain1 : attImageExplain1 as HTMLDivElement,
         attImageUploadButtonAndViewBox : attImageUploadButtonAndViewBox,
-        attImageViewPreButtion : attImageViewPreButtion,
-        attImageUploadButtonAndView : attImageUploadButtonAndView,
-        attImageViewNextButtion : attImageViewNextButtion,
+        attImageViewPreButtion : attImageViewPreButtion as HTMLButtonElement,
+        attImageUploadButtonAndView : attImageUploadButtonAndView as HTMLDivElement,
+        attImageViewNextButtion : attImageViewNextButtion as HTMLButtonElement,
         attImageUpload : attImageUpload,
-        attImageExplain2 : attImageExplain2,
+        attImageExplain2 : attImageExplain2 as HTMLDivElement,
         attImageURL : attImageURL,
-        attImageInsertButtonBox : attImageInsertButtonBox,
-        attImageInsertButton : attImageInsertButton,
-        attVideoModal : attVideoModal,
-        attVideoModalTitle : attVideoModalTitle,
-        attVideoExplain1 : attVideoExplain1,
+        attImageInsertButtonBox : attImageInsertButtonBox as HTMLDivElement,
+        attImageInsertButton : attImageInsertButton as HTMLButtonElement,
+        attVideoModal : attVideoModal as HTMLDivElement,
+        attVideoModalTitle : attVideoModalTitle as HTMLDivElement,
+        attVideoExplain1 : attVideoExplain1 as HTMLDivElement,
         attVideoEmbedId : attVideoEmbedId,
-        attVideoExplain2 : attVideoExplain2,
+        attVideoExplain2 : attVideoExplain2 as HTMLDivElement,
         attVideoWidthTextBox : attVideoWidthTextBox,
         attVideoWidthText : attVideoWidthText,
         attVideoWidth : attVideoWidth,
@@ -1735,15 +1733,15 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         attVideoHeightText : attVideoHeightText,
         attVideoHeight : attVideoHeight,
         attVideoHeightUnit : attVideoHeightUnit,
-        attVideoFooter : attVideoFooter,
+        attVideoFooter : attVideoFooter as HTMLDivElement,
         attVideoValidCheckText : attVideoValidCheckText,
         attVideoValidCheckbox : attVideoValidCheckbox,
-        attVideoInsertButton : attVideoInsertButton,
-        attLinkTooltip : attLinkTooltip,
-        attLinkTooltipHref : attLinkTooltipHref,
+        attVideoInsertButton : attVideoInsertButton as HTMLButtonElement,
+        attLinkTooltip : attLinkTooltip as HTMLDivElement,
+        attLinkTooltipHref : attLinkTooltipHref as HTMLAnchorElement,
         attLinkTooltipEditButton : attLinkTooltipEditButton,
         attLinkTooltipUnlinkButton : attLinkTooltipUnlinkButton,
-        attImageAndVideoTooltip : attImageAndVideoTooltip,
+        attImageAndVideoTooltip : attImageAndVideoTooltip as HTMLDivElement,
         attImageAndVideoTooltipWidthAndFloatBox : attImageAndVideoTooltipWidthAndFloatBox,
         attImageAndVideoTooltipWidthText : attImageAndVideoTooltipWidthText,
         attImageAndVideoTooltipWidthInput : attImageAndVideoTooltipWidthInput,
@@ -1763,14 +1761,14 @@ const setNoteElement = (vn: Vanillanote, note: VanillanoteElement, noteAttribute
         attImageAndVideoTooltipShapeRadioRadiusLabel : attImageAndVideoTooltipShapeRadioRadiusLabel,
         attImageAndVideoTooltipShapeRadioCircle : attImageAndVideoTooltipShapeRadioCircle,
         attImageAndVideoTooltipShapeRadioCircleLabel : attImageAndVideoTooltipShapeRadioCircleLabel,
-        helpModal : helpModal,
-        helpHeader : helpHeader,
-        helpMain : helpMain,
+        helpModal : helpModal as HTMLDivElement,
+        helpHeader : helpHeader as HTMLDivElement,
+        helpMain : helpMain as HTMLDivElement,
         helpMainTable : helpMainTable,
-        helpFooter : helpFooter,
-        placeholder : placeholder,
+        helpFooter : helpFooter as HTMLDivElement,
+        placeholder : placeholder as HTMLDivElement,
     }
-}
+};
 
 const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttributes => {
     //속성 정리
@@ -2067,7 +2065,7 @@ const getNoteColors = (vn: Vanillanote, noteAttributes: NoteAttributes): Colors 
         noteColors.color13 = getInvertColor(noteColors.color13);
     }
     return noteColors;
-}
+};
 
 const getCsses =(noteName: string, noteAttributes: NoteAttributes, noteColors: Colors): Csses => {
     if(!noteAttributes) throw new Error("Please insert variables object in VanillanoteConfig.");
@@ -3147,4 +3145,4 @@ const setNoteEvent = (note: VanillanoteElement): void => {
         placeholder_onBeforeClick : (e: any) => {return true;},
         placeholder_onAfterClick : (e: any) => {},
     }
-}
+};
