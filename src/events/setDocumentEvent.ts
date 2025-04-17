@@ -1,10 +1,8 @@
 import type { Vanillanote } from "../types/vanillanote";
-import { initToggleButtonVariables, onEventDisable, recodeNote } from "../utils/handleActive";
-import { doDecreaseTextareaHeight, doIncreaseTextareaHeight, modifyTextareaScroll, setAllModalSize, setAllToolSize, setAllToolTipPosition, setPlaceholderSize } from "../utils/handleElement";
-import { setEditSelection } from "../utils/handleSelection";
+import type { Handler } from "../types/handler";
 import { extractNumber, getParentNote } from "../utils/util";
 
-export const setDocumentEvents = (vn: Vanillanote) => {
+export const setDocumentEvents = (vn: Vanillanote, handler: Handler) => {
     //document, window event 생성
     vn.events.documentEvents.noteObserver = new MutationObserver((mutations) => {
         let mutationEl;
@@ -16,24 +14,24 @@ export const setDocumentEvents = (vn: Vanillanote) => {
         if(!note) return;
         vn.variables.lastActiveNoteId = note._id;
 
-        recodeNote(note);
+        handler.recodeNote(note);
     });
     
     // Adjust note size according to window change.
     const window_onResize = () => {
         // A delay of 0.05 second
         if(!vn.variables.canEvent) return;
-        onEventDisable(vn, "resize");
+        handler.onEventDisable(vn, "resize");
         
         Object.keys(vn.vanillanoteElements).forEach((id) => {
             // Adjust toolbar size.
-            setAllToolSize(vn.vanillanoteElements[id]);
+            handler.setAllToolSize(vn.vanillanoteElements[id]);
             // Adjust the position of the tooltip.
-            setAllToolTipPosition(vn.vanillanoteElements[id]);
+            handler.setAllToolTipPosition(vn.vanillanoteElements[id]);
             // Control modal size.
-            setAllModalSize(vn.vanillanoteElements[id]);
+            handler.setAllModalSize(vn.vanillanoteElements[id]);
             // Control placeholder size.
-            setPlaceholderSize(vn.vanillanoteElements[id]);
+            handler.setPlaceholderSize(vn.vanillanoteElements[id]);
         })
     };
 
@@ -60,10 +58,10 @@ export const setDocumentEvents = (vn: Vanillanote) => {
             if(!note) return;
             const toolHeight = extractNumber(note._elements.tool.style.height) ? extractNumber(note._elements.tool.style.height) : 93.6;
             vn.variables.mobileKeyboardExceptHeight = window.visualViewport.height - (toolHeight! / 2);
-            doDecreaseTextareaHeight(note);
+            handler.doDecreaseTextareaHeight(note);
         }
         if(vn.variables.lastScreenHeight! < window.visualViewport.height) {
-            doIncreaseTextareaHeight(vn);
+            handler.doIncreaseTextareaHeight(vn);
         }
         
         vn.variables.lastScreenHeight = window.visualViewport.height;
@@ -101,7 +99,7 @@ export const setDocumentEvents = (vn: Vanillanote) => {
         if(!isVanillanote) {
             const noteIds = Object.keys(vn.vanillanoteElements);
             for(let i = 0; i < noteIds.length; i++) {
-                initToggleButtonVariables(vn.vanillanoteElements[noteIds[i]]);
+                handler.initToggleButtonVariables(vn.vanillanoteElements[noteIds[i]]);
             }
             return;
         }
@@ -111,9 +109,9 @@ export const setDocumentEvents = (vn: Vanillanote) => {
             return;
         }
         // Save the current selection.
-        if(!setEditSelection(note, selection)) return;	// Exit if the save was unsuccessful
+        if(!handler.setEditSelection(note, selection)) return;	// Exit if the save was unsuccessful
         //textarea scrolling
-        modifyTextareaScroll(textarea, note);
+        handler.modifyTextareaScroll(textarea, note);
     };
 
     //document, window event 등록
@@ -123,11 +121,11 @@ export const setDocumentEvents = (vn: Vanillanote) => {
     vn.events.documentEvents.keydown = (event: KeyboardEvent) => {
         if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z")) {
             event.preventDefault();
-            (vn.events.elementEvents as any).undoButton_onClick(event, vn);
+            if(handler.isInNote(event.target)) (vn.events.elementEvents as any).undoButton_onClick(event, vn);
         }
         if ((event.ctrlKey || event.metaKey) && (event.key === "y" || event.key === "Y")) {
             event.preventDefault();
-            (vn.events.elementEvents as any).redoButton_onClick(event, vn);
+            if(handler.isInNote(event.target)) (vn.events.elementEvents as any).redoButton_onClick(event, vn);
         }
     };
     vn.events.documentEvents.resize = (event: UIEvent) => {
