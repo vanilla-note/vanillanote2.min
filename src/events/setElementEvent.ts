@@ -836,7 +836,6 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
     //==================================================================================
     //att video
     vn.events.elementEvents.attVideoButton_onClick = (e: any) => {
-        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         const note = getParentNote(e.target);
         if(!note) return;
         
@@ -845,7 +844,7 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         
         handler.closeAllModal(note);
         
-        const displayBlock = getId(note._noteName, note._id, "on_display_blocknote");
+        const displayBlock = getId(note._noteName, note._id, "on_display_block");
         const displayNone = getId(note._noteName, note._id, "on_display_none");
         note._elements.modalBack.classList.remove(displayNone);
         note._elements.modalBack.classList.add(displayBlock);
@@ -1176,9 +1175,6 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
     //==================================================================================
     //lineHeightInputBox event
     vn.events.elementEvents.lineHeightInputBox_onClick = (e: any) => {
-        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    };
-    vn.events.elementEvents.lineHeightInputBox_onInput = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         // If the selection is a single point
@@ -1230,7 +1226,6 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
     //==================================================================================
     //fontFamilySelect event
     vn.events.elementEvents.fontFamilySelect_onClick = (e: any) => {
-        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         const note = getParentNote(e.target);
         if(!note) return;
         handler.selectToggle(e.target);

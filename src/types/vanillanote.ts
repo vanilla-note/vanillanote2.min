@@ -579,6 +579,7 @@ export interface VanillanoteElement extends HTMLDivElement {
 		//fontFamilySelect event
 		fontFamilySelect_onBeforeClick(event: Event): boolean;
 		fontFamilySelect_onAfterClick(event: Event): void;
+		//!!!!!!!!!!!!!!!!!!!!!!!!
 		
 		//color text select
 		colorTextSelect_onBeforeClick(event: Event): boolean;

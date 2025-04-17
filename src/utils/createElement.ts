@@ -249,6 +249,7 @@ export const setHandleCreateElement = (vn: Vanillanote, handler: Handler) => {
     ) => {
         const element = handler.createElement(elementTag, note, id, className, appendNodeSetObject);
         // The font event is dynamically generated
+        //!!!!!!!!!!!!!!!!!!!!!!
         (note._elementEvents as any)[id+"_onBeforeClick"] = (event: any) => {return true;};
         (vn.events.elementEvents as any)[id+"_onClick"] = (event: any) => {
             handler.fontFamilySelectList_onClick(event, note);
