@@ -1,5 +1,5 @@
-import type { Colors } from "../types/csses";
 import type { VanillanoteElement } from "../types/vanillanote";
+import type { Colors } from "../types/csses";
 
 export const getParentNote = (targetElement: HTMLElement): VanillanoteElement | null => {
     let target: any = targetElement;
