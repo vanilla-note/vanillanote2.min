@@ -874,7 +874,6 @@ export interface VanillanoteElement extends HTMLDivElement {
 		placeholder_onBeforeClick(event: Event): boolean;
 		placeholder_onAfterClick(event: Event): void;
 	};
-	_vn: Vanillanote;
 
 	/**
 	 * Returns the data object of the current Vanillanote editor instance.
