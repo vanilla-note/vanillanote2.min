@@ -4,14 +4,109 @@ import type { Colors } from "../types/csses";
 import type { LanguageSet } from "../types/language";
 import type { Variables } from "../types/variables";
 import type { Attributes } from "../types/attributes";
+import type { Handler } from "../types/handler";
 import { NoteModeByDevice } from "../types/enums";
 import { mountVanillanote } from "./mountVanillanote";
 import { unmountVanillanote } from "./unmountVanillanote";
 import { setDocumentEvents } from "../events/setDocumentEvent";
 import { setCssEvents } from "../events/setCssEvent";
 import { setElementEvents } from "../events/setElementEvent";
+import { setHandleCreateElement } from "../utils/createElement";
+import { setHandleHandleActive } from "../utils/handleActive";
+import { setHandleHandleElement } from "../utils/handleElement";
+import { setHandleHandleSelection } from "../utils/handleSelection";
 
 let singletonVanillanote: Vanillanote | null = null;
+const handler = {
+    setAttTempFileValid(note: VanillanoteElement) {},
+    setAttFileUploadDiv(note: VanillanoteElement) {},
+    setAttTempImageValid(note: VanillanoteElement) {},
+    setAttImageUploadAndView(note: VanillanoteElement) {},
+    createElement(elementTag: string, note: VanillanoteElement, id: string, className: string, appendNodeSetObject?: any) {},
+    createElementBasic(elementTag: string, note: VanillanoteElement, id: string, className: string, appendNodeSetObject?: any) {},
+    createElementButton(elementTag: string, note: VanillanoteElement, id: string, className: string, appendNodeSetObject?: any) {},
+    createElementSelect(elementTag: string, note: VanillanoteElement, id: string, className: string, appendNodeSetObject?: any) {},
+    createElementInput(note: VanillanoteElement, id: string, className: string,) {},
+    createElementInputCheckbox(note: VanillanoteElement, id: string, className: string) {},
+    createElementInputRadio(note: VanillanoteElement, id: string, className: string, name: string) {},
+    createElementRadioLabel(note: VanillanoteElement, forId: string, iconName: string) {},
+    createElementFontFamiliySelect(elementTag: string, note: VanillanoteElement, id: string, className: string, appendNodeSetObject?: any) {},
+    addClickEvent(element: HTMLElement, id: string, note: VanillanoteElement,) {},
+    addMouseoverEvent(element: any, note: VanillanoteElement) {},
+    addMouseoutEvent(element: any, note: VanillanoteElement) {},
+    addTouchstartEvent(element: any, note: VanillanoteElement) {},
+    addTouchendEvent(element: any, note: VanillanoteElement) {},
+    onEventDisable(vn: Vanillanote, type: string) {},
+    replaceDifferentBetweenElements(vn: Vanillanote, oldEl: any, newEl: any) {},
+    compareAttributesBetweenEl(el1: any, el2: any) {},
+    compareStylesBetweenEl(el1: any, el2: any) {},
+    getAttributesObjectFromElement(element: any) {},
+    getSpecialTag(el: any, note: VanillanoteElement) {},
+    getParentUnitTagElemnt(el: any, note: VanillanoteElement) {},
+    getParentTagName(el: any, note: VanillanoteElement) {},
+    getObjectEditElementAttributes(el: any, note: VanillanoteElement) {},
+    getObjectEditElementCss(el: any, note: VanillanoteElement) {},
+    getEditElementTag(note: VanillanoteElement) {},
+    getPreviousElementsUntilNotTag(startEl: any, tag: string, consts: Consts) {},
+    getNextElementsUntilNotTag(startEl: any, tag: string, consts: Consts) {},
+    setTagToggle(note: VanillanoteElement, tag: string) {},
+    initToggleButtonVariables(note: VanillanoteElement) {},
+    isInNote(el: any) {},
+    getElementReplaceTag(element: any, tag: string) {},
+    removeDoubleTag(note: VanillanoteElement, element: any) {},
+    getElement(text: string, tagName: string, cssText: string, attributes: Record<string, string>, note: VanillanoteElement) {},
+    setEditNodeAndElement(note: VanillanoteElement, setElement: any, compareElement: any) {},
+    removeEmptyElment(el: any, note: VanillanoteElement) {},
+    editUnitCheck(note: VanillanoteElement) {},
+    doEditUnitCheck(note: VanillanoteElement) {},
+    connectObserver(vn: Vanillanote) {},
+    isElementInParentBounds(parent: any, child: any) {},
+    validCheckAttLink(note: VanillanoteElement) {},
+    validCheckAttVideo(note: VanillanoteElement) {},
+    initAttLink(note: VanillanoteElement) {},
+    initAttFile(note: VanillanoteElement) {},
+    initAttImage(note: VanillanoteElement) {},
+    getObjectNoteCss(note: VanillanoteElement) {},
+    showAlert(message: string, beforeAlert: ((message: string) => boolean)) {},
+    recodeNote(note: VanillanoteElement) {},
+    closeAllTooltip(note: VanillanoteElement) {},
+    setVariableButtonTogle(note: VanillanoteElement, cssObject: Record<string, string>) {},
+    button_onToggle(target: any, toggle: boolean) {},
+    allButtonToggle(note: VanillanoteElement) {},
+    selectToggle(target: any, _note?: VanillanoteElement) {},
+    closeAllSelectBoxes(note: VanillanoteElement) {},
+    fontFamilySelectList_onClick(e: any, _note?: VanillanoteElement) {},
+    setEditStyleTag(note: VanillanoteElement) {},
+    setElementScroll(parentElement: any, childElement: any, mobileKeyboardExceptHeight: number) {},
+    getCheckSelectBoxesOpened(note: VanillanoteElement) {},
+    closeAllModal(note: VanillanoteElement) {},
+    openAttLinkModal(note: VanillanoteElement) {},
+    openPlaceholder(note: VanillanoteElement) {},
+    closePlaceholder(note: VanillanoteElement) {},
+    setAllModalSize(note: VanillanoteElement) {},
+    setPlaceholderSize(note: VanillanoteElement) {},
+    setAllToolTipPosition(note: VanillanoteElement) {},
+    appearAttLinkToolTip(note: VanillanoteElement) {},
+    appearAttImageAndVideoTooltip(note: VanillanoteElement) {},
+    setImageAndVideoWidth(el: any) {},
+    setAllToolSize(note: VanillanoteElement) {},
+    doDecreaseTextareaHeight(note: VanillanoteElement) {},
+    doIncreaseTextareaHeight(vn: Vanillanote) {},
+    modifyTextareaScroll(textarea: any, note: VanillanoteElement) {},
+    initTextarea(textarea: HTMLTextAreaElement) {},
+    setNewSelection(startNode: Node, startOffset: number, endNode: Node, endOffset: number) {},
+    handleSpecialTagSelection(note: VanillanoteElement) {},
+    setOriginEditSelection(note: VanillanoteElement) {},
+    setEditSelection(note: VanillanoteElement, selection: Selection) {},
+    isValidSelection(note: VanillanoteElement) {},
+    modifySeletedElements(note: VanillanoteElement) {},
+    modifySelectedUnitElementTag(target: any, _note?: VanillanoteElement) {},
+    modifySelectedUnitElementStyle(target: any, _note?: VanillanoteElement) {},
+    modifySelectedSingleElement(note: VanillanoteElement, csses: Record<string, string> | null, tagName?: string, attributes?: Record<string, string>) {},
+    textarea_onBeforeinputSpelling(e: any) {},
+    textarea_onKeydownEnter(target: any) {},
+} as Handler;
+
 export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
     if (singletonVanillanote) return singletonVanillanote;
 
@@ -365,10 +460,10 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
         mountNote(element?: HTMLElement) {},
         destroy() {destroyVanillanote();},
         unmountNote(element?: HTMLElement) {},
-        _initialized: false
+        _initialized: false,
     };
     singletonVanillanote.mountNote = (element?: HTMLElement) => {
-        mountVanillanote(singletonVanillanote as Vanillanote, element);
+        mountVanillanote(singletonVanillanote as Vanillanote, handler, element);
     };
     singletonVanillanote.unmountNote = (element?: HTMLElement) => {
         unmountVanillanote(singletonVanillanote as Vanillanote, element);
@@ -380,6 +475,12 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
 const initVanillanote = () => {
     if(!singletonVanillanote || singletonVanillanote._initialized) return;
     singletonVanillanote._initialized = true;
+
+    setHandleCreateElement(singletonVanillanote, handler);
+    setHandleHandleActive(singletonVanillanote, handler);
+    setHandleHandleElement(singletonVanillanote, handler);
+    setHandleHandleSelection(singletonVanillanote, handler);
+
     //The logic for using document, window and navigator to use getVanillanote in an SSR environment is declared below.
     singletonVanillanote.variables.lastScreenHeight =  typeof window !== 'undefined' && window.visualViewport ? window.visualViewport.height : null;
     singletonVanillanote.getNote = (noteId: string): VanillanoteElement | null => {
@@ -423,9 +524,9 @@ const initVanillanote = () => {
     }
 
     //event 등록
-    setDocumentEvents(singletonVanillanote);
+    setDocumentEvents(singletonVanillanote, handler);
     setCssEvents(singletonVanillanote);
-    setElementEvents(singletonVanillanote);
+    setElementEvents(singletonVanillanote, handler);
 }
 
 const destroyVanillanote = () => {
@@ -725,7 +826,7 @@ export const getVanillanoteConfig =(): VanillanoteConfig => {
         languageSet: languageSet,
         attributes: attribute,
         variables: variables,
-        beforeAlert: (message: string) => {return true;}
+        beforeAlert: (message: string) => {return true;},
     };
     return vanillanoteConfig;
 }
