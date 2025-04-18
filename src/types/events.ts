@@ -1,19 +1,86 @@
+/**
+ * Event handlers and observers attached to the document.
+ * 
+ * - These events and observers are internally managed by Vanillanote.
+ * - Developers should not manually modify these properties.
+ * - Modifying them directly may cause editor malfunctions.
+ */
 export interface DocumentEvents {
-	noteObserver: null | MutationObserver;
-	selectionchange: null | ((e: Event) => void);
-	keydown: null | ((e: KeyboardEvent) => void);
-	resize: null | ((e: UIEvent) => void);
-	resizeViewport: null | ((e: Event) => void);
+    /**
+     * MutationObserver instance monitoring DOM changes within the editor.
+     * - Used to track dynamic content modifications.
+     * - Automatically created and disconnected by Vanillanote.
+     */
+    noteObserver: null | MutationObserver;
+    /**
+     * Handler for selection change events within the document.
+     * - Triggered when the text selection changes inside the editor.
+     */
+    selectionchange: null | ((e: Event) => void);
+    /**
+     * Handler for keydown events within the document.
+     * - Used for keyboard shortcuts like undo, redo, bold, etc.
+     */
+    keydown: null | ((e: KeyboardEvent) => void);
+    /**
+     * Handler for window resize events.
+     * - Adjusts editor layout based on window size changes.
+     */
+    resize: null | ((e: UIEvent) => void);
+    /**
+     * Handler for viewport height change detection (especially important for mobile devices).
+     * - Used to detect virtual keyboard open/close events and adjust the editor.
+     */
+    resizeViewport: null | ((e: Event) => void);
 }
 
+/**
+ * Event handlers attached to elements targeted by Vanillanote's internal CSS event system.
+ * 
+ * - These handlers allow Vanillanote to react to user interactions like clicks, mouse events, and touch events.
+ * - Typically used to manage UI states such as highlighting, tooltips, and focus behavior.
+ */
 export interface CssEvents {
-	target_onClick: null | ((e: Event) => void);
+    /**
+     * Triggered when a target element is clicked.
+     */
+    target_onClick: null | ((e: Event) => void);
+
+    /**
+     * Triggered when the mouse pointer enters a target element.
+     */
     target_onMouseover: null | ((e: Event) => void);
+
+    /**
+     * Triggered when the mouse pointer leaves a target element.
+     */
     target_onMouseout: null | ((e: Event) => void);
+
+    /**
+     * Triggered when a touch interaction starts on a target element (for mobile or touch devices).
+     */
     target_onTouchstart: null | ((e: Event) => void);
+
+    /**
+     * Triggered when a touch interaction ends on a target element.
+     */
     target_onTouchend: null | ((e: Event) => void);
 }
 
+/**
+ * Common event handler definitions for all editor elements created by Vanillanote.
+ * 
+ * - These methods are automatically assigned to internal UI components such as toolbars, modals, inputs, and buttons.
+ * - Each method is tied to a specific user interaction (e.g., click, input, blur) and triggers Vanillanote's default behavior.
+ * - The method names clearly describe the target element and the interaction they handle.
+ * 
+ * @important
+ * - **Do not modify the methods in this `ElementEvents` object** directly.
+ * - These handlers are part of the global `vanillanote` instance and are designed to operate consistently across all editor instances.
+ * - If you need to override or customize the behavior of individual elements,
+ *   **modify the corresponding methods in the `_elementEvents` of each `VanillanoteElement` instead.**
+ *   This ensures that modifications remain scoped to specific editors and do not interfere with the global behavior.
+ */
 export interface ElementEvents {
 	//toolToggleButton event
 	toolToggleButton_onClick: null | ((e: Event) => void);
