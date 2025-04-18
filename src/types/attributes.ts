@@ -126,47 +126,147 @@ export interface Attributes {
      * - `'...'` : Can be used after being defined in .languageSet.
      */
     language: string;
-
+    /** 
+     * Placeholder text color
+     */
     placeholderColor: string;
+    /** 
+     * Placeholder background color
+     */
     placeholderBackgroundColor: string;
+    /** 
+     * Placeholder title text
+     */
     placeholderTitle: string;
+    /** 
+     * Placeholder body text
+     */
     placeholderTextContent: string;
-
+    /** 
+     * Default selectable font families
+     */
     defaultFontFamilies: string[];
-
+    /** 
+     * Maximum undo/redo record count
+     */
     recodeLimit: number;
-
+    /** 
+     * Main theme color for the editor
+     */
     mainColor: string;
+    /** 
+     * Predefined color set name
+     */
     colorSet: string;
+    /** 
+     * Whether to use inverted (dark mode) colors
+     */
     invertColor: boolean;
-
+    /** 
+     * Whether to use paragraph style buttons (normal, heading, etc.)
+     */
     usingParagraphStyle: boolean;
+    /** 
+     * Whether to use bold button
+     */
     usingBold: boolean;
+    /** 
+     * Whether to use underline button
+     */
     usingUnderline: boolean;
+    /** 
+     * Whether to use italic button
+     */
     usingItalic: boolean;
+    /** 
+     * Whether to use unordered list (ul) button
+     */
     usingUl: boolean;
+    /** 
+     * Whether to use ordered list (ol) button
+     */
     usingOl: boolean;
+    /** 
+     * Whether to use text align buttons (left, center, right)
+     */
     usingTextAlign: boolean;
+    /** 
+     * Whether to use attach link button
+     */
     usingAttLink: boolean;
+    /** 
+     * Whether to use attach file button
+     */
     usingAttFile: boolean;
+    /** 
+     * Whether to use attach image button
+     */
     usingAttImage: boolean;
+    /** 
+     * Whether to use attach video button
+     */
     usingAttVideo: boolean;
+    /** 
+     * Whether to allow font size adjustment
+     */
     usingFontSize: boolean;
+    /** 
+     * Whether to allow letter spacing adjustment
+     */
     usingLetterSpacing: boolean;
+    /** 
+     * Whether to allow line height adjustment
+     */
     usingLineHeight: boolean;
+    /** 
+     * Whether to allow font family change
+     */
     usingFontFamily: boolean;
+    /** 
+     * Whether to allow text color change
+     */
     usingColorText: boolean;
+    /** 
+     * Whether to allow background color change
+     */
     usingColorBack: boolean;
+    /** 
+     * Whether to use format clear (remove styles) button
+     */
     usingFormatClear: boolean;
+    /** 
+     * Whether to use undo button
+     */
     usingUndo: boolean;
+    /** 
+     * Whether to use redo button
+     */
     usingRedo: boolean;
+    /** 
+     * Whether to use help (shortcut guide) button
+     */
     usingHelp: boolean;
 }
 
 export interface NoteAttributes extends Attributes {
+    /**
+     * Whether to perform mobile operation mode
+     */
     isNoteByMobile: boolean;
+    /**
+     * Position of the toolbar
+     */
     toolPosition: ToolPosition.bottom | ToolPosition.top;
+    /**
+     * Toolbar Line Count
+     */
     toolDefaultLine: number;
+    /**
+     * Whether to use the toolbar fold/unfold function
+     */
     toolToggleUsing: boolean;
+    /**
+     * Note size scale
+     */
     sizeRate: number;
 }
