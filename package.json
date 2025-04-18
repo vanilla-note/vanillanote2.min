@@ -1,7 +1,7 @@
 {
   "name": "vanillanote2",
-  "version": "1.0.1-beta.2",
-  "description": "A simple editor using only Vanilla JS and ES5 syntax.",
+  "version": "1.0.2",
+  "description": "A Lightweight, Framework-agnostic Rich Text Editor, Rebuilt with TypeScript",
   "main": "dist/Vanillanote2.bundle.js",
   "module": "dist/Vanillanote2.bundle.js",
   "types": "dist/types/index.d.ts",
