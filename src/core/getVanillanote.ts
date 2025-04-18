@@ -107,14 +107,64 @@ const handler = {
     textarea_onKeydownEnter(target: any) {},
 } as Handler;
 
+/**
+ * Creates or retrieves the singleton `Vanillanote` instance for the page.
+ *
+ * This function is responsible for initializing the core Vanillanote object, setting up constants, configurations,
+ * language sets, variables, event placeholders, and default properties. It ensures that only a single instance
+ * of Vanillanote exists across the application (Singleton Pattern).
+ *
+ * - If the Vanillanote instance already exists, the same instance will be returned without reinitialization.
+ * - Otherwise, a new instance is created based on the provided configuration or the default configuration.
+ * - Internal constants such as supported tags, editable units, and button mappings are deeply frozen to prevent accidental modification.
+ *
+ * ### Parameters
+ * @param config - *(Optional)* A `VanillanoteConfig` object to customize the colors, languages, variables, and attributes of the editor.  
+ * If omitted, `getVanillanoteConfig()` will be called internally to supply the default settings.
+ *
+ * ### Returns
+ * - A `Vanillanote` object containing:
+ *   - Constants (`consts`)
+ *   - UI styles (`colors`)
+ *   - Language packs (`languageSet`)
+ *   - Runtime variables (`variables`)
+ *   - Event handler placeholders
+ *   - DOM element references
+ *   - Utility methods: `init()`, `mountNote()`, `unmountNote()`, `destroy()`
+ *
+ * ### Usage
+ * ```typescript
+ * import { getVanillanote } from 'vanillanote2';
+ * 
+ * const vn = getVanillanote();
+ * vn.init();
+ * vn.mountNote(document.getElementById('my-editor-wrapper'));
+ * ```
+ *
+ * ### Notes
+ * - `init()` must be called exactly once to attach global document events and resources (e.g., Google Fonts).
+ * - `mountNote()` attaches editors to the target DOM.
+ * - `unmountNote()` detaches editors.
+ * - `destroy()` removes all resources and clears the Vanillanote singleton.
+ * - Designed to support both CSR (client-side rendering) and SSR (server-side rendering) environments.
+ *
+ * ### Internal Behavior
+ * - `deepFreeze()` is used to recursively freeze critical constants like `consts` to ensure immutability.
+ * - Event handlers and internal element states are initialized but left as `null` until activated during runtime.
+ *
+ * @example
+ * // Quick Initialization
+ * const vn = getVanillanote();
+ * vn.init();
+ * vn.mountNote();
+ * ```
+ */
 export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
     if (singletonVanillanote) return singletonVanillanote;
 
     const deepFreeze = <T>(obj: T): T => {
-        // 먼저 자신을 freeze
         Object.freeze(obj);
         
-        // 프로퍼티를 순회하며 객체인 경우 재귀적으로 freeze
         Object.getOwnPropertyNames(obj).forEach((prop) => {
             const value = (obj as any)[prop];
             if (
@@ -594,6 +644,64 @@ const destroyVanillanote = () => {
     singletonVanillanote = null;
 };
 
+/**
+ * Creates and returns the default configuration object (`VanillanoteConfig`) for initializing a Vanillanote editor.
+ *
+ * This function prepares all configurable options related to colors, languages, runtime variables, and attributes
+ * necessary for setting up the Vanillanote editor environment.  
+ * It provides a fully populated default configuration, but users can modify or extend it
+ * to customize the editor’s appearance, behavior, and language settings before initializing Vanillanote.
+ *
+ * - If no custom configuration is provided to `getVanillanote()`, the result of this function is automatically used.
+ * - Developers can call this function first, modify specific fields (such as colors or default language), and then
+ * pass the customized config object to `getVanillanote(config)`.
+ *
+ * ### Parameters
+ * - None.
+ *
+ * ### Returns
+ * - A fully initialized `VanillanoteConfig` object including:
+ *   - `colors`: Predefined color themes for editor UI elements.
+ *   - `languageSet`: Language packs (default: English and Korean).
+ *   - `attributes`: Detailed control over behavior, upload types, tool usage, default text styling, and more.
+ *   - `variables`: Internal runtime variables such as observer options and resize/input intervals.
+ *   - `beforeAlert`: A hook function to customize or intercept alert dialogs (default: always returns `true`).
+ *
+ * ### Usage
+ * ```typescript
+ * import { getVanillanote, getVanillanoteConfig } from 'vanillanote2';
+ * 
+ * const config = getVanillanoteConfig();
+ * config.colors.color1 = "#000000"; // Customize main filled color
+ * config.attributes.language = "KOR"; // Switch to Korean by default
+ *
+ * const vn = getVanillanote(config);
+ * vn.init();
+ * vn.mountNote();
+ * ```
+ *
+ * ### Notes
+ * - `attributes.attFileAcceptTypes` and `attributes.attImageAcceptTypes` define allowed file types.
+ * - `languageSet` supports multi-language UI customization; new languages can be added manually.
+ * - `variables` such as `resizeInterval` and `inputInterval` allow tuning performance-sensitive settings.
+ * - `beforeAlert` can be overridden to replace `window.alert()` with custom UI like modals or toasts.
+ * - Supports easy cloning, extension, or override by users.
+ *
+ * ### Internal Behavior
+ * - Sets default text area size (`500px` height, 100% width).
+ * - Default language is English ("ENG").
+ * - Accepts most common image and video formats.
+ * - Default maximum file size for uploads is `50MB`.
+ * - Default UI colors are lightweight and professional (e.g., grays, greens, blues).
+ *
+ * @example
+ * // Modifying default configuration before use
+ * const config = getVanillanoteConfig();
+ * config.colors.color5 = "#ff0000"; // Change active color to red
+ * config.attributes.defaultTextareaFontFamily = "Arial";
+ * const vn = getVanillanote(config);
+ * ```
+ */
 export const getVanillanoteConfig =(): VanillanoteConfig => {
     const attribute: Attributes = {
         noteModeByDevice: NoteModeByDevice.adaptive,
