@@ -248,10 +248,12 @@ export const setHandleCreateElement = (vn: Vanillanote, handler: Handler) => {
         appendNodeSetObject?: any
     ) => {
         const element = handler.createElement(elementTag, note, id, className, appendNodeSetObject);
+        element.classList.add(getClickCssEventElementClassName(note._noteName));
+        element.classList.add(getOnOverCssEventElementClassName(note._noteName));
+
         // The font event is dynamically generated
-        //!!!!!!!!!!!!!!!!!!!!!!
         (note._elementEvents as any)[id+"_onBeforeClick"] = (event: any) => {return true;};
-        (vn.events.elementEvents as any)[id+"_onClick"] = (event: any) => {
+        (vn.events.elementEvents as any)[note._id + "_" + id + "_onClick"] = (event: any) => {
             handler.fontFamilySelectList_onClick(event, note);
             handler.selectToggle(event.target, note);
             // If the selection is a single point
@@ -265,9 +267,18 @@ export const setHandleCreateElement = (vn: Vanillanote, handler: Handler) => {
             }
         };
         (note._elementEvents as any)[id+"_onAfterClick"] = (event: any) => {};
-        element.classList.add(getClickCssEventElementClassName(note._noteName));
-        element.classList.add(getOnOverCssEventElementClassName(note._noteName));
-        handler.addClickEvent(element, id, note);
+        element.addEventListener("click", (event: any) => {
+            if(note._cssEvents.target_onBeforeClick(event) && event.target.classList.contains(getClickCssEventElementClassName(note._noteName))) {
+                vn.events.cssEvents.target_onClick!(event);
+                note._cssEvents.target_onAfterClick(event);
+            }
+            if(!(note._elementEvents as any)[id+"_onBeforeClick"](event)) return;
+            (vn.events.elementEvents as any)[note._id + "_" + id + "_onClick"](event);
+            (note._elementEvents as any)[id+"_onAfterClick"](event);
+            
+            event.stopImmediatePropagation();
+        });
+
         handler.addMouseoverEvent(element, note);
         handler.addMouseoutEvent(element, note);
         handler.addTouchstartEvent(element, note);
