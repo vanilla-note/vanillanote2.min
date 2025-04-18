@@ -1,4 +1,7 @@
 type TagList = readonly string[];
+/**
+ * Keys (id, className) of elements
+ */
 export interface ClassNames {
 	template : {
 		readonly id : string;
@@ -549,6 +552,9 @@ export interface ClassNames {
 		readonly className : string;
 	},
 }
+/**
+ * Values that should not be changed
+ */
 export interface Consts {
 	// Start possible tags
 	readonly START_POSSIBLE_TAG : TagList;
