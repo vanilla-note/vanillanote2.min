@@ -221,6 +221,7 @@ const createNote = (vn: Vanillanote, handler: Handler, note: VanillanoteElement)
     };
     
     note.setNoteData = (data: NoteData) => {
+        if (!data) return;
         const textarea = note._elements.textarea;
         if (!textarea) return;
     
