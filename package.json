@@ -1,6 +1,6 @@
 {
   "name": "vanillanote2",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A Lightweight, Framework-agnostic Rich Text Editor, Rebuilt with TypeScript",
   "main": "dist/Vanillanote2.bundle.js",
   "module": "dist/Vanillanote2.bundle.js",
