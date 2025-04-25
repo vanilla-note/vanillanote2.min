@@ -1,9 +1,9 @@
-export const enum ToolPosition {
+export enum ToolPosition {
 	top = "TOP",
 	bottom = "BOTTOM",
 }
 
-export const enum NoteModeByDevice {
+export enum NoteModeByDevice {
 	adaptive = "ADAPTIVE",
 	mobile = "MOBILE",
 	desktop = "DESKTOP",
