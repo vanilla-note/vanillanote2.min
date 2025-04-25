@@ -544,8 +544,8 @@ export const setHandleHandleElement = (vn: Vanillanote, handler: Handler) => {
     handler.setAllToolSize = (note: VanillanoteElement) => {
         const toolButtons: any =  note._elements.tool.childNodes;
         
-        const displayInlineBlock = getId(note._noteName, note.id, "on_display_inline_block");
-        const displayNone = getId(note._noteName, note.id, "on_display_none");
+        const displayInlineBlock = getId(note._noteName, note._id, "on_display_inline_block");
+        const displayNone = getId(note._noteName, note._id, "on_display_none");
         
         // Display all buttons (reset their display style)
         for(let i = toolButtons.length - 1; i >= 0; i--) {
