@@ -285,19 +285,18 @@ export const getHexColorFromColorName = (colorName: string) => {
     return hex;
 };
 
-export const getColorShade = (hexColor: string) => {
-        const r = parseInt(hexColor.slice(1, 3), 16);
-        const g = parseInt(hexColor.slice(3, 5), 16);
-        const b = parseInt(hexColor.slice(5, 7), 16);
-
-        // Count how many of the R, G, B values are greater than or equal to 160 (0xa0)
-        let lightCount = 0;
-        if (r >= 0xa0) lightCount++;
-        if (g >= 0xa0) lightCount++;
-        if (b >= 0xa0) lightCount++;
-
-        // If at least two out of three values are considered "light", the color is categorized as "light"
-        return lightCount >= 2 ? "light" : "dark";
+export const getColorShade = (hexColor: string): "light" | "dark" => {
+    if (!/^#([0-9a-fA-F]{6})$/.test(hexColor)) {
+      throw new Error(`Invalid HEX color format: ${hexColor}`);
+    }
+  
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+  
+    const brightness = r + g + b;
+  
+    return brightness > 385 ? "light" : "dark";
 };
 
 export const getAdjustHexColor = (color: string, diff: string) => {
