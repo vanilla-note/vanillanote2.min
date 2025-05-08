@@ -159,9 +159,9 @@ export interface ElementEvents {
 	attImageUploadButtonAndView_onDrop: null | ((e: Event) => void);
 	attImageUploadButtonAndView_onClick: null | ((e: Event) => void);
 	//modal att image view pre button
-	attImageViewPreButtion_onClick: null | ((e: Event) => void);
+	attImageViewPreButton_onClick: null | ((e: Event) => void);
 	//modal att image view next button
-	attImageViewNextButtion_onClick: null | ((e: Event) => void);
+	attImageViewNextButton_onClick: null | ((e: Event) => void);
 	//modal att image upload
 	attImageUpload_onInput: null | ((e: Event) => void);
 	attImageUpload_onBlur: null | ((e: Event) => void);
