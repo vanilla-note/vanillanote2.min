@@ -303,8 +303,8 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
             attImageExplain1 : { id : "attImageExplain1", className : "modal_explain", },
             attImageExplain2 : { id : "attImageExplain2", className : "modal_explain", },
             attImageUploadButtonAndView : { id : "attImageUploadButtonAndView", className : "image_view_div", },
-            attImageViewPreButtion : { id : "attImageViewPreButtion", className : "opacity_button", },
-            attImageViewNextButtion : { id : "attImageViewNextButtion", className : "opacity_button", },
+            attImageViewPreButton : { id : "attImageViewPreButton", className : "opacity_button", },
+            attImageViewNextButton : { id : "attImageViewNextButton", className : "opacity_button", },
             attImageUpload : { id : "attImageUpload", className : "modal_input_file", },
             attImageURL : { id : "attImageURL", className : "modal_input", },
             attImageInsertButton : { id : "attImageInsertButton", className : "normal_button", },
@@ -341,6 +341,7 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
     const attributes: Attributes = config.attributes;
     const variables: Variables = config.variables;
     const languageSet: LanguageSet = config.languageSet;
+    const useGoogleIcon = config.useGoogleIcon;
     
     singletonVanillanote = {
         consts : consts,
@@ -348,6 +349,49 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
         attributes : attributes,
         variables : variables,
         languageSet : languageSet,
+        iconSpanElement : {
+            toolToggleButtonIcon: config.iconSpanElement.toolToggleButtonIcon ?? null,
+            paragraphStyleSelectIcon: config.iconSpanElement.paragraphStyleSelectIcon ?? null,
+            boldButtonIcon: config.iconSpanElement.boldButtonIcon ?? null,
+            underlineButtonIcon: config.iconSpanElement.underlineButtonIcon ?? null,
+            italicButtonIcon: config.iconSpanElement.italicButtonIcon ?? null,
+            ulButtonIcon: config.iconSpanElement.ulButtonIcon ?? null,
+            olButtonIcon: config.iconSpanElement.olButtonIcon ?? null,
+            textAlignSelectIcon: config.iconSpanElement.textAlignSelectIcon ?? null,
+            textAlignLeftButtonIcon: config.iconSpanElement.textAlignLeftButtonIcon ?? null,
+            textAlignCenterButtonIcon: config.iconSpanElement.textAlignCenterButtonIcon ?? null,
+            textAlignRightButtonIcon: config.iconSpanElement.textAlignRightButtonIcon ?? null,
+            attLinkButtonIcon: config.iconSpanElement.attLinkButtonIcon ?? null,
+            attLinkInsertButtonIcon: config.iconSpanElement.attLinkInsertButtonIcon ?? null,
+            attLinkTooltipEditButtonIcon: config.iconSpanElement.attLinkTooltipEditButtonIcon ?? null,
+            attLinkTooltipUnlinkButtonIcon: config.iconSpanElement.attLinkTooltipUnlinkButtonIcon ?? null,
+            attFileButtonIcon: config.iconSpanElement.attFileButtonIcon ?? null,
+            attFileInsertButtonIcon: config.iconSpanElement.attFileInsertButtonIcon ?? null,
+            attImageButtonIcon: config.iconSpanElement.attImageButtonIcon ?? null,
+            attImageViewPreButtonIcon: config.iconSpanElement.attImageViewPreButtonIcon ?? null,
+            attImageViewNextButtonIcon: config.iconSpanElement.attImageViewNextButtonIcon ?? null,
+            attImageInsertButtonIcon: config.iconSpanElement.attImageInsertButtonIcon ?? null,
+            attVideoButtonIcon: config.iconSpanElement.attVideoButtonIcon ?? null,
+            attVideoWidthTextIcon: config.iconSpanElement.attVideoWidthTextIcon ?? null,
+            attVideoHeightTextIcon: config.iconSpanElement.attVideoHeightTextIcon ?? null,
+            attVideoInsertButtonIcon: config.iconSpanElement.attVideoInsertButtonIcon ?? null,
+            attImageAndVideoTooltipFloatRadioNoneLabelIcon: config.iconSpanElement.attImageAndVideoTooltipFloatRadioNoneLabelIcon ?? null,
+            attImageAndVideoTooltipFloatRadioLeftLabelIcon: config.iconSpanElement.attImageAndVideoTooltipFloatRadioLeftLabelIcon ?? null,
+            attImageAndVideoTooltipFloatRadioRightLabelIcon: config.iconSpanElement.attImageAndVideoTooltipFloatRadioRightLabelIcon ?? null,
+            attImageAndVideoTooltipShapeRadioSquareLabelIcon: config.iconSpanElement.attImageAndVideoTooltipShapeRadioSquareLabelIcon ?? null,
+            attImageAndVideoTooltipShapeRadioRadiusLabelIcon: config.iconSpanElement.attImageAndVideoTooltipShapeRadioRadiusLabelIcon ?? null,
+            attImageAndVideoTooltipShapeRadioCircleLabelIcon: config.iconSpanElement.attImageAndVideoTooltipShapeRadioCircleLabelIcon ?? null,
+            fontSizeInputBoxIcon: config.iconSpanElement.fontSizeInputBoxIcon ?? null,
+            letterSpacingInputBoxIcon: config.iconSpanElement.letterSpacingInputBoxIcon ?? null,
+            lineHeightInputBoxIcon: config.iconSpanElement.lineHeightInputBoxIcon ?? null,
+            colorTextSelectIcon: config.iconSpanElement.colorTextSelectIcon ?? null,
+            colorBackSelectIcon: config.iconSpanElement.colorBackSelectIcon ?? null,
+            formatClearButtonIcon: config.iconSpanElement.formatClearButtonIcon ?? null,
+            undoButtonIcon: config.iconSpanElement.undoButtonIcon ?? null,
+            redoButtonIcon: config.iconSpanElement.redoButtonIcon ?? null,
+            helpButtonIcon: config.iconSpanElement.helpButtonIcon ?? null,
+        },
+        useGoogleIcon: useGoogleIcon === true,
         events : {
             documentEvents : {
                 noteObserver: null,
@@ -405,8 +449,8 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
                 attImageUploadButtonAndView_onDragover : null,
                 attImageUploadButtonAndView_onDrop : null,
                 attImageUploadButtonAndView_onClick : null,
-                attImageViewPreButtion_onClick : null,
-                attImageViewNextButtion_onClick : null,
+                attImageViewPreButton_onClick : null,
+                attImageViewNextButton_onClick : null,
                 attImageUpload_onInput : null,
                 attImageUpload_onBlur : null,
                 attImageURL_onInput : null,
@@ -557,20 +601,22 @@ const initVanillanote = () => {
     }
 
     // Create google icons link cdn
-    const googleIconHrefBase = "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded";
-    const iconLinkId = singletonVanillanote.variables.noteName + "_icons-link";
-    
-    const alreadyIncluded = Array.from(document.head.querySelectorAll('link[rel="stylesheet"]')).some(link => {
-        const href = link.getAttribute('href');
-        return href && href.startsWith(googleIconHrefBase);
-    });
-    
-    if (!alreadyIncluded && !document.getElementById(iconLinkId)) {
-        const linkElementGoogleIcons = document.createElement("link");
-        linkElementGoogleIcons.setAttribute("id", iconLinkId);
-        linkElementGoogleIcons.setAttribute("rel", "stylesheet");
-        linkElementGoogleIcons.setAttribute("href", googleIconHrefBase + ":opsz,wght,FILL,GRAD@48,400,0,0");
-        document.head.appendChild(linkElementGoogleIcons);
+    if(singletonVanillanote.useGoogleIcon) {
+        const googleIconHrefBase = "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded";
+        const iconLinkId = singletonVanillanote.variables.noteName + "_icons-link";
+        
+        const alreadyIncluded = Array.from(document.head.querySelectorAll('link[rel="stylesheet"]')).some(link => {
+            const href = link.getAttribute('href');
+            return href && href.startsWith(googleIconHrefBase);
+        });
+        
+        if (!alreadyIncluded && !document.getElementById(iconLinkId)) {
+            const linkElementGoogleIcons = document.createElement("link");
+            linkElementGoogleIcons.setAttribute("id", iconLinkId);
+            linkElementGoogleIcons.setAttribute("rel", "stylesheet");
+            linkElementGoogleIcons.setAttribute("href", googleIconHrefBase + ":opsz,wght,FILL,GRAD@48,400,0,0");
+            document.head.appendChild(linkElementGoogleIcons);
+        }
     }
 
     //event 등록
@@ -929,11 +975,55 @@ export const getVanillanoteConfig =(): VanillanoteConfig => {
             ],
         },
     };
+    const iconSpanElement = {
+        toolToggleButtonIcon: null,
+        paragraphStyleSelectIcon: null,
+        boldButtonIcon: null,
+        underlineButtonIcon: null,
+        italicButtonIcon: null,
+        ulButtonIcon: null,
+        olButtonIcon: null,
+        textAlignSelectIcon: null,
+        textAlignLeftButtonIcon: null,
+        textAlignCenterButtonIcon: null,
+        textAlignRightButtonIcon: null,
+        attLinkButtonIcon: null,
+        attLinkInsertButtonIcon: null,
+        attLinkTooltipEditButtonIcon: null,
+        attLinkTooltipUnlinkButtonIcon: null,
+        attFileButtonIcon: null,
+        attFileInsertButtonIcon: null,
+        attImageButtonIcon: null,
+        attImageViewPreButtonIcon: null,
+        attImageViewNextButtonIcon: null,
+        attImageInsertButtonIcon: null,
+        attVideoButtonIcon: null,
+        attVideoWidthTextIcon: null,
+        attVideoHeightTextIcon: null,
+        attVideoInsertButtonIcon: null,
+        attImageAndVideoTooltipFloatRadioNoneLabelIcon: null,
+        attImageAndVideoTooltipFloatRadioLeftLabelIcon: null,
+        attImageAndVideoTooltipFloatRadioRightLabelIcon: null,
+        attImageAndVideoTooltipShapeRadioSquareLabelIcon: null,
+        attImageAndVideoTooltipShapeRadioRadiusLabelIcon: null,
+        attImageAndVideoTooltipShapeRadioCircleLabelIcon: null,
+        fontSizeInputBoxIcon: null,
+        letterSpacingInputBoxIcon: null,
+        lineHeightInputBoxIcon: null,
+        colorTextSelectIcon: null,
+        colorBackSelectIcon: null,
+        formatClearButtonIcon: null,
+        undoButtonIcon: null,
+        redoButtonIcon: null,
+        helpButtonIcon: null,
+    };
     const vanillanoteConfig: VanillanoteConfig = {
         colors: colors,
         languageSet: languageSet,
         attributes: attribute,
         variables: variables,
+        iconSpanElement: iconSpanElement,
+        useGoogleIcon: true,
         beforeAlert: (message: string) => {return true;},
     };
     return vanillanoteConfig;
