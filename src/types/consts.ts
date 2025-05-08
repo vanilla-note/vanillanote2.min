@@ -431,11 +431,11 @@ export interface ClassNames {
 		readonly id : string;
 		readonly className : string;
 	},
-	attImageViewPreButtion : {
+	attImageViewPreButton : {
 		readonly id : string;
 		readonly className : string;
 	},
-	attImageViewNextButtion : {
+	attImageViewNextButton : {
 		readonly id : string;
 		readonly className : string;
 	},
