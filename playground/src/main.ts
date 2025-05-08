@@ -76,6 +76,11 @@ const jpnLanguagePack: LanguagePack = {
 }
 vnConfig.languageSet.JPN = jpnLanguagePack;
 vnConfig.attributes.language = 'JPN';
+//vnConfig.useGoogleIcon = false;
+const iconSpan = document.createElement('span');
+iconSpan.classList.add('material-symbols-rounded');
+iconSpan.textContent = 'auto_fix_high';
+vnConfig.iconSpanElement.underlineButtonIcon = iconSpan;
 const vn: Vanillanote = getVanillanote(vnConfig);
 vn.init();
 
