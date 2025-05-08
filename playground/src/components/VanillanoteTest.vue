@@ -6,7 +6,7 @@
     data-vanillanote
     data-id="note1"
     language="KOR"
-    textarea-height="300px"
+    textarea-height="200px"
     size-level-desktop="1"
     placeholder-is-visible="true"
     placeholder-title="TEST"
@@ -43,7 +43,8 @@ let noteData;
 
 const getNoteData = () => {
   const note1: VanillanoteElement = vn.getNote('note1')!;
-  noteData = note1.getNoteData();
+  note1._attributes.placeholderIsVisible = false;
+  //note1._attributes.placeholderIsVisible = true;
 };
 const setNoteData = () => {
   const note3: VanillanoteElement = vn.getNote('note3')!;
