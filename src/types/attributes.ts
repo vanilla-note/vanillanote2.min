@@ -11,6 +11,9 @@ import { NoteModeByDevice, ToolPosition } from "./enums";
  * }
  */
 export interface Attributes {
+    /**
+     * The shape of the note changes depending on the user's terminal.
+     */
     noteModeByDevice: NoteModeByDevice.adaptive | NoteModeByDevice.desktop | NoteModeByDevice.mobile;
     /**
      * - Variables for dynamically setting the size of the textarea
