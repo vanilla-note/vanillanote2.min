@@ -671,14 +671,14 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         note._elements.attImageUpload.click();
     };
     //modal att image view pre button
-    vn.events.elementEvents.attImageViewPreButtion_onClick = (e: any) => {
+    vn.events.elementEvents.attImageViewPreButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         const scrollAmount = note._elements.attImageUploadButtonAndView.offsetWidth / 1.5 + 10;
         note._elements.attImageUploadButtonAndView.scrollLeft -= scrollAmount;
     };
     //modal att image view next button
-    vn.events.elementEvents.attImageViewNextButtion_onClick = (e: any) => {
+    vn.events.elementEvents.attImageViewNextButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
         if(!note) return;
         const scrollAmount = note._elements.attImageUploadButtonAndView.offsetWidth / 1.5 + 10;
