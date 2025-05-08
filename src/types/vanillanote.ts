@@ -7,6 +7,68 @@ import type { Variables } from './variables';
 import { ToolPosition } from './enums';
 
 /**
+ * You can predefine the icon `<span>` elements to be applied to each toolbar component.
+ *
+ * - These icons will replace the default icons during the `mountNote()` process if provided.
+ * - Each property corresponds to a specific editor button or label location.
+ * - The element must be a valid `HTMLSpanElement` and typically includes an icon font class (e.g., Material Symbols).
+ *
+ * ## Usage Example
+ * ```ts
+ * const icon = document.createElement('span');
+ * icon.classList.add('material-symbols-rounded');
+ * icon.textContent = 'format_bold';
+ * vnConfig.iconSpanElement.boldButtonIcon = icon;
+ * ```
+ *
+ * ## Notes
+ * - This interface allows you to **override default icons** without modifying internal HTML.
+ * - If `useGoogleIcon` is set to `false`, no default icons are applied—use this to fully control icon appearance.
+ */
+export interface IconSpanElement {
+	toolToggleButtonIcon: HTMLSpanElement | null;
+	paragraphStyleSelectIcon: HTMLSpanElement | null;
+	boldButtonIcon: HTMLSpanElement | null;
+	underlineButtonIcon: HTMLSpanElement | null;
+	italicButtonIcon: HTMLSpanElement | null;
+	ulButtonIcon: HTMLSpanElement | null;
+	olButtonIcon: HTMLSpanElement | null;
+	textAlignSelectIcon: HTMLSpanElement | null;
+	textAlignLeftButtonIcon: HTMLSpanElement | null;
+	textAlignCenterButtonIcon: HTMLSpanElement | null;
+	textAlignRightButtonIcon: HTMLSpanElement | null;
+	attLinkButtonIcon: HTMLSpanElement | null;
+	attLinkInsertButtonIcon: HTMLSpanElement | null;
+	attLinkTooltipEditButtonIcon: HTMLSpanElement | null;
+	attLinkTooltipUnlinkButtonIcon: HTMLSpanElement | null;
+	attFileButtonIcon: HTMLSpanElement | null;
+	attFileInsertButtonIcon: HTMLSpanElement | null;
+	attImageButtonIcon: HTMLSpanElement | null;
+	attImageViewPreButtonIcon: HTMLSpanElement | null;
+	attImageViewNextButtonIcon: HTMLSpanElement | null;
+	attImageInsertButtonIcon: HTMLSpanElement | null;
+	attVideoButtonIcon: HTMLSpanElement | null;
+	attVideoWidthTextIcon: HTMLSpanElement | null;
+	attVideoHeightTextIcon: HTMLSpanElement | null;
+	attVideoInsertButtonIcon: HTMLSpanElement | null;
+	attImageAndVideoTooltipFloatRadioNoneLabelIcon: HTMLSpanElement | null;
+	attImageAndVideoTooltipFloatRadioLeftLabelIcon: HTMLSpanElement | null;
+	attImageAndVideoTooltipFloatRadioRightLabelIcon: HTMLSpanElement | null;
+	attImageAndVideoTooltipShapeRadioSquareLabelIcon: HTMLSpanElement | null;
+	attImageAndVideoTooltipShapeRadioRadiusLabelIcon: HTMLSpanElement | null;
+	attImageAndVideoTooltipShapeRadioCircleLabelIcon: HTMLSpanElement | null;
+	fontSizeInputBoxIcon: HTMLSpanElement | null;
+	letterSpacingInputBoxIcon: HTMLSpanElement | null;
+	lineHeightInputBoxIcon: HTMLSpanElement | null;
+	colorTextSelectIcon: HTMLSpanElement | null;
+	colorBackSelectIcon: HTMLSpanElement | null;
+	formatClearButtonIcon: HTMLSpanElement | null;
+	undoButtonIcon: HTMLSpanElement | null;
+	redoButtonIcon: HTMLSpanElement | null;
+	helpButtonIcon: HTMLSpanElement | null;
+}
+
+/**
  * The core object of the Vanillanote editor project.
  *
  * - This object contains all configuration, styles, elements, and runtime data necessary for the creation and management of Vanillanote editors.
@@ -44,9 +106,40 @@ export interface VanillanoteConfig {
 	 */
 	variables: Variables;
 	/**
-	 * 
+	 * Runtime variables and settings that manage editor creation and behavior.
+	 * - Includes per-instance configurations and global values.
+	 * - Properties with `[index]` support allow individual editor customization.
+	 *
+	 * @example
+	 * if (isMobileDevice) {
+	 *   vn.variables.attFileMaxSize[0] = 50 * 1024 * 1024; // Increase max upload size on mobile
+	 * }
 	 */
 	attributes: Attributes;
+	/**
+	 * You can predefine the icon `<span>` elements to be applied to each toolbar component.
+	 *
+	 * - These icons will replace the default icons during the `mountNote()` process if provided.
+	 * - Each property corresponds to a specific editor button or label location.
+	 * - The element must be a valid `HTMLSpanElement` and typically includes an icon font class (e.g., Material Symbols).
+	 *
+	 * ## Usage Example
+	 * ```ts
+	 * const icon = document.createElement('span');
+	 * icon.classList.add('material-symbols-rounded');
+	 * icon.textContent = 'format_bold';
+	 * vnConfig.iconSpanElement.boldButtonIcon = icon;
+	 * ```
+	 *
+	 * ## Notes
+	 * - This interface allows you to **override default icons** without modifying internal HTML.
+	 * - If `useGoogleIcon` is set to `false`, no default icons are applied—use this to fully control icon appearance.
+	 */
+	iconSpanElement: IconSpanElement;
+    /**
+     * Whether to use the Google icon
+     */
+    useGoogleIcon: boolean;
     /**
      * A hook function called before displaying alert dialogs in the editor.
      * - Receives the alert message as a parameter.
@@ -778,9 +871,9 @@ export interface VanillanoteElement extends HTMLDivElement {
 		attImageModalTitle: HTMLDivElement,
 		attImageExplain1: HTMLDivElement,
 		attImageUploadButtonAndViewBox: HTMLDivElement,
-		attImageViewPreButtion: HTMLButtonElement,
+		attImageViewPreButton: HTMLButtonElement,
 		attImageUploadButtonAndView: HTMLDivElement,
-		attImageViewNextButtion: HTMLButtonElement,
+		attImageViewNextButton: HTMLButtonElement,
 		attImageUpload: HTMLInputElement,
 		attImageExplain2: HTMLDivElement,
 		attImageURL: HTMLInputElement,
@@ -1256,12 +1349,12 @@ export interface VanillanoteElement extends HTMLDivElement {
 		attImageUploadButtonAndView_onAfterClick(event: Event): void;
 		
 		//modal att image view pre button event
-		attImageViewPreButtion_onBeforeClick(event: Event): boolean;
-		attImageViewPreButtion_onAfterClick(event: Event): void;
+		attImageViewPreButton_onBeforeClick(event: Event): boolean;
+		attImageViewPreButton_onAfterClick(event: Event): void;
 		
 		//modal att image view next button event
-		attImageViewNextButtion_onBeforeClick(event: Event): boolean;
-		attImageViewNextButtion_onAfterClick(event: Event): void;
+		attImageViewNextButton_onBeforeClick(event: Event): boolean;
+		attImageViewNextButton_onAfterClick(event: Event): void;
 		
 		//modal att image upload input event
 		attImageUpload_onBeforeInput(event: Event): boolean;
