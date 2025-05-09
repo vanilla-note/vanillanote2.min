@@ -43,8 +43,7 @@ let noteData;
 
 const getNoteData = () => {
   const note1: VanillanoteElement = vn.getNote('note1')!;
-  note1._attributes.placeholderIsVisible = false;
-  //note1._attributes.placeholderIsVisible = true;
+  noteData = note1.getNoteData();
 };
 const setNoteData = () => {
   const note3: VanillanoteElement = vn.getNote('note3')!;
