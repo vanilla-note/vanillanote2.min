@@ -292,17 +292,28 @@ export const setHandleCreateElement = (vn: Vanillanote, handler: Handler) => {
         id: string,
         note: VanillanoteElement,
     ) => {
-        element.addEventListener("click", (event: any) => {
-            if(note._cssEvents.target_onBeforeClick(event) && event.target.classList.contains(getClickCssEventElementClassName(note._noteName))) {
-                vn.events.cssEvents.target_onClick!(event);
-                note._cssEvents.target_onAfterClick(event);
-            }
-            if(!(note._elementEvents as any)[id+"_onBeforeClick"](event)) return;
-            (vn.events.elementEvents as any)[id+"_onClick"](event);
-            (note._elementEvents as any)[id+"_onAfterClick"](event);
-            
-            event.stopImmediatePropagation();
-        });
+        if(id === "textarea") {
+            element.addEventListener("click", (event: any) => {
+                if(!(note._elementEvents as any)[id+"_onBeforeClick"](event)) return;
+                (vn.events.elementEvents as any)[id+"_onClick"](event);
+                (note._elementEvents as any)[id+"_onAfterClick"](event);
+                
+                event.stopImmediatePropagation();
+            });
+        }
+        else {
+            element.addEventListener("click", (event: any) => {
+                if(note._cssEvents.target_onBeforeClick(event) && event.target.classList.contains(getClickCssEventElementClassName(note._noteName))) {
+                    vn.events.cssEvents.target_onClick!(event);
+                    note._cssEvents.target_onAfterClick(event);
+                }
+                if(!(note._elementEvents as any)[id+"_onBeforeClick"](event)) return;
+                (vn.events.elementEvents as any)[id+"_onClick"](event);
+                (note._elementEvents as any)[id+"_onAfterClick"](event);
+                
+                event.stopImmediatePropagation();
+            });
+        }
     };
     
     handler. addMouseoverEvent = (element: any, note: VanillanoteElement) => {
