@@ -5,7 +5,7 @@
       "outDir": "dist/types",
       "target": "ES6",
       "module": "ESNext",
-      "moduleResolution": "node",
+      "moduleResolution": "bundler",
       "strict": true,
       "noImplicitThis": false,
       "rootDir": "src",

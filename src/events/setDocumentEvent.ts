@@ -13,14 +13,23 @@ export const setDocumentEvents = (vn: Vanillanote, handler: Handler) => {
         const note = getParentNote(mutationEl);
         if(!note) return;
         vn.variables.lastActiveNoteId = note._id;
+        if((note as any)._isComposing) return;
 
         handler.recodeNote(note);
     });
     
     // Adjust note size according to window change.
+    let resizeTrailingTimeout: any = null;
     const window_onResize = () => {
-        // A delay of 0.05 second
-        if(!vn.variables.canEvent) return;
+        // A delay of 0.05 second. The last resize event is re-fired after the interval (trailing call).
+        if(!vn.variables.canEvent) {
+            if(resizeTrailingTimeout) clearTimeout(resizeTrailingTimeout);
+            resizeTrailingTimeout = setTimeout(() => {
+                resizeTrailingTimeout = null;
+                window_onResize();
+            }, vn.variables.resizeInterval);
+            return;
+        }
         handler.onEventDisable(vn, "resize");
         
         Object.keys(vn.vanillanoteElements).forEach((id) => {
@@ -120,12 +129,16 @@ export const setDocumentEvents = (vn: Vanillanote, handler: Handler) => {
     };
     vn.events.documentEvents.keydown = (event: KeyboardEvent) => {
         if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z")) {
-            event.preventDefault();
-            if(handler.isInNote(event.target)) (vn.events.elementEvents as any).undoButton_onClick(event, vn);
+            if(handler.isInNote(event.target)) {
+                event.preventDefault();
+                (vn.events.elementEvents as any).undoButton_onClick(event, vn);
+            }
         }
         if ((event.ctrlKey || event.metaKey) && (event.key === "y" || event.key === "Y")) {
-            event.preventDefault();
-            if(handler.isInNote(event.target)) (vn.events.elementEvents as any).redoButton_onClick(event, vn);
+            if(handler.isInNote(event.target)) {
+                event.preventDefault();
+                (vn.events.elementEvents as any).redoButton_onClick(event, vn);
+            }
         }
     };
     vn.events.documentEvents.resize = (event: UIEvent) => {

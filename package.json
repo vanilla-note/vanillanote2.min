@@ -1,6 +1,6 @@
 {
   "name": "vanillanote2",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A Lightweight, Framework-agnostic Rich Text Editor, Rebuilt with TypeScript",
   "main": "dist/Vanillanote2.bundle.js",
   "module": "dist/Vanillanote2.bundle.js",
@@ -19,7 +19,7 @@
   "scripts": {
     "build": "tsc && webpack",
     "lint": "eslint 'src/**/*.ts'",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/smoke.mjs"
   },
   "repository": {
     "type": "git",
@@ -46,6 +46,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "babel-loader": "^8.4.1",
     "eslint": "^8.57.1",
+    "jsdom": "^29.1.1",
     "typescript": "^5.8.2",
     "webpack": "^5.0.0",
     "webpack-cli": "^4.0.0"

@@ -64,9 +64,9 @@ export const setHandleHandleElement = (vn: Vanillanote, handler: Handler) => {
             note._status.colorBackRGB = getHexFromRGBA(cssObject["background-color"])!;
             note._status.colorBackOpacity = getOpacityFromRGBA(cssObject["background-color"])!;
             // If background-color is not in rgba format, use the default color and opacity
-            if(!note._status.colorTextRGB) {
-                note._status.colorTextRGB = getHexColorFromColorName(note._colors.color12);
-                note._status.colorTextOpacity = "1";
+            if(!note._status.colorBackRGB) {
+                note._status.colorBackRGB = getHexColorFromColorName(note._colors.color13);
+                note._status.colorBackOpacity = "0";
             }
             else {
                 // If opacity is not present in rgba format, use 0 as default opacity
@@ -124,11 +124,11 @@ export const setHandleHandleElement = (vn: Vanillanote, handler: Handler) => {
         let select = target;
         let isClickBox = false;
         // If select box is selected
-        while(select && select.getAttribute("type") !== "select") {
+        while(select && select.getAttribute && select.getAttribute("type") !== "select") {
             isClickBox = true;
             select = select.parentNode;
         }
-        if(!select.getAttribute("data-note-id")) return;
+        if(!select || !select.getAttribute || !select.getAttribute("data-note-id")) return;
         const selectId = select.getAttribute("id");
         let selectBox: any;
         
@@ -297,6 +297,8 @@ export const setHandleHandleElement = (vn: Vanillanote, handler: Handler) => {
     handler.setElementScroll = (parentElement: any, childElement: any, mobileKeyboardExceptHeight: number) => {
         if(!parentElement || !childElement) return;
         if(childElement.nodeType === 3) childElement = childElement.parentNode;
+        // Cancel any scroll animation already running on this element to prevent overlapping animations.
+        if(parentElement._scrollAnimationFrame) window.cancelAnimationFrame(parentElement._scrollAnimationFrame);
         let start: any = null;
         const target = childElement.offsetTop - Math.round(mobileKeyboardExceptHeight / 2) + Math.round(childElement.offsetHeight / 2);
         const firstPosition = parentElement.scrollTop;
@@ -311,11 +313,14 @@ export const setHandleHandleElement = (vn: Vanillanote, handler: Handler) => {
     
             // Continue the animation as long as it's not finished
             if (progress < duration) {
-                window.requestAnimationFrame(step);
+                parentElement._scrollAnimationFrame = window.requestAnimationFrame(step);
+            }
+            else {
+                parentElement._scrollAnimationFrame = null;
             }
         }
         
-        window.requestAnimationFrame(step);
+        parentElement._scrollAnimationFrame = window.requestAnimationFrame(step);
     };
     
     handler.getCheckSelectBoxesOpened = (note: VanillanoteElement) => {
@@ -420,7 +425,10 @@ export const setHandleHandleElement = (vn: Vanillanote, handler: Handler) => {
     handler.setAllModalSize = (note: VanillanoteElement) => {
         if(note._elements.template.offsetParent === null) return
         // Use setTimeout to adjust size according to the dynamic change in textarea's size.
-        setTimeout(() => {
+        // Cancel the previous pending timer so that rapid resize events do not apply stale sizes.
+        if((note as any)._setAllModalSizeTimeout) clearTimeout((note as any)._setAllModalSizeTimeout);
+        (note as any)._setAllModalSizeTimeout = setTimeout(() => {
+            (note as any)._setAllModalSizeTimeout = null;
             note._elements.modalBack.style.width = note._elements.template.clientWidth + "px";
             note._elements.modalBack.style.height = note._elements.template.clientHeight + "px";
             note._elements.attLinkModal.style.width = note._elements.textarea.clientWidth*0.8 + "px"
@@ -438,7 +446,10 @@ export const setHandleHandleElement = (vn: Vanillanote, handler: Handler) => {
     
     handler.setPlaceholderSize = (note: VanillanoteElement) => {
         // Use setTimeout to adjust size according to the dynamic change in textarea's size.
-        setTimeout(() => {
+        // Cancel the previous pending timer so that rapid resize events do not apply stale sizes.
+        if((note as any)._setPlaceholderSizeTimeout) clearTimeout((note as any)._setPlaceholderSizeTimeout);
+        (note as any)._setPlaceholderSizeTimeout = setTimeout(() => {
+            (note as any)._setPlaceholderSizeTimeout = null;
             if(!note._attributes.placeholderIsVisible) return;
             handler.closePlaceholder(note);
             if(note._elements.textarea.offsetParent === null) return
@@ -512,11 +523,11 @@ export const setHandleHandleElement = (vn: Vanillanote, handler: Handler) => {
         (note._elements.attImageAndVideoTooltipShapeRadioSquare as any).checked = true;
         if(cssObj["border-radius"]) {
             const borderRadius: any = extractNumber(cssObj["border-radius"]);
-            if(borderRadius > 0) {
-                (note._elements.attImageAndVideoTooltipShapeRadioRadius as any).checked = true;
-            }
-            else if(borderRadius >= 50) {
+            if(borderRadius >= 50) {
                 (note._elements.attImageAndVideoTooltipShapeRadioCircle as any).checked = true;
+            }
+            else if(borderRadius > 0) {
+                (note._elements.attImageAndVideoTooltipShapeRadioRadius as any).checked = true;
             }
         }
         

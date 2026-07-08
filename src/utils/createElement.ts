@@ -31,7 +31,7 @@ export const setHandleCreateElement = (vn: Vanillanote, handler: Handler) => {
     };
     
     handler.setAttFileUploadDiv = (note: VanillanoteElement) => {
-        if((note._attTempFiles as any).length <= 0) {
+        if(Object.keys(note._attTempFiles!).length <= 0) {
             note._elements.attFileUploadDiv.style.removeProperty("line-height");
             note._elements.attFileUploadDiv.textContent = vn.languageSet[note._attributes.language].attFileUploadDiv;
             return;

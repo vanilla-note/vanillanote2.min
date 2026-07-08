@@ -10,7 +10,7 @@ hisonvue **HNote(리치 텍스트 에디터) 컴포넌트가 사용하는 npm `v
 vanilla/note/
 ├─ vanillanote/             ← v1 원천 (구버전 — 분석 불필요)
 ├─ vanillanote.min/         ← v1 배포본 (구버전 — 분석 불필요)
-├─ vanillanote2.min/        ← ★ v2. hisonvue가 사용하는 npm `vanillanote2` (v1.1.0)
+├─ vanillanote2.min/        ← ★ v2. hisonvue가 사용하는 npm `vanillanote2` (v1.1.1)
 │  ├─ src/
 │  │  ├─ index.ts           ← export: getVanillanote, getVanillanoteConfig, 타입/enum
 │  │  ├─ core/              ← getVanillanote(싱글톤, 1,030줄), mountVanillanote(3,556줄), unmountVanillanote
@@ -21,7 +21,9 @@ vanilla/note/
 └─ vanilla-note.github.io/  ← 전용 문서 사이트 소스
 ```
 
-## 핵심 사실 (vanillanote2.min v1.1.0)
+## 핵심 사실 (vanillanote2.min v1.1.1)
+
+**v1.1.1 (2026-07-08)**: 보완 프로젝트 6단계에서 버그 15건+리팩토링(~840줄 감소) (내역 = `../../../../md/hisondev-vanillanote.md` 보완 내역 절). 로컬 빌드·스모크(npm test, jsdom 33케이스) 완료, npm publish는 사용자 대기. ⚠️ **한글(IME) 입력 개선은 실브라우저 확인 필요** — playground에서 굵기 켜고 한글 입력 테스트 권장.
 
 - npm `vanillanote2` / 런타임 의존성 없음 / MIT / TypeScript + webpack 번들
 - **생명주기 (vanillagrid2와 동일 패턴)**: `getVanillanoteConfig()` → `getVanillanote(config)`(싱글톤) → `vn.init()`(1회) → `vn.mountNote(el?)` → `vn.getNote(id)` → `vn.unmountNote(el?)` → `vn.destroy()`
@@ -38,10 +40,11 @@ vanilla/note/
 - 가이드: `../../../../md/hisondev-vanillanote.md` (소스 검증 완료)
 - 생태계 전체: `../../../../md/hisondev-ecosystem.md`
 
-## 알려진 이슈 (수정 금지 — 추후 소유자와 재정리 예정)
+## 알려진 이슈
 
-1. attributes 공개 키 오타 추정: `recodeLimit` (record→recode)
-2. package.json test 스크립트 미구현
+1. `recodeLimit` 오타(record→recode) — 공개 속성 키라 rename 시 breaking. **유지 결정** (문서 명시)
+2. ~~test 스크립트 미구현~~ → **v1.1.1 해결** (`npm test` = test/smoke.mjs, jsdom 33케이스)
+3. 의도 확정 사항: iOS는 blur 대신 mouseout 사용(+v1.1.1에서 실제 포커스 아웃 가드 추가) / 모바일은 beforeinput 마커 스킵("드래그 후 스타일만") 유지
 
 ## 작업 규칙
 

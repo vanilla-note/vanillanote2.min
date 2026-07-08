@@ -115,8 +115,8 @@ export const setHandleHandleActive = (vn: Vanillanote, handler: Handler) => {
     };
     
     handler.compareStylesBetweenEl = (el1: any, el2: any) => {
-        const style1 = (el1 as any).cssText;
-        const style2 = (el2 as any).cssText;
+        const style1 = (el1 as any).style ? (el1 as any).style.cssText : "";
+        const style2 = (el2 as any).style ? (el2 as any).style.cssText : "";
         
         return compareObject(getObjectFromCssText(style1), getObjectFromCssText(style2));
     };
@@ -269,18 +269,18 @@ export const setHandleHandleActive = (vn: Vanillanote, handler: Handler) => {
         while (previous) {
             while (previous.previousSibling) {
                 previous = previous.previousSibling;
-                if (previous.tagName && consts.DOUBLE_TAG.indexOf(previous.tagName) > 0) {
+                if (previous.tagName && consts.DOUBLE_TAG.indexOf(previous.tagName) >= 0) {
                     while(previous.lastChild) {
                         previous = previous.lastChild
                     }
                 }
-                else if (previous.tagName && consts.UNIT_TAG.indexOf(previous.tagName) > 0) {
+                else if (previous.tagName && consts.UNIT_TAG.indexOf(previous.tagName) >= 0) {
                     while(previous.lastChild) {
                         previous = previous.lastChild
                     }
                 }
                 if(previous.nodeType === 3) previous = previous.parentNode;
-                if (consts.UNIT_TAG.indexOf(previous.tagName) > 0
+                if (consts.UNIT_TAG.indexOf(previous.tagName) >= 0
                     || !previous.tagName || previous.tagName !== tag.toUpperCase()
                     || !compareObject(attributes, handler.getAttributesObjectFromElement(previous))) {
                     return previouses;
@@ -301,18 +301,18 @@ export const setHandleHandleActive = (vn: Vanillanote, handler: Handler) => {
         while (next) {
             while (next.nextSibling) {
                 next = next.nextSibling;
-                if (next.tagName && consts.DOUBLE_TAG.indexOf(next.tagName) > 0) {
+                if (next.tagName && consts.DOUBLE_TAG.indexOf(next.tagName) >= 0) {
                     while(next.firstChild) {
                         next = next.firstChild
                     }
                 }
-                else if (next.tagName && consts.UNIT_TAG.indexOf(next.tagName) > 0) {
+                else if (next.tagName && consts.UNIT_TAG.indexOf(next.tagName) >= 0) {
                     while(next.firstChild) {
                         next = next.firstChild
                     }
                 }
                 if(next.nodeType === 3) next = next.parentNode;
-                if (consts.UNIT_TAG.indexOf(next.tagName) > 0
+                if (consts.UNIT_TAG.indexOf(next.tagName) >= 0
                     || !next.tagName || next.tagName !== tag.toUpperCase()
                     || !compareObject(attributes, handler.getAttributesObjectFromElement(next))) {
                     return nexts;

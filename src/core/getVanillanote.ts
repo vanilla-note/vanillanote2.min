@@ -251,7 +251,7 @@ export const getVanillanote = (config?: VanillanoteConfig): Vanillanote => {
             colorTextOpacityInput : { id : "colorTextOpacityInput", className : "color_input", },
             colorTextOpacityExplain : { id : "colorTextOpacityExplain", className : "color_explain", },
             colorBackSelect : { id : "colorBackSelect", className : "button", },
-            colorBackSelectBox : { id : "colorTextSelectBox", className : "select_box_c", },
+            colorBackSelectBox : { id : "colorBackSelectBox", className : "select_box_c", },
             colorBack0 : { id : "colorBack0", className : "color_button", },
             colorBack1 : { id : "colorBack1", className : "color_button", },
             colorBack2 : { id : "colorBack2", className : "color_button", },

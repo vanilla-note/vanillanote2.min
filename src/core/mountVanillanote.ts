@@ -288,6 +288,10 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         event.stopImmediatePropagation();
     });
     textarea.addEventListener(getIsIOS() ? "mouseout" : "blur", (event: any) => {
+        // iOS uses mouseout instead of blur(iOS contenteditable blur is unreliable).
+        // Run the blur logic only when focus has actually left the textarea, so that
+        // finger movements during editing do not trigger placeholder/cleanup logic.
+        if(getIsIOS() && textarea.contains(document.activeElement)) return;
         if(!note._elementEvents.textarea_onBeforeBlur(event)) return;
         (vn.events.elementEvents as any)["textarea_onBlur"](event);
         note._elementEvents.textarea_onAfterBlur(event);
@@ -305,6 +309,23 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         (vn.events.elementEvents as any)["textarea_onBeforeinput"](event);
         event.stopImmediatePropagation();
     });
+    textarea.addEventListener("compositionstart", (event: any) => {
+        (note as any)._isComposing = true;
+        // Apply the style marker BEFORE the IME composition starts. Changing the selection at this
+        // timing is safe (the composition session has not begun), so composed characters(Korean etc.)
+        // are typed inside the styled span without breaking the composition.
+        if (!isMobileDevice()) {
+            vn.events.documentEvents.noteObserver!.disconnect();
+            handler.textarea_onBeforeinputSpelling(event);
+            handler.connectObserver(vn);
+        }
+    });
+    textarea.addEventListener("compositionend", (event: any) => {
+        (note as any)._isComposing = false;
+        // Record the final composed state once. (Recording is skipped during composition
+        // so that undo works per input, not per composition step.)
+        handler.recodeNote(note);
+    });
     vn.events.documentEvents.noteObserver!.observe(textarea, vn.variables.observerOptions);
     handler.initTextarea(textarea);
 
@@ -314,6 +335,18 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         getOnOverCssEventElementClassName(note._noteName),
         getId(note._noteName, note._id, "icon")
     ]
+    // Replaces the default google-icon span with a user-provided custom icon span.
+    const replaceIconIfCustom = (button: HTMLElement, customIconSpan: HTMLSpanElement | null) => {
+        if(!(customIconSpan && customIconSpan instanceof HTMLSpanElement)) return;
+        const iconSpan = customIconSpan.cloneNode(true) as HTMLSpanElement;
+        iconSpan.setAttribute("data-note-id", note._id);
+        iconClassList.forEach((className) => {
+            if (!iconSpan.classList.contains(className)) {
+                iconSpan.classList.add(className);
+            }
+        })
+        button.replaceChild(iconSpan, button.firstChild!);
+    };
 
     //tool
     const tool = handler.createElement("div", note, vn.consts.CLASS_NAMES.tool.id, vn.consts.CLASS_NAMES.tool.className);
@@ -325,16 +358,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.toolToggleButton.className,
         {"isIcon":true, "text":"arrow_drop_down"}
     );
-    if(vn.iconSpanElement.toolToggleButtonIcon && vn.iconSpanElement.toolToggleButtonIcon instanceof HTMLSpanElement) {
-        const toolToggleButtonIconSpan = vn.iconSpanElement.toolToggleButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        toolToggleButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!toolToggleButtonIconSpan.classList.contains(className)) {
-                toolToggleButtonIconSpan.classList.add(className);
-            }
-        })
-        toolToggleButton.replaceChild(toolToggleButtonIconSpan, toolToggleButton.firstChild!);
-    }
+    replaceIconIfCustom(toolToggleButton, vn.iconSpanElement.toolToggleButtonIcon);
 
     //paragraph style
     const paragraphStyleSelect = handler.createElementSelect(
@@ -345,16 +369,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"auto_fix_high"}
     );
     paragraphStyleSelect.setAttribute("title", vn.languageSet[note._attributes.language].styleTooltip);
-    if(vn.iconSpanElement.paragraphStyleSelectIcon && vn.iconSpanElement.paragraphStyleSelectIcon instanceof HTMLSpanElement) {
-        const paragraphStyleSelectIconSpan = vn.iconSpanElement.paragraphStyleSelectIcon!.cloneNode(true) as HTMLSpanElement;
-        paragraphStyleSelectIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!paragraphStyleSelectIconSpan.classList.contains(className)) {
-                paragraphStyleSelectIconSpan.classList.add(className);
-            }
-        })
-        paragraphStyleSelect.replaceChild(paragraphStyleSelectIconSpan, paragraphStyleSelect.firstChild!);
-    }
+    replaceIconIfCustom(paragraphStyleSelect, vn.iconSpanElement.paragraphStyleSelectIcon);
 
     const paragraphStyleSelectBox = handler.createElement(
         "div",
@@ -436,16 +451,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"format_bold"}
     );
     boldButton.setAttribute("title", vn.languageSet[note._attributes.language].boldTooltip);
-    if(vn.iconSpanElement.boldButtonIcon && vn.iconSpanElement.boldButtonIcon instanceof HTMLSpanElement) {
-        const boldButtonIconSpan = vn.iconSpanElement.boldButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        boldButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!boldButtonIconSpan.classList.contains(className)) {
-                boldButtonIconSpan.classList.add(className);
-            }
-        })
-        boldButton.replaceChild(boldButtonIconSpan, boldButton.firstChild!);
-    }
+    replaceIconIfCustom(boldButton, vn.iconSpanElement.boldButtonIcon);
     //under-line
     const underlineButton = handler.createElementButton(
         "span",
@@ -455,16 +461,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"format_underlined"}
     );
     underlineButton.setAttribute("title", vn.languageSet[note._attributes.language].underlineTooltip);
-    if(vn.iconSpanElement.underlineButtonIcon && vn.iconSpanElement.underlineButtonIcon instanceof HTMLSpanElement) {
-        const underlineButtonIconSpan = vn.iconSpanElement.underlineButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        underlineButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!underlineButtonIconSpan.classList.contains(className)) {
-                underlineButtonIconSpan.classList.add(className);
-            }
-        })
-        underlineButton.replaceChild(underlineButtonIconSpan, underlineButton.firstChild!);
-    }
+    replaceIconIfCustom(underlineButton, vn.iconSpanElement.underlineButtonIcon);
     //italic
     const italicButton = handler.createElementButton(
         "span",
@@ -474,16 +471,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"format_italic"}
     );
     italicButton.setAttribute("title", vn.languageSet[note._attributes.language].italicTooltip);
-    if(vn.iconSpanElement.italicButtonIcon && vn.iconSpanElement.italicButtonIcon instanceof HTMLSpanElement) {
-        const italicButtonIconSpan = vn.iconSpanElement.italicButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        italicButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!italicButtonIconSpan.classList.contains(className)) {
-                italicButtonIconSpan.classList.add(className);
-            }
-        })
-        italicButton.replaceChild(italicButtonIconSpan, italicButton.firstChild!);
-    }
+    replaceIconIfCustom(italicButton, vn.iconSpanElement.italicButtonIcon);
     //ul
     const ulButton = handler.createElementButton(
         "span",
@@ -494,16 +482,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
     );
     ulButton.setAttribute("title", vn.languageSet[note._attributes.language].ulTooltip);
     ulButton.setAttribute("data-tag-name","UL");
-    if(vn.iconSpanElement.ulButtonIcon && vn.iconSpanElement.ulButtonIcon instanceof HTMLSpanElement) {
-        const ulButtonIconSpan = vn.iconSpanElement.ulButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        ulButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!ulButtonIconSpan.classList.contains(className)) {
-                ulButtonIconSpan.classList.add(className);
-            }
-        })
-        ulButton.replaceChild(ulButtonIconSpan, ulButton.firstChild!);
-    }
+    replaceIconIfCustom(ulButton, vn.iconSpanElement.ulButtonIcon);
     //ol
     const olButton = handler.createElementButton(
         "span",
@@ -514,16 +493,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
     );
     olButton.setAttribute("title", vn.languageSet[note._attributes.language].olTooltip);
     olButton.setAttribute("data-tag-name","OL");
-    if(vn.iconSpanElement.olButtonIcon && vn.iconSpanElement.olButtonIcon instanceof HTMLSpanElement) {
-        const olButtonIconSpan = vn.iconSpanElement.olButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        olButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!olButtonIconSpan.classList.contains(className)) {
-                olButtonIconSpan.classList.add(className);
-            }
-        })
-        olButton.replaceChild(olButtonIconSpan, olButton.firstChild!);
-    }
+    replaceIconIfCustom(olButton, vn.iconSpanElement.olButtonIcon);
 
     //text-align
     const textAlignSelect = handler.createElementSelect(
@@ -534,16 +504,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"notes"}
     );
     textAlignSelect.setAttribute("title", vn.languageSet[note._attributes.language].textAlignTooltip);
-    if(vn.iconSpanElement.textAlignSelectIcon && vn.iconSpanElement.textAlignSelectIcon instanceof HTMLSpanElement) {
-        const textAlignSelectIconSpan = vn.iconSpanElement.textAlignSelectIcon!.cloneNode(true) as HTMLSpanElement;
-        textAlignSelectIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!textAlignSelectIconSpan.classList.contains(className)) {
-                textAlignSelectIconSpan.classList.add(className);
-            }
-        })
-        textAlignSelect.replaceChild(textAlignSelectIconSpan, textAlignSelect.firstChild!);
-    }
+    replaceIconIfCustom(textAlignSelect, vn.iconSpanElement.textAlignSelectIcon);
     const textAlignSelectBox = handler.createElement(
         "div",
         note,
@@ -559,16 +520,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"format_align_left"}
     );
     textAlignLeftButton.setAttribute("data-tag-style","text-align:left;");
-    if(vn.iconSpanElement.textAlignLeftButtonIcon && vn.iconSpanElement.textAlignLeftButtonIcon instanceof HTMLSpanElement) {
-        const textAlignLeftButtonIconSpan = vn.iconSpanElement.textAlignLeftButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        textAlignLeftButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!textAlignLeftButtonIconSpan.classList.contains(className)) {
-                textAlignLeftButtonIconSpan.classList.add(className);
-            }
-        })
-        textAlignLeftButton.replaceChild(textAlignLeftButtonIconSpan, textAlignLeftButton.firstChild!);
-    }
+    replaceIconIfCustom(textAlignLeftButton, vn.iconSpanElement.textAlignLeftButtonIcon);
     textAlignSelectBox.appendChild(textAlignLeftButton);
     const textAlignCenterButton = handler.createElementButton(
         "span",
@@ -578,16 +530,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"format_align_center"}
     );
     textAlignCenterButton.setAttribute("data-tag-style","text-align:center;");
-    if(vn.iconSpanElement.textAlignCenterButtonIcon && vn.iconSpanElement.textAlignCenterButtonIcon instanceof HTMLSpanElement) {
-        const textAlignCenterButtonIconSpan = vn.iconSpanElement.textAlignCenterButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        textAlignCenterButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!textAlignCenterButtonIconSpan.classList.contains(className)) {
-                textAlignCenterButtonIconSpan.classList.add(className);
-            }
-        })
-        textAlignCenterButton.replaceChild(textAlignCenterButtonIconSpan, textAlignCenterButton.firstChild!);
-    }
+    replaceIconIfCustom(textAlignCenterButton, vn.iconSpanElement.textAlignCenterButtonIcon);
     textAlignSelectBox.appendChild(textAlignCenterButton);
     const textAlignRightButton = handler.createElementButton(
         "span",
@@ -597,16 +540,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"format_align_right"}
     );
     textAlignRightButton.setAttribute("data-tag-style","text-align:right;");
-    if(vn.iconSpanElement.textAlignRightButtonIcon && vn.iconSpanElement.textAlignRightButtonIcon instanceof HTMLSpanElement) {
-        const textAlignRightButtonIconSpan = vn.iconSpanElement.textAlignRightButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        textAlignRightButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!textAlignRightButtonIconSpan.classList.contains(className)) {
-                textAlignRightButtonIconSpan.classList.add(className);
-            }
-        })
-        textAlignRightButton.replaceChild(textAlignRightButtonIconSpan, textAlignRightButton.firstChild!);
-    }
+    replaceIconIfCustom(textAlignRightButton, vn.iconSpanElement.textAlignRightButtonIcon);
     textAlignSelectBox.appendChild(textAlignRightButton);
 
     //att link
@@ -618,16 +552,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"link"}
     );
     attLinkButton.setAttribute("title", vn.languageSet[note._attributes.language].attLinkTooltip);
-    if(vn.iconSpanElement.attLinkButtonIcon && vn.iconSpanElement.attLinkButtonIcon instanceof HTMLSpanElement) {
-        const attLinkButtonIconSpan = vn.iconSpanElement.attLinkButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attLinkButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attLinkButtonIconSpan.classList.contains(className)) {
-                attLinkButtonIconSpan.classList.add(className);
-            }
-        })
-        attLinkButton.replaceChild(attLinkButtonIconSpan, attLinkButton.firstChild!);
-    }
+    replaceIconIfCustom(attLinkButton, vn.iconSpanElement.attLinkButtonIcon);
     //att file
     const attFileButton = handler.createElementButton(
         "span",
@@ -637,16 +562,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"attach_file"}
     );
     attFileButton.setAttribute("title", vn.languageSet[note._attributes.language].attFileTooltip);
-    if(vn.iconSpanElement.attFileButtonIcon && vn.iconSpanElement.attFileButtonIcon instanceof HTMLSpanElement) {
-        const attFileButtonIconSpan = vn.iconSpanElement.attFileButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attFileButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attFileButtonIconSpan.classList.contains(className)) {
-                attFileButtonIconSpan.classList.add(className);
-            }
-        })
-        attFileButton.replaceChild(attFileButtonIconSpan, attFileButton.firstChild!);
-    }
+    replaceIconIfCustom(attFileButton, vn.iconSpanElement.attFileButtonIcon);
     //att image
     const attImageButton = handler.createElementButton(
         "span",
@@ -656,16 +572,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"image"}
     );
     attImageButton.setAttribute("title", vn.languageSet[note._attributes.language].attImageTooltip);
-    if(vn.iconSpanElement.attImageButtonIcon && vn.iconSpanElement.attImageButtonIcon instanceof HTMLSpanElement) {
-        const attImageButtonIconSpan = vn.iconSpanElement.attImageButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageButtonIconSpan.classList.contains(className)) {
-                attImageButtonIconSpan.classList.add(className);
-            }
-        })
-        attImageButton.replaceChild(attImageButtonIconSpan, attImageButton.firstChild!);
-    }
+    replaceIconIfCustom(attImageButton, vn.iconSpanElement.attImageButtonIcon);
     //att video
     const attVideoButton = handler.createElementButton(
         "span",
@@ -675,16 +582,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"videocam"}
     );
     attVideoButton.setAttribute("title", vn.languageSet[note._attributes.language].attVideoTooltip);
-    if(vn.iconSpanElement.attVideoButtonIcon && vn.iconSpanElement.attVideoButtonIcon instanceof HTMLSpanElement) {
-        const attVideoButtonIconSpan = vn.iconSpanElement.attVideoButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attVideoButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attVideoButtonIconSpan.classList.contains(className)) {
-                attVideoButtonIconSpan.classList.add(className);
-            }
-        })
-        attVideoButton.replaceChild(attVideoButtonIconSpan, attVideoButton.firstChild!);
-    }
+    replaceIconIfCustom(attVideoButton, vn.iconSpanElement.attVideoButtonIcon);
     
     //font size
     const fontSizeInputBox = handler.createElementButton(
@@ -694,16 +592,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.fontSizeInputBox.className,
         {"isIcon":true, "text":"format_size"}
     );
-    if(vn.iconSpanElement.fontSizeInputBoxIcon && vn.iconSpanElement.fontSizeInputBoxIcon instanceof HTMLSpanElement) {
-        const fontSizeInputBoxIconSpan = vn.iconSpanElement.fontSizeInputBoxIcon!.cloneNode(true) as HTMLSpanElement;
-        fontSizeInputBoxIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!fontSizeInputBoxIconSpan.classList.contains(className)) {
-                fontSizeInputBoxIconSpan.classList.add(className);
-            }
-        })
-        fontSizeInputBox.replaceChild(fontSizeInputBoxIconSpan, fontSizeInputBox.firstChild!);
-    }
+    replaceIconIfCustom(fontSizeInputBox, vn.iconSpanElement.fontSizeInputBoxIcon);
     const fontSizeInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.fontSizeInput.id,
@@ -725,16 +614,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.letterSpacingInputBox.className,
         {"isIcon":true, "text":"swap_horiz"}
     );
-    if(vn.iconSpanElement.letterSpacingInputBoxIcon && vn.iconSpanElement.letterSpacingInputBoxIcon instanceof HTMLSpanElement) {
-        const letterSpacingInputBoxIconSpan = vn.iconSpanElement.letterSpacingInputBoxIcon!.cloneNode(true) as HTMLSpanElement;
-        letterSpacingInputBoxIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!letterSpacingInputBoxIconSpan.classList.contains(className)) {
-                letterSpacingInputBoxIconSpan.classList.add(className);
-            }
-        })
-        letterSpacingInputBox.replaceChild(letterSpacingInputBoxIconSpan, letterSpacingInputBox.firstChild!);
-    }
+    replaceIconIfCustom(letterSpacingInputBox, vn.iconSpanElement.letterSpacingInputBoxIcon);
     const letterSpacingInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.letterSpacingInput.id,
@@ -756,16 +636,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.lineHeightInputBox.className,
         {"isIcon":true, "text":"height"}
     );
-    if(vn.iconSpanElement.lineHeightInputBoxIcon && vn.iconSpanElement.lineHeightInputBoxIcon instanceof HTMLSpanElement) {
-        const lineHeightInputBoxIconSpan = vn.iconSpanElement.lineHeightInputBoxIcon!.cloneNode(true) as HTMLSpanElement;
-        lineHeightInputBoxIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!lineHeightInputBoxIconSpan.classList.contains(className)) {
-                lineHeightInputBoxIconSpan.classList.add(className);
-            }
-        })
-        lineHeightInputBox.replaceChild(lineHeightInputBoxIconSpan, lineHeightInputBox.firstChild!);
-    }
+    replaceIconIfCustom(lineHeightInputBox, vn.iconSpanElement.lineHeightInputBoxIcon);
     const lineHeightInput = handler.createElementInput(
         note,
         vn.consts.CLASS_NAMES.lineHeightInput.id,
@@ -823,16 +694,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"format_color_text", "iconStyle" : "-webkit-text-stroke: 0.5px black; font-size: 1.1em"}
     );
     colorTextSelect.setAttribute("title",vn.languageSet[note._attributes.language].colorTextTooltip);
-    if(vn.iconSpanElement.colorTextSelectIcon && vn.iconSpanElement.colorTextSelectIcon instanceof HTMLSpanElement) {
-        const colorTextSelectIconSpan = vn.iconSpanElement.colorTextSelectIcon!.cloneNode(true) as HTMLSpanElement;
-        colorTextSelectIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!colorTextSelectIconSpan.classList.contains(className)) {
-                colorTextSelectIconSpan.classList.add(className);
-            }
-        })
-        colorTextSelect.replaceChild(colorTextSelectIconSpan, colorTextSelect.firstChild!);
-    }
+    replaceIconIfCustom(colorTextSelect, vn.iconSpanElement.colorTextSelectIcon);
     const colorTextSelectBox = handler.createElement(
         "div",
         note,
@@ -942,16 +804,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"format_color_fill", "iconStyle" : "font-size: 1.1em; -webkit-text-stroke: 0.5px " + note._colors.color1 + ";"}
     );
     colorBackSelect.setAttribute("title",vn.languageSet[note._attributes.language].colorBackTooltip);
-    if(vn.iconSpanElement.colorBackSelectIcon && vn.iconSpanElement.colorBackSelectIcon instanceof HTMLSpanElement) {
-        const colorBackSelectIconSpan = vn.iconSpanElement.colorBackSelectIcon!.cloneNode(true) as HTMLSpanElement;
-        colorBackSelectIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!colorBackSelectIconSpan.classList.contains(className)) {
-                colorBackSelectIconSpan.classList.add(className);
-            }
-        })
-        colorBackSelect.replaceChild(colorBackSelectIconSpan, colorBackSelect.firstChild!);
-    }
+    replaceIconIfCustom(colorBackSelect, vn.iconSpanElement.colorBackSelectIcon);
     const colorBackSelectBox = handler.createElement(
         "div",
         note,
@@ -1060,16 +913,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"format_clear"}
     );
     formatClearButton.setAttribute("title",vn.languageSet[note._attributes.language].formatClearButtonTooltip);
-    if(vn.iconSpanElement.formatClearButtonIcon && vn.iconSpanElement.formatClearButtonIcon instanceof HTMLSpanElement) {
-        const formatClearButtonIconSpan = vn.iconSpanElement.formatClearButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        formatClearButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!formatClearButtonIconSpan.classList.contains(className)) {
-                formatClearButtonIconSpan.classList.add(className);
-            }
-        })
-        formatClearButton.replaceChild(formatClearButtonIconSpan, formatClearButton.firstChild!);
-    }
+    replaceIconIfCustom(formatClearButton, vn.iconSpanElement.formatClearButtonIcon);
     //undo
     const undoButton = handler.createElementButton(
         "span",
@@ -1079,16 +923,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"undo"}
     );
     undoButton.setAttribute("title",vn.languageSet[note._attributes.language].undoTooltip);
-    if(vn.iconSpanElement.undoButtonIcon && vn.iconSpanElement.undoButtonIcon instanceof HTMLSpanElement) {
-        const undoButtonIconSpan = vn.iconSpanElement.undoButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        undoButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!undoButtonIconSpan.classList.contains(className)) {
-                undoButtonIconSpan.classList.add(className);
-            }
-        })
-        undoButton.replaceChild(undoButtonIconSpan, undoButton.firstChild!);
-    }
+    replaceIconIfCustom(undoButton, vn.iconSpanElement.undoButtonIcon);
     //redo
     const redoButton = handler.createElementButton(
         "span",
@@ -1098,16 +933,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"redo"}
     );
     redoButton.setAttribute("title",vn.languageSet[note._attributes.language].redoTooltip);
-    if(vn.iconSpanElement.redoButtonIcon && vn.iconSpanElement.redoButtonIcon instanceof HTMLSpanElement) {
-        const redoButtonIconSpan = vn.iconSpanElement.redoButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        redoButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!redoButtonIconSpan.classList.contains(className)) {
-                redoButtonIconSpan.classList.add(className);
-            }
-        })
-        redoButton.replaceChild(redoButtonIconSpan, redoButton.firstChild!);
-    }
+    replaceIconIfCustom(redoButton, vn.iconSpanElement.redoButtonIcon);
     //help
     const helpButton = handler.createElementButton(
         "span",
@@ -1117,16 +943,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         {"isIcon":true, "text":"help"}
     );
     helpButton.setAttribute("title",vn.languageSet[note._attributes.language].helpTooltip);
-    if(vn.iconSpanElement.helpButtonIcon && vn.iconSpanElement.helpButtonIcon instanceof HTMLSpanElement) {
-        const helpButtonIconSpan = vn.iconSpanElement.helpButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        helpButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!helpButtonIconSpan.classList.contains(className)) {
-                helpButtonIconSpan.classList.add(className);
-            }
-        })
-        helpButton.replaceChild(helpButtonIconSpan, helpButton.firstChild!);
-    }
+    replaceIconIfCustom(helpButton, vn.iconSpanElement.helpButtonIcon);
 
     //modal
     const modalBack = handler.createElementBasic(
@@ -1221,16 +1038,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.attLinkInsertButton.className,
         {"isIcon":true, "text":"add_link"}
     );
-    if(vn.iconSpanElement.attLinkInsertButtonIcon && vn.iconSpanElement.attLinkInsertButtonIcon instanceof HTMLSpanElement) {
-        const attLinkInsertButtonIconSpan = vn.iconSpanElement.attLinkInsertButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attLinkInsertButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attLinkInsertButtonIconSpan.classList.contains(className)) {
-                attLinkInsertButtonIconSpan.classList.add(className);
-            }
-        })
-        attLinkInsertButton.replaceChild(attLinkInsertButtonIconSpan, attLinkInsertButton.firstChild!);
-    }
+    replaceIconIfCustom(attLinkInsertButton, vn.iconSpanElement.attLinkInsertButtonIcon);
     attModalBox.appendChild(attLinkValidCheckText);
     attModalBox.appendChild(attLinkValidCheckbox);
     attModalBox.appendChild(attLinkInsertButton);
@@ -1325,16 +1133,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.attFileInsertButton.className,
         {"isIcon":true, "text":"attach_file"}
     );
-    if(vn.iconSpanElement.attFileInsertButtonIcon && vn.iconSpanElement.attFileInsertButtonIcon instanceof HTMLSpanElement) {
-        const attFileInsertButtonIconSpan = vn.iconSpanElement.attFileInsertButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attFileInsertButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attFileInsertButtonIconSpan.classList.contains(className)) {
-                attFileInsertButtonIconSpan.classList.add(className);
-            }
-        })
-        attFileInsertButton.replaceChild(attFileInsertButtonIconSpan, attFileInsertButton.firstChild!);
-    }
+    replaceIconIfCustom(attFileInsertButton, vn.iconSpanElement.attFileInsertButtonIcon);
     attFileInsertButtonBox.appendChild(attFileInsertButton);
     attFileModal.appendChild(attFileInsertButtonBox);
 
@@ -1372,16 +1171,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.attImageViewPreButton.className,
         {"isIcon":true, "text":"navigate_before"}
     );
-    if(vn.iconSpanElement.attImageViewPreButtonIcon && vn.iconSpanElement.attImageViewPreButtonIcon instanceof HTMLSpanElement) {
-        const attImageViewPreButtonIconSpan = vn.iconSpanElement.attImageViewPreButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageViewPreButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageViewPreButtonIconSpan.classList.contains(className)) {
-                attImageViewPreButtonIconSpan.classList.add(className);
-            }
-        })
-        attImageViewPreButton.replaceChild(attImageViewPreButtonIconSpan, attImageViewPreButton.firstChild!);
-    }
+    replaceIconIfCustom(attImageViewPreButton, vn.iconSpanElement.attImageViewPreButtonIcon);
     attImageViewPreButton.setAttribute("style","position:absolute;top:50%;transform:translateY(-50%) translateX(1%);");
     attImageUploadButtonAndViewBox.appendChild(attImageViewPreButton);
     const attImageUploadButtonAndView = handler.createElementBasic(
@@ -1411,16 +1201,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.attImageViewNextButton.className,
         {"isIcon":true, "text":"navigate_next"}
     );
-    if(vn.iconSpanElement.attImageViewNextButtonIcon && vn.iconSpanElement.attImageViewNextButtonIcon instanceof HTMLSpanElement) {
-        const attImageViewNextButtonIconSpan = vn.iconSpanElement.attImageViewNextButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageViewNextButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageViewNextButtonIconSpan.classList.contains(className)) {
-                attImageViewNextButtonIconSpan.classList.add(className);
-            }
-        })
-        attImageViewNextButton.replaceChild(attImageViewNextButtonIconSpan, attImageViewNextButton.firstChild!);
-    }
+    replaceIconIfCustom(attImageViewNextButton, vn.iconSpanElement.attImageViewNextButtonIcon);
     attImageViewNextButton.setAttribute("style","position:absolute;top:50%;transform:translateY(-50%) translateX(-101%);");
     attImageUploadButtonAndViewBox.appendChild(attImageViewNextButton);
     attImageModal.appendChild(attImageUploadButtonAndViewBox);
@@ -1464,16 +1245,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.attImageInsertButton.className,
         {"isIcon":true, "text":"image"}
     );
-    if(vn.iconSpanElement.attImageInsertButtonIcon && vn.iconSpanElement.attImageInsertButtonIcon instanceof HTMLSpanElement) {
-        const attImageInsertButtonIconSpan = vn.iconSpanElement.attImageInsertButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageInsertButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageInsertButtonIconSpan.classList.contains(className)) {
-                attImageInsertButtonIconSpan.classList.add(className);
-            }
-        })
-        attImageInsertButton.replaceChild(attImageInsertButtonIconSpan, attImageInsertButton.firstChild!);
-    }
+    replaceIconIfCustom(attImageInsertButton, vn.iconSpanElement.attImageInsertButtonIcon);
     attImageInsertButtonBox.appendChild(attImageInsertButton);
     attImageModal.appendChild(attImageInsertButtonBox);
 
@@ -1524,16 +1296,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         "modal_att_video_icon",
         {"isIcon":true, "text":"width", "iconStyle":"color:" + note._colors.color10}
     );
-    if(vn.iconSpanElement.attVideoWidthTextIcon && vn.iconSpanElement.attVideoWidthTextIcon instanceof HTMLSpanElement) {
-        const attVideoWidthTextIconSpan = vn.iconSpanElement.attVideoWidthTextIcon!.cloneNode(true) as HTMLSpanElement;
-        attVideoWidthTextIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attVideoWidthTextIconSpan.classList.contains(className)) {
-                attVideoWidthTextIconSpan.classList.add(className);
-            }
-        })
-        attVideoWidthText.replaceChild(attVideoWidthTextIconSpan, attVideoWidthText.firstChild!);
-    }
+    replaceIconIfCustom(attVideoWidthText, vn.iconSpanElement.attVideoWidthTextIcon);
     attVideoWidthTextBox.appendChild(attVideoWidthText);
     const attVideoWidth  = handler.createElementInput(
         note,
@@ -1563,16 +1326,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         "modal_att_video_icon",
         {"isIcon":true, "text":"height", "iconStyle":"color:" + note._colors.color10}
     );
-    if(vn.iconSpanElement.attVideoHeightTextIcon && vn.iconSpanElement.attVideoHeightTextIcon instanceof HTMLSpanElement) {
-        const attVideoHeightTextIconSpan = vn.iconSpanElement.attVideoHeightTextIcon!.cloneNode(true) as HTMLSpanElement;
-        attVideoHeightTextIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attVideoHeightTextIconSpan.classList.contains(className)) {
-                attVideoHeightTextIconSpan.classList.add(className);
-            }
-        })
-        attVideoHeightText.replaceChild(attVideoHeightTextIconSpan, attVideoHeightText.firstChild!);
-    }
+    replaceIconIfCustom(attVideoHeightText, vn.iconSpanElement.attVideoHeightTextIcon);
     attVideoHeightTextBox.appendChild(attVideoHeightText);
     const attVideoHeight = handler.createElementInput(
         note,
@@ -1612,16 +1366,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.attVideoInsertButton.className,
         {"isIcon":true, "text":"videocam"}
     );
-    if(vn.iconSpanElement.attVideoInsertButtonIcon && vn.iconSpanElement.attVideoInsertButtonIcon instanceof HTMLSpanElement) {
-        const attVideoInsertButtonIconSpan = vn.iconSpanElement.attVideoInsertButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attVideoInsertButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attVideoInsertButtonIconSpan.classList.contains(className)) {
-                attVideoInsertButtonIconSpan.classList.add(className);
-            }
-        })
-        attVideoInsertButton.replaceChild(attVideoInsertButtonIconSpan, attVideoInsertButton.firstChild!);
-    }
+    replaceIconIfCustom(attVideoInsertButton, vn.iconSpanElement.attVideoInsertButtonIcon);
     const attVideoFooter = handler.createElement(
         "div",
         note,
@@ -1654,16 +1399,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.attLinkTooltipEditButton.className,
         {"isIcon":true, "text":"add_link", "iconStyle":"font-size:0.9em"}
     );
-    if(vn.iconSpanElement.attLinkTooltipEditButtonIcon && vn.iconSpanElement.attLinkTooltipEditButtonIcon instanceof HTMLSpanElement) {
-        const attLinkTooltipEditButtonIconSpan = vn.iconSpanElement.attLinkTooltipEditButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attLinkTooltipEditButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attLinkTooltipEditButtonIconSpan.classList.contains(className)) {
-                attLinkTooltipEditButtonIconSpan.classList.add(className);
-            }
-        })
-        attLinkTooltipEditButton.replaceChild(attLinkTooltipEditButtonIconSpan, attLinkTooltipEditButton.firstChild!);
-    }
+    replaceIconIfCustom(attLinkTooltipEditButton, vn.iconSpanElement.attLinkTooltipEditButtonIcon);
     const attLinkTooltipUnlinkButton = handler.createElementButton(
         "span",
         note,
@@ -1671,16 +1407,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         vn.consts.CLASS_NAMES.attLinkTooltipUnlinkButton.className,
         {"isIcon":true, "text":"link_off", "iconStyle":"font-size:0.9em"}
     );
-    if(vn.iconSpanElement.attLinkTooltipUnlinkButtonIcon && vn.iconSpanElement.attLinkTooltipUnlinkButtonIcon instanceof HTMLSpanElement) {
-        const attLinkTooltipUnlinkButtonIconSpan = vn.iconSpanElement.attLinkTooltipUnlinkButtonIcon!.cloneNode(true) as HTMLSpanElement;
-        attLinkTooltipUnlinkButtonIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attLinkTooltipUnlinkButtonIconSpan.classList.contains(className)) {
-                attLinkTooltipUnlinkButtonIconSpan.classList.add(className);
-            }
-        })
-        attLinkTooltipUnlinkButton.replaceChild(attLinkTooltipUnlinkButtonIconSpan, attLinkTooltipUnlinkButton.firstChild!);
-    }
+    replaceIconIfCustom(attLinkTooltipUnlinkButton, vn.iconSpanElement.attLinkTooltipUnlinkButtonIcon);
     attLinkTooltip.appendChild(attLinkTooltipEditButton);
     attLinkTooltip.appendChild(attLinkTooltipUnlinkButton);
     attLinkTooltip.appendChild(attLinkTooltipHref);
@@ -1732,16 +1459,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioNone.id),
         "close"
     );
-    if(vn.iconSpanElement.attImageAndVideoTooltipFloatRadioNoneLabelIcon && vn.iconSpanElement.attImageAndVideoTooltipFloatRadioNoneLabelIcon instanceof HTMLSpanElement) {
-        const attImageAndVideoTooltipFloatRadioNoneLabelIconSpan = vn.iconSpanElement.attImageAndVideoTooltipFloatRadioNoneLabelIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageAndVideoTooltipFloatRadioNoneLabelIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageAndVideoTooltipFloatRadioNoneLabelIconSpan.classList.contains(className)) {
-                attImageAndVideoTooltipFloatRadioNoneLabelIconSpan.classList.add(className);
-            }
-        })
-        attImageAndVideoTooltipFloatRadioNoneLabel.replaceChild(attImageAndVideoTooltipFloatRadioNoneLabelIconSpan, attImageAndVideoTooltipFloatRadioNoneLabel.firstChild!);
-    }
+    replaceIconIfCustom(attImageAndVideoTooltipFloatRadioNoneLabel, vn.iconSpanElement.attImageAndVideoTooltipFloatRadioNoneLabelIcon);
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioNoneLabel);
     const attImageAndVideoTooltipFloatRadioLeft = handler.createElementInputRadio(
         note,
@@ -1755,16 +1473,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioLeft.id),
         "art_track"
     );
-    if(vn.iconSpanElement.attImageAndVideoTooltipFloatRadioLeftLabelIcon && vn.iconSpanElement.attImageAndVideoTooltipFloatRadioLeftLabelIcon instanceof HTMLSpanElement) {
-        const attImageAndVideoTooltipFloatRadioLeftLabelIconSpan = vn.iconSpanElement.attImageAndVideoTooltipFloatRadioLeftLabelIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageAndVideoTooltipFloatRadioLeftLabelIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageAndVideoTooltipFloatRadioLeftLabelIconSpan.classList.contains(className)) {
-                attImageAndVideoTooltipFloatRadioLeftLabelIconSpan.classList.add(className);
-            }
-        })
-        attImageAndVideoTooltipFloatRadioLeftLabel.replaceChild(attImageAndVideoTooltipFloatRadioLeftLabelIconSpan, attImageAndVideoTooltipFloatRadioLeftLabel.firstChild!);
-    }
+    replaceIconIfCustom(attImageAndVideoTooltipFloatRadioLeftLabel, vn.iconSpanElement.attImageAndVideoTooltipFloatRadioLeftLabelIcon);
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioLeftLabel);
     const attImageAndVideoTooltipFloatRadioRight = handler.createElementInputRadio(
         note,
@@ -1778,16 +1487,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipFloatRadioRight.id),
         "burst_mode"
     );
-    if(vn.iconSpanElement.attImageAndVideoTooltipFloatRadioRightLabelIcon && vn.iconSpanElement.attImageAndVideoTooltipFloatRadioRightLabelIcon instanceof HTMLSpanElement) {
-        const attImageAndVideoTooltipFloatRadioRightLabelIconSpan = vn.iconSpanElement.attImageAndVideoTooltipFloatRadioRightLabelIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageAndVideoTooltipFloatRadioRightLabelIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageAndVideoTooltipFloatRadioRightLabelIconSpan.classList.contains(className)) {
-                attImageAndVideoTooltipFloatRadioRightLabelIconSpan.classList.add(className);
-            }
-        })
-        attImageAndVideoTooltipFloatRadioRightLabel.replaceChild(attImageAndVideoTooltipFloatRadioRightLabelIconSpan, attImageAndVideoTooltipFloatRadioRightLabel.firstChild!);
-    }
+    replaceIconIfCustom(attImageAndVideoTooltipFloatRadioRightLabel, vn.iconSpanElement.attImageAndVideoTooltipFloatRadioRightLabelIcon);
     attImageAndVideoTooltipWidthAndFloatBox.appendChild(attImageAndVideoTooltipFloatRadioRightLabel);
     attImageAndVideoTooltip.appendChild(attImageAndVideoTooltipWidthAndFloatBox);
     const attImageAndVideoTooltipShapeBox = document.createElement("div");
@@ -1807,16 +1507,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioSquare.id),
         "crop_5_4"
     );
-    if(vn.iconSpanElement.attImageAndVideoTooltipShapeRadioSquareLabelIcon && vn.iconSpanElement.attImageAndVideoTooltipShapeRadioSquareLabelIcon instanceof HTMLSpanElement) {
-        const attImageAndVideoTooltipShapeRadioSquareLabelIconSpan = vn.iconSpanElement.attImageAndVideoTooltipShapeRadioSquareLabelIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageAndVideoTooltipShapeRadioSquareLabelIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageAndVideoTooltipShapeRadioSquareLabelIconSpan.classList.contains(className)) {
-                attImageAndVideoTooltipShapeRadioSquareLabelIconSpan.classList.add(className);
-            }
-        })
-        attImageAndVideoTooltipShapeRadioSquareLabel.replaceChild(attImageAndVideoTooltipShapeRadioSquareLabelIconSpan, attImageAndVideoTooltipShapeRadioSquareLabel.firstChild!);
-    }
+    replaceIconIfCustom(attImageAndVideoTooltipShapeRadioSquareLabel, vn.iconSpanElement.attImageAndVideoTooltipShapeRadioSquareLabelIcon);
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioSquareLabel);
     const attImageAndVideoTooltipShapeRadioRadius = handler.createElementInputRadio(
         note,
@@ -1830,16 +1521,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioRadius.id),
         "aspect_ratio"
     );
-    if(vn.iconSpanElement.attImageAndVideoTooltipShapeRadioRadiusLabelIcon && vn.iconSpanElement.attImageAndVideoTooltipShapeRadioRadiusLabelIcon instanceof HTMLSpanElement) {
-        const attImageAndVideoTooltipShapeRadioRadiusLabelIconSpan = vn.iconSpanElement.attImageAndVideoTooltipShapeRadioRadiusLabelIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageAndVideoTooltipShapeRadioRadiusLabelIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageAndVideoTooltipShapeRadioRadiusLabelIconSpan.classList.contains(className)) {
-                attImageAndVideoTooltipShapeRadioRadiusLabelIconSpan.classList.add(className);
-            }
-        })
-        attImageAndVideoTooltipShapeRadioRadiusLabel.replaceChild(attImageAndVideoTooltipShapeRadioRadiusLabelIconSpan, attImageAndVideoTooltipShapeRadioRadiusLabel.firstChild!);
-    }
+    replaceIconIfCustom(attImageAndVideoTooltipShapeRadioRadiusLabel, vn.iconSpanElement.attImageAndVideoTooltipShapeRadioRadiusLabelIcon);
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioRadiusLabel);
     const attImageAndVideoTooltipShapeRadioCircle = handler.createElementInputRadio(
         note,
@@ -1853,16 +1535,7 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
         getId(note._noteName, note.id, vn.consts.CLASS_NAMES.attImageAndVideoTooltipShapeRadioCircle.id),
         "circle"
     );
-    if(vn.iconSpanElement.attImageAndVideoTooltipShapeRadioCircleLabelIcon && vn.iconSpanElement.attImageAndVideoTooltipShapeRadioCircleLabelIcon instanceof HTMLSpanElement) {
-        const attImageAndVideoTooltipShapeRadioCircleLabelIconSpan = vn.iconSpanElement.attImageAndVideoTooltipShapeRadioCircleLabelIcon!.cloneNode(true) as HTMLSpanElement;
-        attImageAndVideoTooltipShapeRadioCircleLabelIconSpan.setAttribute("data-note-id", note._id);
-        iconClassList.forEach((className) => {
-            if (!attImageAndVideoTooltipShapeRadioCircleLabelIconSpan.classList.contains(className)) {
-                attImageAndVideoTooltipShapeRadioCircleLabelIconSpan.classList.add(className);
-            }
-        })
-        attImageAndVideoTooltipShapeRadioCircleLabel.replaceChild(attImageAndVideoTooltipShapeRadioCircleLabelIconSpan, attImageAndVideoTooltipShapeRadioCircleLabel.firstChild!);
-    }
+    replaceIconIfCustom(attImageAndVideoTooltipShapeRadioCircleLabel, vn.iconSpanElement.attImageAndVideoTooltipShapeRadioCircleLabelIcon);
     attImageAndVideoTooltipShapeBox.appendChild(attImageAndVideoTooltipShapeRadioCircleLabel);
     attImageAndVideoTooltip.appendChild(attImageAndVideoTooltipShapeBox);
 
@@ -2181,8 +1854,9 @@ const setNoteElement = (vn: Vanillanote, handler: Handler, note: VanillanoteElem
 const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttributes => {
     //속성 정리
     //note mode by device
-    let noteModeByDevice = note.getAttribute("note-mode-by-device") && ["ADAPTIVE", "MOBILE", "DESKTOP"].indexOf(note.getAttribute("note-mode-by-device")!)
-     ? note.getAttribute("note-mode-by-device")!.toUpperCase() as NoteModeByDevice : vn.attributes.noteModeByDevice;
+    const noteModeByDeviceAttr = note.getAttribute("note-mode-by-device") ? note.getAttribute("note-mode-by-device")!.toUpperCase() : null;
+    let noteModeByDevice = noteModeByDeviceAttr && ["ADAPTIVE", "MOBILE", "DESKTOP"].indexOf(noteModeByDeviceAttr) >= 0
+     ? noteModeByDeviceAttr as NoteModeByDevice : vn.attributes.noteModeByDevice;
     //현재 디바이스가 모바일인지 한번 더 체크
     const isNoteByMobile = noteModeByDevice === "MOBILE" ? true
          : noteModeByDevice === "DESKTOP" ? false
@@ -2218,7 +1892,8 @@ const getNoteAttribute = (vn: Vanillanote, note: VanillanoteElement): NoteAttrib
     let attImageMaxSize = checkNumber(note.getAttribute("att-image-max-size")) ? Number(note.getAttribute("att-image-max-size")) : vn.attributes.attImageMaxSize;
 
     //font style(font family)
-    let defaultFontFamilies = vn.attributes.defaultFontFamilies;
+    // Copy the array so that per-note font additions/removals never mutate the global default list.
+    let defaultFontFamilies = [...vn.attributes.defaultFontFamilies];
     let addFontFamilies = note.getAttribute("add-font-family") ? note.getAttribute("add-font-family")!.split(",") : [];
     let removeFontFamilies = note.getAttribute("remove-font-family") ? note.getAttribute("remove-font-family")!.split(",") : [];
     //add font

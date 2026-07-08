@@ -108,14 +108,16 @@ export const setHandleHandleSelection = (vn: Vanillanote, handler: Handler) => {
                                                     note._selection.editRange.endContainer : note._selection.editRange.endContainer.parentNode;
         
         // If the start element is a unit element, find the deepest child unit element.
-        if(vn.consts.UNIT_TAG.indexOf((note._selection.editStartElement as any).tagName) > 0) {
-            while(vn.consts.UNIT_TAG.indexOf((note._selection.editStartElement as any).tagName) > 0) {
+        if(vn.consts.UNIT_TAG.indexOf((note._selection.editStartElement as any).tagName) >= 0) {
+            while(note._selection.editStartElement && vn.consts.UNIT_TAG.indexOf((note._selection.editStartElement as any).tagName) >= 0) {
+                if(!(note._selection.editStartElement as any).firstChild) break;
                 note._selection.editStartElement = (note._selection.editStartElement as any).firstChild;
             }
         }
         // If the end element is a unit element, find the deepest child unit element.
-        if(vn.consts.UNIT_TAG.indexOf((note._selection.editEndElement as any).tagName) > 0) {
-            while(vn.consts.UNIT_TAG.indexOf((note._selection.editEndElement as any).tagName) > 0) {
+        if(vn.consts.UNIT_TAG.indexOf((note._selection.editEndElement as any).tagName) >= 0) {
+            while(note._selection.editEndElement && vn.consts.UNIT_TAG.indexOf((note._selection.editEndElement as any).tagName) >= 0) {
+                if(!(note._selection.editEndElement as any).lastChild) break;
                 note._selection.editEndElement = (note._selection.editEndElement as any).lastChild;
             }
         }
@@ -539,8 +541,10 @@ export const setHandleHandleSelection = (vn: Vanillanote, handler: Handler) => {
             }
             catch (err){}
             
-            // Retrieve the edit point.
-            const newSelectElements = document.getElementsByClassName(note._noteName + "-point");
+            // Retrieve the edit point. (Search only within this note's textarea so that
+            // multiple notes on one page or leftover markers can never be picked up.)
+            const newSelectElements = note._elements.textarea.querySelectorAll("." + note._noteName + "-point");
+            if(newSelectElements.length <= 0) return;
             const newSelectElement = newSelectElements[0];
             
             if(cssText) {
@@ -553,6 +557,7 @@ export const setHandleHandleSelection = (vn: Vanillanote, handler: Handler) => {
                 newSelectElements[i].removeAttribute("class");	
             }
             // Sets the new selection range.
+            if(!newSelectElement.firstChild) return;
             handler.setNewSelection((newSelectElement.firstChild as any), 0, (newSelectElement.firstChild as any), (newSelectElement.firstChild as any).length);
         }
         else {

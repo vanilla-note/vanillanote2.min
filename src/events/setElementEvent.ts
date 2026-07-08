@@ -3,6 +3,125 @@ import type { Handler } from "../types/handler";
 import { checkHex, checkNumber, checkRealNumber, getClassName, getCssTextFromObject, getEventChildrenClassName, getHexColorFromColorName, getId, getParentNote, getRGBAFromHex, getUUID, isMobileDevice } from "../utils/util";
 
 export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
+    /* ==================================================================================
+     * Common handlers/factories for repeated toolbar events (v1.1.1 refactoring).
+     * Public event keys (vn.events.elementEvents.*) are kept identical — only the
+     * duplicated function bodies were unified.
+     * ================================================================================== */
+    // styleNomal / styleHeader1~6 : change the unit tag of selected elements
+    const paragraphStyleListButton_onClick = (e: any) => {
+        const note = getParentNote(e.target);
+        if(!note) return;
+        // If a child element is selected, event is controlled
+        let target = e.target;
+        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
+            target = target.parentNode;
+        }
+        // Changing the tag
+        handler.modifySelectedUnitElementTag(target, note);
+        //변경사항 기록
+        handler.recodeNote(note);
+        handler.selectToggle(target, note);
+    };
+    // textAlignLeft / Center / Right : change the text-align style of selected unit elements
+    const textAlignListButton_onClick = (e: any) => {
+        const note = getParentNote(e.target);
+        if(!note) return;
+        // If a child element is selected, event is controlled
+        let target = e.target;
+        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
+            target = target.parentNode;
+        }
+        // Changing the text-align
+        handler.modifySelectedUnitElementStyle(target, note);
+        handler.selectToggle(target, note);
+        //변경사항 기록
+        handler.recodeNote(note);
+    };
+    // bold / underline / italic : toggle character style
+    const createStyleToggleButton_onClick = (toggleKey: "boldToggle" | "underlineToggle" | "italicToggle", buttonKey: "boldButton" | "underlineButton" | "italicButton") => (e: any) => {
+        const note = getParentNote(e.target);
+        if(!note) return;
+        (note._status as any)[toggleKey] = !(note._status as any)[toggleKey];
+        if(!isMobileDevice()) {
+            handler.button_onToggle((note._elements as any)[buttonKey], (note._status as any)[toggleKey]);
+        }
+        // If the selection is a single point
+        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
+            // Re-move to the original selection point
+            handler.setOriginEditSelection(note);
+        }
+        else {	// Dragging
+            // Specify style for dragged characters
+            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
+            //변경사항 기록
+            handler.recodeNote(note);
+        }
+    };
+    // colorText1~7 / colorBack1~7 : apply a preset color.
+    // Note: the note-level palette(note._colors) is used so that per-note main-color settings match the button colors.
+    const createColorPaletteButton_onClick = (colorType: "Text" | "Back", colorKey: "color14" | "color15" | "color16" | "color17" | "color18" | "color19" | "color20") => (e: any) => {
+        const note = getParentNote(e.target);
+        if(!note) return;
+        if(colorType === "Text") {
+            note._status.colorTextRGB = getHexColorFromColorName((note._colors as any)[colorKey]);
+            note._status.colorTextOpacity = "1";
+        }
+        else {
+            note._status.colorBackRGB = getHexColorFromColorName((note._colors as any)[colorKey]);
+            note._status.colorBackOpacity = "1";
+        }
+        if(!isMobileDevice()) {
+            const select: any = colorType === "Text" ? note._elements.colorTextSelect : note._elements.colorBackSelect;
+            select.querySelector("."+getEventChildrenClassName(note._noteName)).style.color
+                = colorType === "Text"
+                    ? getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity)
+                    : getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
+        }
+        // If the selection is a single point
+        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
+            // Re-move to the original selection point
+            handler.setOriginEditSelection(note);
+        }
+        else {	// Dragging
+            // Specify style for dragged characters
+            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
+            //변경사항 기록
+            handler.recodeNote(note);
+        }
+    };
+    // colorText/colorBack R/G/B hex inputs
+    const createColorHexInput_onInput = (statusKey: string, colorType: "Text" | "Back") => (e: any) => {
+        if(!e.target.value) return;
+        let inputValue = e.target.value;
+        const note = getParentNote(e.target);
+        if(!note) return;
+        if(!checkHex(inputValue)) {
+            inputValue = (note._status as any)[statusKey];
+            e.target.value = inputValue;
+            return;
+        }
+        if(inputValue.length !== 2) return;
+        (note._status as any)[statusKey] = inputValue;
+        if(colorType === "Text") {
+            note._elements.colorText0.style.backgroundColor = "#" + note._status.colorTextR +  note._status.colorTextG +  note._status.colorTextB;
+        }
+        else {
+            note._elements.colorBack0.style.backgroundColor = "#" + note._status.colorBackR +  note._status.colorBackG +  note._status.colorBackB;
+        }
+    };
+    const createColorHexInput_onBlur = (statusKey: string) => (e: any) => {
+        const value = e.target.value;
+        const note = getParentNote(e.target);
+        if(!note) return;
+        if(!checkHex(value)) {
+            e.target.value = (note._status as any)[statusKey];
+            return;
+        }
+        if(value.length !== 2) {
+            e.target.value = (note._status as any)[statusKey];
+        }
+    };
     //toolToggleButton event
     vn.events.elementEvents.toolToggleButton_onClick = (e: any) => {
         const note = getParentNote(e.target);
@@ -45,189 +164,38 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
 
     //==================================================================================
     //styleNomal event
-    vn.events.elementEvents.styleNomal_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the tag
-        handler.modifySelectedUnitElementTag(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-        handler.selectToggle(target, note);
-    };
+    vn.events.elementEvents.styleNomal_onClick = paragraphStyleListButton_onClick;
 
     //==================================================================================
     //styleHeader1 event
-    vn.events.elementEvents.styleHeader1_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the tag
-        handler.modifySelectedUnitElementTag(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-        handler.selectToggle(target, note);
-    };
+    vn.events.elementEvents.styleHeader1_onClick = paragraphStyleListButton_onClick;
     //==================================================================================
     //styleHeader2 event
-    vn.events.elementEvents.styleHeader2_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the tag
-        handler.modifySelectedUnitElementTag(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-        handler.selectToggle(target, note);
-    };
+    vn.events.elementEvents.styleHeader2_onClick = paragraphStyleListButton_onClick;
     //==================================================================================
     //styleHeader3 event
-    vn.events.elementEvents.styleHeader3_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the tag
-        handler.modifySelectedUnitElementTag(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-        handler.selectToggle(target, note);
-    };
+    vn.events.elementEvents.styleHeader3_onClick = paragraphStyleListButton_onClick;
     //==================================================================================
     //styleHeader4 event
-    vn.events.elementEvents.styleHeader4_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the tag
-        handler.modifySelectedUnitElementTag(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-        handler.selectToggle(target, note);
-    };
+    vn.events.elementEvents.styleHeader4_onClick = paragraphStyleListButton_onClick;
     //==================================================================================
     //styleHeader5 event
-    vn.events.elementEvents.styleHeader5_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the tag
-        handler.modifySelectedUnitElementTag(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-        handler.selectToggle(target, note);
-    };
+    vn.events.elementEvents.styleHeader5_onClick = paragraphStyleListButton_onClick;
     //==================================================================================
     //styleHeader6 event
-    vn.events.elementEvents.styleHeader6_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the tag
-        handler.modifySelectedUnitElementTag(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-        handler.selectToggle(target, note);
-    };
+    vn.events.elementEvents.styleHeader6_onClick = paragraphStyleListButton_onClick;
 
     //==================================================================================
     //boldButton event
-    vn.events.elementEvents.boldButton_onClick = (e: any) => {
-        // Toggle the button
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.boldToggle = !note._status.boldToggle;
-        if(!isMobileDevice()) {
-            handler.button_onToggle(note._elements.boldButton, note._status.boldToggle);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.boldButton_onClick = createStyleToggleButton_onClick("boldToggle", "boldButton");
 
     //==================================================================================
     //underlineButton event
-    vn.events.elementEvents.underlineButton_onClick = (e: any) => {
-        // Toggle the button
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.underlineToggle = !note._status.underlineToggle;
-        if(!isMobileDevice()) {
-            handler.button_onToggle(note._elements.underlineButton, note._status.underlineToggle);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.underlineButton_onClick = createStyleToggleButton_onClick("underlineToggle", "underlineButton");
 
     //==================================================================================
     //italic
-    vn.events.elementEvents.italicButton_onClick = (e: any) => {
-        // Toggle the button
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.italicToggle = !note._status.italicToggle;
-        if(!isMobileDevice()) {
-            handler.button_onToggle(note._elements.italicButton, note._status.italicToggle);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.italicButton_onClick = createStyleToggleButton_onClick("italicToggle", "italicButton");
 
     //==================================================================================
     //ul
@@ -276,54 +244,15 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
 
     //==================================================================================
     //text-align-left
-    vn.events.elementEvents.textAlignLeft_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the text-align
-        handler.modifySelectedUnitElementStyle(target, note);
-        handler.selectToggle(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-    };
+    vn.events.elementEvents.textAlignLeft_onClick = textAlignListButton_onClick;
 
     //==================================================================================
     //text-align-center
-    vn.events.elementEvents.textAlignCenter_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the text-align
-        handler.modifySelectedUnitElementStyle(target, note);
-        handler.selectToggle(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-    };
+    vn.events.elementEvents.textAlignCenter_onClick = textAlignListButton_onClick;
 
     //==================================================================================
     //text-align-right
-    vn.events.elementEvents.textAlignRight_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        // If a child element is selected, event is controlled
-        let target = e.target;
-        if(target.classList.contains(getEventChildrenClassName(note._noteName))) {
-            target = target.parentNode;
-        }
-        // Changing the text-align
-        handler.modifySelectedUnitElementStyle(target, note);
-        handler.selectToggle(target, note);
-        //변경사항 기록
-        handler.recodeNote(note);
-    };
+    vn.events.elementEvents.textAlignRight_onClick = textAlignListButton_onClick;
 
     //==================================================================================
     //att link
@@ -567,18 +496,15 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         if(!handler.isValidSelection(note)) {
             handler.closeAllModal(note);
             return;
-            note
         }
         if(!note._selection.editStartUnitElement) {
             handler.closeAllModal(note);
             return;
-            note
         }
         const keys = Object.keys(note._attTempFiles!);
         if(keys.length <= 0) {
             handler.closeAllModal(note);
             return;
-            note
         }
         const editStartUnitElements: any = note._selection.editStartUnitElement;
         let tempEl1;
@@ -735,18 +661,15 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         If there is no range:
             Reset attTempImages, attImageUploadButtonAndView, attImageURL and close modal
         */
-        let isChange = false;
         const note = getParentNote(e.target);
         if(!note) return;
         if(!handler.isValidSelection(note)) {
             handler.closeAllModal(note);
             return;
-            note
         }
         if(!note._selection.editStartUnitElement) {
             handler.closeAllModal(note);
             return;
-            note
         }
         if((note._elements.attImageURL as any).value) {
             const url = (note._elements.attImageURL as any).value;
@@ -771,7 +694,7 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
             editStartUnitElements.parentNode.insertBefore(tempEl1, editStartUnitElements.nextSibling);
             handler.closeAllModal(note);
             //변경사항 기록
-            isChange = true;
+            handler.recodeNote(note);
             // Sets the new selection range.
             handler.setNewSelection(
                 tempEl1,
@@ -816,7 +739,7 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
             }
             handler.closeAllModal(note);
             //변경사항 기록
-            isChange = true;
+            handler.recodeNote(note);
             // Sets the new selection range.
             handler.setNewSelection(
                 selectEl,
@@ -828,7 +751,6 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         }
 
         //변경사항 기록
-        if(isChange) handler.recodeNote(note);
         handler.closeAllModal(note);
         return;
     };
@@ -920,7 +842,6 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         if(!handler.isValidSelection(note)) {
             handler.closeAllModal(note);
             return;
-            note
         }
         const attVideoValidCheckbox: any = note._elements.attVideoValidCheckbox;
         if(!attVideoValidCheckbox.checked) {
@@ -930,7 +851,6 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         if(!note._selection.editStartUnitElement) {
             handler.closeAllModal(note);
             return;
-            note
         }
 
         if((note._elements.attVideoEmbedId as any).value) {
@@ -1251,90 +1171,18 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
     //colorText R Input event
     vn.events.elementEvents.colorTextRInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorTextRInput_onInput = (e: any) => {
-        if(!e.target.value) return;
-        let inputValue = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(inputValue)) {
-            inputValue = note._status.colorTextR;
-            e.target.value = inputValue;
-            return;
-        }
-        if(inputValue.length !== 2) return;
-        note._status.colorTextR = inputValue;
-        note._elements.colorText0.style.backgroundColor = "#" + note._status.colorTextR +  note._status.colorTextG +  note._status.colorTextB;
-    };
-    vn.events.elementEvents.colorTextRInput_onBlur = (e: any) => {
-        const value = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(value)) {
-            e.target.value = note._status.colorTextR;
-            return;
-        }
-        if(value.length !== 2) {
-            e.target.value = note._status.colorTextR;
-        }
-    };
+    vn.events.elementEvents.colorTextRInput_onInput = createColorHexInput_onInput("colorTextR", "Text");
+    vn.events.elementEvents.colorTextRInput_onBlur = createColorHexInput_onBlur("colorTextR");
     //colorText G Input event
     vn.events.elementEvents.colorTextGInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorTextGInput_onInput = (e: any) => {
-        if(!e.target.value) return;
-        let inputValue = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(inputValue)) {
-            inputValue = note._status.colorTextG;
-            e.target.value = inputValue;
-            return;
-        }
-        if(inputValue.length !== 2) return;
-        note._status.colorTextG = inputValue;
-        note._elements.colorText0.style.backgroundColor = "#" + note._status.colorTextR +  note._status.colorTextG +  note._status.colorTextB;
-    };
-    vn.events.elementEvents.colorTextGInput_onBlur = (e: any) => {
-        const value = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(value)) {
-            e.target.value = note._status.colorTextG;
-            return;
-        }
-        if(value.length !== 2) {
-            e.target.value = note._status.colorTextG;
-        }
-    };
+    vn.events.elementEvents.colorTextGInput_onInput = createColorHexInput_onInput("colorTextG", "Text");
+    vn.events.elementEvents.colorTextGInput_onBlur = createColorHexInput_onBlur("colorTextG");
     //colorText B Input event
     vn.events.elementEvents.colorTextBInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorTextBInput_onInput = (e: any) => {
-        if(!e.target.value) return;
-        let inputValue = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(inputValue)) {
-            inputValue = note._status.colorTextB;
-            e.target.value = inputValue;
-            return;
-        }
-        if(inputValue.length !== 2) return;
-        note._status.colorTextB = inputValue;
-        note._elements.colorText0.style.backgroundColor = "#" + note._status.colorTextR +  note._status.colorTextG +  note._status.colorTextB;
-    };
-    vn.events.elementEvents.colorTextBInput_onBlur = (e: any) => {
-        const value = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(value)) {
-            e.target.value = note._status.colorTextB;
-            return;
-        }
-        if(value.length !== 2) {
-            e.target.value = note._status.colorTextB;
-        }
-    };
+    vn.events.elementEvents.colorTextBInput_onInput = createColorHexInput_onInput("colorTextB", "Text");
+    vn.events.elementEvents.colorTextBInput_onBlur = createColorHexInput_onBlur("colorTextB");
     //colorText Opacity Input event
     vn.events.elementEvents.colorTextOpacityInput_onClick = (e: any) => {
     };
@@ -1397,166 +1245,19 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         }
     };
     //colorText1 event
-    vn.events.elementEvents.colorText1_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color14);
-        note._status.colorTextOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorText1_onClick = createColorPaletteButton_onClick("Text", "color14");
     //colorText2 event
-    vn.events.elementEvents.colorText2_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color15);
-        note._status.colorTextOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorText2_onClick = createColorPaletteButton_onClick("Text", "color15");
     //colorText3 event
-    vn.events.elementEvents.colorText3_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color16);
-        note._status.colorTextOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorText3_onClick = createColorPaletteButton_onClick("Text", "color16");
     //colorText4 event
-    vn.events.elementEvents.colorText4_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color17);
-        note._status.colorTextOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorText4_onClick = createColorPaletteButton_onClick("Text", "color17");
     //colorText5 event
-    vn.events.elementEvents.colorText5_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color18);
-        note._status.colorTextOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorText5_onClick = createColorPaletteButton_onClick("Text", "color18");
     //colorText6 event
-    vn.events.elementEvents.colorText6_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color19);
-        note._status.colorTextOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorText6_onClick = createColorPaletteButton_onClick("Text", "color19");
     //colorText7 event
-    vn.events.elementEvents.colorText7_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorTextRGB = getHexColorFromColorName(vn.colors.color20);
-        note._status.colorTextOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorTextSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorTextRGB, note._status.colorTextOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorText7_onClick = createColorPaletteButton_onClick("Text", "color20");
 
     //==================================================================================
     //color background select
@@ -1575,90 +1276,18 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
     //colorBack R Input event
     vn.events.elementEvents.colorBackRInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorBackRInput_onInput = (e: any) => {
-        if(!e.target.value) return;
-        let inputValue = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(inputValue)) {
-            inputValue = note._status.colorBackR;
-            e.target.value = inputValue;
-            return;
-        }
-        if(inputValue.length !== 2) return;
-        note._status.colorBackR = inputValue;
-        note._elements.colorBack0.style.backgroundColor = "#" + note._status.colorBackR +  note._status.colorBackG +  note._status.colorBackB;
-    };
-    vn.events.elementEvents.colorBackRInput_onBlur = (e: any) => {
-        const value = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(value)) {
-            e.target.value = note._status.colorBackR;
-            return;
-        }
-        if(value.length !== 2) {
-            e.target.value = note._status.colorBackR;
-        }
-    };
+    vn.events.elementEvents.colorBackRInput_onInput = createColorHexInput_onInput("colorBackR", "Back");
+    vn.events.elementEvents.colorBackRInput_onBlur = createColorHexInput_onBlur("colorBackR");
     //colorBack G Input event
     vn.events.elementEvents.colorBackGInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorBackGInput_onInput = (e: any) => {
-        if(!e.target.value) return;
-        let inputValue = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(inputValue)) {
-            inputValue = note._status.colorBackG;
-            e.target.value = inputValue;
-            return;
-        }
-        if(inputValue.length !== 2) return;
-        note._status.colorBackG = inputValue;
-        note._elements.colorBack0.style.backgroundColor = "#" + note._status.colorBackR +  note._status.colorBackG +  note._status.colorBackB;
-    };
-    vn.events.elementEvents.colorBackGInput_onBlur = (e: any) => {
-        const value = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(value)) {
-            e.target.value = note._status.colorBackG;
-            return;
-        }
-        if(value.length !== 2) {
-            e.target.value = note._status.colorBackG;
-        }
-    };
+    vn.events.elementEvents.colorBackGInput_onInput = createColorHexInput_onInput("colorBackG", "Back");
+    vn.events.elementEvents.colorBackGInput_onBlur = createColorHexInput_onBlur("colorBackG");
     //colorBack B Input event
     vn.events.elementEvents.colorBackBInput_onClick = (e: any) => {
     };
-    vn.events.elementEvents.colorBackBInput_onInput = (e: any) => {
-        if(!e.target.value) return;
-        let inputValue = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(inputValue)) {
-            inputValue = note._status.colorBackB;
-            e.target.value = inputValue;
-            return;
-        }
-        if(inputValue.length !== 2) return;
-        note._status.colorBackB = inputValue;
-        note._elements.colorBack0.style.backgroundColor = "#" + note._status.colorBackR +  note._status.colorBackG +  note._status.colorBackB;
-    };
-    vn.events.elementEvents.colorBackBInput_onBlur = (e: any) => {
-        const value = e.target.value;
-        const note = getParentNote(e.target);
-        if(!note) return;
-        if(!checkHex(value)) {
-            e.target.value = note._status.colorBackB;
-            return;
-        }
-        if(value.length !== 2) {
-            e.target.value = note._status.colorBackB;
-        }
-    };
+    vn.events.elementEvents.colorBackBInput_onInput = createColorHexInput_onInput("colorBackB", "Back");
+    vn.events.elementEvents.colorBackBInput_onBlur = createColorHexInput_onBlur("colorBackB");
     //colorBack Opacity Input event
     vn.events.elementEvents.colorBackOpacityInput_onClick = (e: any) => {
     };
@@ -1721,166 +1350,19 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         }
     };
     //colorBack1 event
-    vn.events.elementEvents.colorBack1_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color14);
-        note._status.colorBackOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorBack1_onClick = createColorPaletteButton_onClick("Back", "color14");
     //colorBack2 event
-    vn.events.elementEvents.colorBack2_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color15);
-        note._status.colorBackOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorBack2_onClick = createColorPaletteButton_onClick("Back", "color15");
     //colorBack3 event
-    vn.events.elementEvents.colorBack3_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color16);
-        note._status.colorBackOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorBack3_onClick = createColorPaletteButton_onClick("Back", "color16");
     //colorBack4 event
-    vn.events.elementEvents.colorBack4_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color17);
-        note._status.colorBackOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorBack4_onClick = createColorPaletteButton_onClick("Back", "color17");
     //colorBack5 event
-    vn.events.elementEvents.colorBack5_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color18);
-        note._status.colorBackOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorBack5_onClick = createColorPaletteButton_onClick("Back", "color18");
     //colorBack6 event
-    vn.events.elementEvents.colorBack6_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color19);
-        note._status.colorBackOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorBack6_onClick = createColorPaletteButton_onClick("Back", "color19");
     //colorBack7 event
-    vn.events.elementEvents.colorBack7_onClick = (e: any) => {
-        const note = getParentNote(e.target);
-        if(!note) return;
-        note._status.colorBackRGB = getHexColorFromColorName(vn.colors.color20);
-        note._status.colorBackOpacity = "1";
-        if(!isMobileDevice()) {
-            (note._elements.colorBackSelect as any).querySelector("."+getEventChildrenClassName(note._noteName)).style.color
-                = getRGBAFromHex(note._status.colorBackRGB, note._status.colorBackOpacity);
-        }
-        
-        // If the selection is a single point
-        if(note._selection.editRange && (note._selection.editRange as any).collapsed) {
-            // Re-move to the original selection point
-            handler.setOriginEditSelection(note);
-        }
-        else {	// Dragging
-            // Specify style for dragged characters
-            handler.modifySelectedSingleElement(note, handler.getObjectNoteCss(note));
-            //변경사항 기록
-            handler.recodeNote(note);
-        }
-    };
+    vn.events.elementEvents.colorBack7_onClick = createColorPaletteButton_onClick("Back", "color20");
 
     //==================================================================================
     //formatClearButton
@@ -1912,8 +1394,8 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         if(!note && vn) note = vn.vanillanoteElements[vn.variables.lastActiveNoteId];
         if(!note) return;
         // Disconnect the observer.
-        vn.events.documentEvents.noteObserver!.disconnect();
         if(note._recodes.recodeCount <= 0) return;
+        vn.events.documentEvents.noteObserver!.disconnect();
         note._recodes.recodeCount = note._recodes.recodeCount - 1;
         handler.replaceDifferentBetweenElements(vn, note._elements.textarea, note._recodes.recodeNotes[note._recodes.recodeCount]);
         
@@ -1928,8 +1410,8 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
         if(!note && vn) note = vn.vanillanoteElements[vn.variables.lastActiveNoteId];
         if(!note) return;
         // Disconnect the observer.
-        vn.events.documentEvents.noteObserver!.disconnect();
         if(note._recodes.recodeCount >= note._recodes.recodeNotes.length - 1) return;
+        vn.events.documentEvents.noteObserver!.disconnect();
         note._recodes.recodeCount = note._recodes.recodeCount + 1;
         handler.replaceDifferentBetweenElements(vn, note._elements.textarea, note._recodes.recodeNotes[note._recodes.recodeCount]);
         
@@ -2047,7 +1529,7 @@ export const setElementEvents = (vn: Vanillanote, handler: Handler) => {
     };
     vn.events.elementEvents.textarea_onBeforeinput = (e: any) => {
         // Only proceeds for non-mobile devices && when inputting possible characters
-        if (!isMobileDevice() && e.data) {
+        if (!isMobileDevice() && e.data && !e.isComposing) {
             // Disconnect the observer.
             vn.events.documentEvents.noteObserver!.disconnect();
             handler.textarea_onBeforeinputSpelling(e);
